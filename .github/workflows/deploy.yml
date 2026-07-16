@@ -88,35 +88,27 @@ jobs:
 
             mkdir -p certbot/conf certbot/www
 
+            CERTBOT_EMAIL="$(grep -E '^CERTBOT_EMAIL=' .env | cut -d= -f2- || true)"
+            CERTBOT_EMAIL="${CERTBOT_EMAIL:-admin@data-on.site}"
+
             if [ ! -f certbot/conf/renewal/data-on.site.conf ]; then
               docker compose stop web >/dev/null 2>&1 || true
 
-              mkdir -p certbot/conf/live/data-on.site
-              docker run --rm \
-                -v "$APP_DIR/certbot/conf:/etc/letsencrypt" \
-                alpine/openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
-                -keyout /etc/letsencrypt/live/data-on.site/privkey.pem \
-                -out /etc/letsencrypt/live/data-on.site/fullchain.pem \
-                -subj "/CN=data-on.site"
-
-              docker compose up -d web
-
-              rm -rf \
-                certbot/conf/live/data-on.site \
-                certbot/conf/archive/data-on.site \
-                certbot/conf/renewal/data-on.site.conf
-
-              CERTBOT_EMAIL="$(grep -E '^CERTBOT_EMAIL=' .env | cut -d= -f2- || true)"
-              CERTBOT_EMAIL="${CERTBOT_EMAIL:-admin@data-on.site}"
-
-              docker compose run --rm --entrypoint certbot certbot certonly \
-                --webroot \
-                --webroot-path /var/www/certbot \
+              docker compose run --rm certbot certonly \
+                --standalone \
+                --preferred-challenges tls-alpn-01 \
                 --email "$CERTBOT_EMAIL" \
                 --agree-tos \
                 --no-eff-email \
                 -d data-on.site \
                 -d www.data-on.site
+            else
+              docker compose stop web >/dev/null 2>&1 || true
+
+              docker compose run --rm certbot renew \
+                --standalone \
+                --preferred-challenges tls-alpn-01 \
+                --quiet
             fi
 
             docker compose up -d

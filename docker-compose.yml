@@ -17,12 +17,13 @@ services:
   certbot:
     image: certbot/certbot
     container_name: hyeyum-certbot
+    profiles:
+      - certbot
+    network_mode: host
     volumes:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
-    entrypoint: /bin/sh
-    command: -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"
-    restart: unless-stopped
+    entrypoint: certbot
 
 networks:
   hyeyum-network:
