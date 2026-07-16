@@ -96,7 +96,7 @@ jobs:
 
               docker compose run --rm certbot certonly \
                 --standalone \
-                --preferred-challenges tls-alpn-01 \
+                --preferred-challenges tls-alpn \
                 --email "$CERTBOT_EMAIL" \
                 --agree-tos \
                 --no-eff-email \
@@ -107,7 +107,7 @@ jobs:
 
               docker compose run --rm certbot renew \
                 --standalone \
-                --preferred-challenges tls-alpn-01 \
+                --preferred-challenges tls-alpn \
                 --quiet
             fi
 
