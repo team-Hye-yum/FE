@@ -1,0 +1,123 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Prepare app directory
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            set -e
+
+            APP_DIR="$HOME/fe"
+            REPO_URL="https://github.com/${{ github.repository }}.git"
+
+            mkdir -p "$APP_DIR"
+
+            if [ ! -d "$APP_DIR/.git" ]; then
+              git clone "$REPO_URL" "$APP_DIR"
+            fi
+
+      - name: Update source
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            set -e
+
+            APP_DIR="$HOME/fe"
+            cd "$APP_DIR"
+
+            git fetch origin main
+            git reset --hard origin/main
+
+      - name: Prepare environment file
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            set -e
+
+            APP_DIR="$HOME/fe"
+            cd "$APP_DIR"
+
+            if [ ! -f .env ]; then
+              cp .env.example .env
+            fi
+
+      - name: Build application
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            set -e
+
+            APP_DIR="$HOME/fe"
+            cd "$APP_DIR"
+
+            docker network create hyeyum-network >/dev/null 2>&1 || true
+            docker compose build
+
+      - name: Deploy container
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            set -e
+
+            APP_DIR="$HOME/fe"
+            cd "$APP_DIR"
+
+            mkdir -p certbot/conf certbot/www
+
+            if [ ! -f certbot/conf/renewal/data-on.site.conf ]; then
+              docker compose stop web >/dev/null 2>&1 || true
+
+              mkdir -p certbot/conf/live/data-on.site
+              docker run --rm \
+                -v "$APP_DIR/certbot/conf:/etc/letsencrypt" \
+                alpine/openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
+                -keyout /etc/letsencrypt/live/data-on.site/privkey.pem \
+                -out /etc/letsencrypt/live/data-on.site/fullchain.pem \
+                -subj "/CN=data-on.site"
+
+              docker compose up -d web
+
+              rm -rf \
+                certbot/conf/live/data-on.site \
+                certbot/conf/archive/data-on.site \
+                certbot/conf/renewal/data-on.site.conf
+
+              CERTBOT_EMAIL="$(grep -E '^CERTBOT_EMAIL=' .env | cut -d= -f2- || true)"
+              CERTBOT_EMAIL="${CERTBOT_EMAIL:-admin@data-on.site}"
+
+              docker compose run --rm --entrypoint certbot certbot certonly \
+                --webroot \
+                --webroot-path /var/www/certbot \
+                --email "$CERTBOT_EMAIL" \
+                --agree-tos \
+                --no-eff-email \
+                -d data-on.site \
+                -d www.data-on.site
+            fi
+
+            docker compose up -d
+            docker compose exec -T web nginx -s reload
