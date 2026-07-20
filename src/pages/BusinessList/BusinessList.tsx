@@ -1,5 +1,6 @@
 import type { ChangeEvent } from "react";
 import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 type TabKey = "companies" | "uploads";
 type UploadStatus = { type: "idle" | "loading" | "success" | "error"; message: string };
@@ -181,6 +182,12 @@ const Sidebar = ({
 };
 
 const CompanyTable = () => {
+  const navigate = useNavigate();
+
+  const handleCompanyClick = (companyId: string) => {
+    navigate(`/?${new URLSearchParams({ companyId })}`);
+  };
+
   return (
     <section className="min-w-0 flex-1 rounded-[10px] bg-white px-[30px] py-[36px]">
       <h1 className="text-2xl font-medium">2023년 지역기업 성장사다리 지원사업 — B1_311</h1>
@@ -224,8 +231,11 @@ const CompanyTable = () => {
           <tbody>
             {companies.map((company, index) => (
               <tr
-                className={`h-11 ${index % 2 === 0 ? "bg-gray-50" : "bg-white"}`}
+                className={`h-11 cursor-pointer transition hover:bg-blue-50 ${
+                  index % 2 === 0 ? "bg-gray-50" : "bg-white"
+                }`}
                 key={`${company.companyId}-${index}`}
+                onClick={() => handleCompanyClick(company.companyId)}
               >
                 <td
                   className={`sticky left-0 z-10 whitespace-nowrap px-4 text-center ${

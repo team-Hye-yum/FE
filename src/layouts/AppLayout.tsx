@@ -23,18 +23,21 @@ const apiUrl = (path: string) => {
 };
 
 const AppLayout = ({ children }: AppLayoutProps) => {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const [searchKeyword, setSearchKeyword] = useState("");
   const [searchStatus, setSearchStatus] = useState<SearchStatus>({ type: "idle", message: "" });
   const searchAbortControllerRef = useRef<AbortController | null>(null);
   const canSearchSupportPrograms = pathname === "/business-list";
+  const shouldShowSearch = pathname !== "/btp-solution";
   const searchPlaceholder = pathname === "/" ? "기업 일련번호" : "사업명";
 
   useEffect(() => {
-    setSearchKeyword("");
+    const companyId = new URLSearchParams(search).get("companyId");
+
+    setSearchKeyword(pathname === "/" && companyId ? companyId : "");
     setSearchStatus({ type: "idle", message: "" });
     searchAbortControllerRef.current?.abort();
-  }, [pathname]);
+  }, [pathname, search]);
 
   useEffect(() => {
     const trimmedKeyword = searchKeyword.trim();
@@ -97,33 +100,37 @@ const AppLayout = ({ children }: AppLayoutProps) => {
             <img alt="Data On" className="h-9 w-[123px]" src="/logo.svg" />
           </NavLink>
 
-          <div className="relative w-[464px] max-w-full">
-            <label className="flex h-12 items-center gap-5 rounded-[35px] border-2 border-[#51a2ff] bg-white px-5">
-              <svg
-                aria-hidden="true"
-                className="h-6 w-6 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="m22.3 23.7-6-6a10 10 0 1 1 1.4-1.4l6 6a1 1 0 0 1-1.4 1.4ZM10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"
-                  fill="#51A2FF"
+          {shouldShowSearch && (
+            <div className="relative w-[464px] max-w-full">
+              <label className="flex h-12 items-center gap-5 rounded-[35px] border-2 border-[#51a2ff] bg-white px-5">
+                <svg
+                  aria-hidden="true"
+                  className="h-6 w-6 shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="m22.3 23.7-6-6a10 10 0 1 1 1.4-1.4l6 6a1 1 0 0 1-1.4 1.4ZM10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"
+                    fill="#51A2FF"
+                  />
+                </svg>
+                <input
+                  className="h-full min-w-0 flex-1 bg-transparent text-lg font-medium text-[#333] outline-none placeholder:text-[#999]"
+                  onChange={handleSearchChange}
+                  placeholder={searchPlaceholder}
+                  type="search"
+                  value={searchKeyword}
                 />
-              </svg>
-              <input
-                className="h-full min-w-0 flex-1 bg-transparent text-lg font-medium text-[#333] outline-none placeholder:text-[#999]"
-                onChange={handleSearchChange}
-                placeholder={searchPlaceholder}
-                type="search"
-                value={searchKeyword}
-              />
-            </label>
-            {searchStatus.message && (
-              <p className={`absolute left-5 top-[52px] text-xs font-medium ${searchStatusClassName}`}>
-                {searchStatus.message}
-              </p>
-            )}
-          </div>
+              </label>
+              {searchStatus.message && (
+                <p
+                  className={`absolute left-5 top-[52px] text-xs font-medium ${searchStatusClassName}`}
+                >
+                  {searchStatus.message}
+                </p>
+              )}
+            </div>
+          )}
 
           <nav className="flex shrink-0 items-center gap-6 text-lg text-[#333]">
             {navItems.map((item) => (
