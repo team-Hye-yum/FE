@@ -96,19 +96,19 @@ type SupportProgramCompaniesLoadedEvent = CustomEvent<{
 }>;
 
 const fallbackCompanies: CompanyRow[] = Array.from({ length: 7 }, () => ({
-  companyId: "117",
-  region: "부산",
-  foundedAt: "2010-02-02",
-  industry: "그 외 기타 일반목적용 기계 제조업",
-  products: "고액분리기, 탈수기, 액비설비 외",
-  sales: "1,562,783",
-  employees: "9",
-  ipCount: "27",
-  ntisCount: "7",
-  supportCount: "9",
-  supportAmount: "103,687",
-  debtRatio: "323.43%",
-  salesGrowthRate: "-1.38%",
+  companyId: "샘플-001",
+  region: "샘플 지역",
+  foundedAt: "2020",
+  industry: "샘플 업종",
+  products: "샘플 주요제품",
+  sales: "0",
+  employees: "0",
+  ipCount: "0",
+  ntisCount: "0",
+  supportCount: "0",
+  supportAmount: "0",
+  debtRatio: "0%",
+  salesGrowthRate: "0%",
 }));
 
 const menuItems: Array<{ key: TabKey; label: string }> = [
@@ -654,7 +654,7 @@ const BusinessList = () => {
   const [activeTab, setActiveTab] = useState<TabKey>("companies");
   const [companies, setCompanies] = useState<CompanyRow[]>(fallbackCompanies);
   const [supportProgramCode, setSupportProgramCode] = useState("");
-  const [title, setTitle] = useState("2023년 지역기업 성장사다리 지원사업");
+  const [title, setTitle] = useState("샘플 지원사업 기업 목록");
 
   useEffect(() => {
     const handleCompaniesLoaded = (event: Event) => {
