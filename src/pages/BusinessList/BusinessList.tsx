@@ -1,5 +1,5 @@
 import type { ChangeEvent } from "react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 type TabKey = "companies" | "uploads";
@@ -44,7 +44,60 @@ type CompanyTemplateImportResponse = {
   errors: string[];
 };
 
-const companies = Array.from({ length: 7 }, () => ({
+type CompanyRow = {
+  companyId: string;
+  region: string;
+  foundedAt: string;
+  industry: string;
+  products: string;
+  sales: string;
+  employees: string;
+  ipCount: string;
+  ntisCount: string;
+  supportCount: string;
+  supportAmount: string;
+  debtRatio: string;
+  salesGrowthRate: string;
+};
+
+type SupportProgramSearchItem = {
+  code: string;
+  programYear: number;
+  budgetProgramName: string;
+};
+
+type MoneyAmount = {
+  value: number | null;
+  unit: string;
+};
+
+type YearlyMoneyAmount = MoneyAmount & {
+  year: number | null;
+};
+
+type SupportProgramCompanyItem = {
+  companyId: number | null;
+  companyName: string | null;
+  region: string | null;
+  establishedYear: number | null;
+  industryName: string | null;
+  mainProduct: string | null;
+  latestSalesAmount: YearlyMoneyAmount | null;
+  latestEmployeeCount: number | null;
+  registeredPatentCount: number | null;
+  ntisProjectCount: number | null;
+  supportCount: number | null;
+  cumulativeSupportAmount: MoneyAmount | null;
+  debtRatio: number | null;
+  salesGrowthRate: number | null;
+};
+
+type SupportProgramCompaniesLoadedEvent = CustomEvent<{
+  companies: SupportProgramCompanyItem[];
+  supportProgram: SupportProgramSearchItem;
+}>;
+
+const fallbackCompanies: CompanyRow[] = Array.from({ length: 7 }, () => ({
   companyId: "117",
   region: "부산",
   foundedAt: "2010-02-02",
@@ -56,6 +109,8 @@ const companies = Array.from({ length: 7 }, () => ({
   ntisCount: "7",
   supportCount: "9",
   supportAmount: "103,687",
+  debtRatio: "323.43%",
+  salesGrowthRate: "-1.38%",
 }));
 
 const menuItems: Array<{ key: TabKey; label: string }> = [
@@ -64,9 +119,34 @@ const menuItems: Array<{ key: TabKey; label: string }> = [
 ];
 
 const apiUrl = (path: string) => {
-  const baseUrl = import.meta.env.VITE_API_URL || "/api";
+  const baseUrl = import.meta.env.API_URL || import.meta.env.VITE_API_URL || "/api";
   return `${baseUrl.replace(/\/$/, "")}${path}`;
 };
+
+const formatNullable = (value: string | number | null | undefined) =>
+  value === null || value === undefined || value === "" ? "-" : String(value);
+
+const formatNumber = (value: number | null | undefined) =>
+  value === null || value === undefined ? "-" : value.toLocaleString();
+
+const formatPercent = (value: number | null | undefined) =>
+  value === null || value === undefined ? "-" : `${value}%`;
+
+const mapCompanyItem = (item: SupportProgramCompanyItem): CompanyRow => ({
+  companyId: formatNullable(item.companyId),
+  region: formatNullable(item.region),
+  foundedAt: formatNullable(item.establishedYear),
+  industry: formatNullable(item.industryName),
+  products: formatNullable(item.mainProduct),
+  sales: formatNumber(item.latestSalesAmount?.value),
+  employees: formatNumber(item.latestEmployeeCount),
+  ipCount: formatNumber(item.registeredPatentCount),
+  ntisCount: formatNumber(item.ntisProjectCount),
+  supportCount: formatNumber(item.supportCount),
+  supportAmount: formatNumber(item.cumulativeSupportAmount?.value),
+  debtRatio: formatPercent(item.debtRatio),
+  salesGrowthRate: formatPercent(item.salesGrowthRate),
+});
 
 const fileNameWithoutExtension = (fileName: string) => fileName.replace(/\.[^/.]+$/, "");
 
@@ -181,21 +261,54 @@ const Sidebar = ({
   );
 };
 
-const CompanyTable = () => {
+const CompanyTable = ({
+  companies,
+  supportProgramCode,
+  title,
+}: {
+  companies: CompanyRow[];
+  supportProgramCode: string;
+  title: string;
+}) => {
   const navigate = useNavigate();
 
   const handleCompanyClick = (companyId: string) => {
     navigate(`/?${new URLSearchParams({ companyId })}`);
   };
 
+  const handleCompanyListExcelDownload = async () => {
+    const trimmedCode = supportProgramCode.trim();
+
+    if (!trimmedCode) {
+      alert("사업을 먼저 선택해주세요.");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        apiUrl(`/support-programs/${encodeURIComponent(trimmedCode)}/companies/excel`),
+      );
+
+      if (!response.ok) {
+        throw new Error(`엑셀 파일 다운로드에 실패했습니다. (${response.status})`);
+      }
+
+      const blob = await response.blob();
+      downloadBlob(blob, responseFileName(response, `support-program-companies-${trimmedCode}.xlsx`));
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "엑셀 파일 다운로드에 실패했습니다.");
+    }
+  };
+
   return (
     <section className="min-w-0 flex-1 rounded-[10px] bg-white px-[30px] py-[36px]">
-      <h1 className="text-2xl font-medium">2023년 지역기업 성장사다리 지원사업 — B1_311</h1>
+      <h1 className="text-2xl font-medium">{title}</h1>
 
       <div className="mt-[48px] flex items-center justify-between gap-6">
         <h2 className="text-lg font-medium">기업 목록</h2>
         <button
           className="flex h-10 shrink-0 items-center gap-2 rounded-[10px] bg-[#107c41] px-4 text-base font-medium text-white"
+          onClick={handleCompanyListExcelDownload}
           type="button"
         >
           <FileIcon className="h-5 w-5" />
@@ -226,6 +339,8 @@ const CompanyTable = () => {
               <th className="whitespace-nowrap px-4 text-right font-normal">
                 누적 지원금(천원)
               </th>
+              <th className="whitespace-nowrap px-4 text-right font-normal">부채 비율</th>
+              <th className="whitespace-nowrap px-4 text-right font-normal">매출 성장성</th>
             </tr>
           </thead>
           <tbody>
@@ -254,6 +369,8 @@ const CompanyTable = () => {
                 <td className="whitespace-nowrap px-4 text-right">{company.ntisCount}</td>
                 <td className="whitespace-nowrap px-4 text-right">{company.supportCount}</td>
                 <td className="whitespace-nowrap px-4 text-right">{company.supportAmount}</td>
+                <td className="whitespace-nowrap px-4 text-right">{company.debtRatio}</td>
+                <td className="whitespace-nowrap px-4 text-right">{company.salesGrowthRate}</td>
               </tr>
             ))}
           </tbody>
@@ -465,11 +582,37 @@ const UploadPanel = () => {
 
 const BusinessList = () => {
   const [activeTab, setActiveTab] = useState<TabKey>("companies");
+  const [companies, setCompanies] = useState<CompanyRow[]>(fallbackCompanies);
+  const [supportProgramCode, setSupportProgramCode] = useState("");
+  const [title, setTitle] = useState("2023년 지역기업 성장사다리 지원사업");
+
+  useEffect(() => {
+    const handleCompaniesLoaded = (event: Event) => {
+      const { companies: loadedCompanies, supportProgram } = (
+        event as SupportProgramCompaniesLoadedEvent
+      ).detail;
+
+      setCompanies(loadedCompanies.map(mapCompanyItem));
+      setSupportProgramCode(supportProgram.code);
+      setTitle(`${supportProgram.programYear} ${supportProgram.budgetProgramName} — ${supportProgram.code}`);
+      setActiveTab("companies");
+    };
+
+    window.addEventListener("support-program-companies-loaded", handleCompaniesLoaded);
+
+    return () => {
+      window.removeEventListener("support-program-companies-loaded", handleCompaniesLoaded);
+    };
+  }, []);
 
   return (
     <main className="flex gap-6 px-6 py-12">
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-      {activeTab === "companies" ? <CompanyTable /> : <UploadPanel />}
+      {activeTab === "companies" ? (
+        <CompanyTable companies={companies} supportProgramCode={supportProgramCode} title={title} />
+      ) : (
+        <UploadPanel />
+      )}
     </main>
   );
 };
