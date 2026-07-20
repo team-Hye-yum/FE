@@ -1,0 +1,467 @@
+import type { ChangeEvent } from "react";
+import { useRef, useState } from "react";
+
+type TabKey = "companies" | "uploads";
+type UploadStatus = { type: "idle" | "loading" | "success" | "error"; message: string };
+
+type ApiDataResponse<T> = {
+  data: T;
+};
+
+type SupportProgramPeriod = {
+  startDate: string | null;
+  endDate: string | null;
+};
+
+type SupportProgramAnalysisPayload = {
+  programYear: number | null;
+  budgetProgramName: string | null;
+  programCategory: string | null;
+  supportType: string | null;
+  period: SupportProgramPeriod | null;
+  departmentName: string | null;
+  localGovernmentName: string | null;
+  programSummary: string | null;
+};
+
+type SupportProgramAnnouncementAnalysisResponse = {
+  extractedTextPreview: string;
+  analysis: SupportProgramAnalysisPayload;
+};
+
+type SupportProgramSaveResponse = {
+  supportProgramCode: string;
+  created: boolean;
+};
+
+type CompanyTemplateImportResponse = {
+  importedRows: number;
+  createdCompanies: number;
+  updatedCompanies: number;
+  supportHistoryRows: number;
+  metricUpdatedCompanies: number;
+  errors: string[];
+};
+
+const companies = Array.from({ length: 7 }, () => ({
+  companyId: "117",
+  region: "부산",
+  foundedAt: "2010-02-02",
+  industry: "그 외 기타 일반목적용 기계 제조업",
+  products: "고액분리기, 탈수기, 액비설비 외",
+  sales: "1,562,783",
+  employees: "9",
+  ipCount: "27",
+  ntisCount: "7",
+  supportCount: "9",
+  supportAmount: "103,687",
+}));
+
+const menuItems: Array<{ key: TabKey; label: string }> = [
+  { key: "companies", label: "기업 목록" },
+  { key: "uploads", label: "사업 공고 및 기업 목록 등록" },
+];
+
+const apiUrl = (path: string) => {
+  const baseUrl = import.meta.env.VITE_API_URL || "/api";
+  return `${baseUrl.replace(/\/$/, "")}${path}`;
+};
+
+const fileNameWithoutExtension = (fileName: string) => fileName.replace(/\.[^/.]+$/, "");
+
+const supportProgramCodeFromFileName = (fileName: string) => {
+  const code = fileNameWithoutExtension(fileName)
+    .toUpperCase()
+    .replace(/[^A-Z0-9_-]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 20);
+
+  return code || `PROGRAM_${Date.now().toString().slice(-8)}`;
+};
+
+const responseFileName = (response: Response, fallbackFileName: string) => {
+  const disposition = response.headers.get("content-disposition");
+  const utf8FileName = disposition?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+  const asciiFileName = disposition?.match(/filename="?([^";]+)"?/i)?.[1];
+
+  if (utf8FileName) {
+    return decodeURIComponent(utf8FileName);
+  }
+
+  return asciiFileName || fallbackFileName;
+};
+
+const downloadBlob = (blob: Blob, fileName: string) => {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
+const requestJson = async <T,>(url: string, init?: RequestInit) => {
+  const response = await fetch(url, init);
+
+  if (!response.ok) {
+    throw new Error(`API 요청에 실패했습니다. (${response.status})`);
+  }
+
+  return (await response.json()) as ApiDataResponse<T>;
+};
+
+const UploadIcon = ({ className = "" }: { className?: string }) => (
+  <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+    <path
+      d="M12 19V2m0 0 5 5m-5-5-5 5M4 16v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+    />
+  </svg>
+);
+
+const DownloadIcon = ({ className = "" }: { className?: string }) => (
+  <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+    <path
+      d="M12 3v16m0 0 5-5m-5 5-5-5M4 17v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+    />
+  </svg>
+);
+
+const FileIcon = ({ className = "" }: { className?: string }) => (
+  <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+    <path
+      d="M14 2H7a3 3 0 0 0-3 3v14a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V8m-6-6 6 6m-6-6v6h6M8 13h8M8 17h5"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+    />
+  </svg>
+);
+
+const Sidebar = ({
+  activeTab,
+  onTabChange,
+}: {
+  activeTab: TabKey;
+  onTabChange: (tab: TabKey) => void;
+}) => {
+  return (
+    <aside className="h-[145px] w-[314px] shrink-0 rounded-[10px] bg-white px-[30px] py-[31px]">
+      <div className="flex flex-col gap-[5px]">
+        {menuItems.map((item) => {
+          const isActive = activeTab === item.key;
+
+          return (
+            <button
+              className={`h-10 rounded-[5px] px-3 text-left text-base font-medium ${
+                isActive ? "bg-blue-50 text-[#2b7fff]" : "text-[#666]"
+              }`}
+              key={item.key}
+              onClick={() => onTabChange(item.key)}
+              type="button"
+            >
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
+    </aside>
+  );
+};
+
+const CompanyTable = () => {
+  return (
+    <section className="min-w-0 flex-1 rounded-[10px] bg-white px-[30px] py-[36px]">
+      <h1 className="text-2xl font-medium">2023년 지역기업 성장사다리 지원사업 — B1_311</h1>
+
+      <div className="mt-[48px] flex items-center justify-between gap-6">
+        <h2 className="text-lg font-medium">기업 목록</h2>
+        <button
+          className="flex h-10 shrink-0 items-center gap-2 rounded-[10px] bg-[#107c41] px-4 text-base font-medium text-white"
+          type="button"
+        >
+          <FileIcon className="h-5 w-5" />
+          엑셀 파일로 내보내기
+        </button>
+      </div>
+
+      <div className="mt-7 overflow-x-auto pb-3">
+        <table className="min-w-[1447px] border-collapse text-left text-base">
+          <thead>
+            <tr className="h-11 bg-white">
+              <th className="sticky left-0 z-20 whitespace-nowrap bg-white px-4 font-normal">
+                기업일련번호
+              </th>
+              <th className="whitespace-nowrap px-4 font-normal">지역</th>
+              <th className="whitespace-nowrap px-4 font-normal">설립일자</th>
+              <th className="whitespace-nowrap px-4 font-normal">업종</th>
+              <th className="whitespace-nowrap px-4 font-normal">주요제품</th>
+              <th className="whitespace-nowrap px-4 text-right font-normal">
+                최근 매출(천원)
+              </th>
+              <th className="whitespace-nowrap px-4 text-right font-normal">종업원 수</th>
+              <th className="whitespace-nowrap px-4 text-right font-normal">지적재산권</th>
+              <th className="whitespace-nowrap px-4 text-right font-normal">
+                NTIS 수행건수
+              </th>
+              <th className="whitespace-nowrap px-4 text-right font-normal">지원 횟수</th>
+              <th className="whitespace-nowrap px-4 text-right font-normal">
+                누적 지원금(천원)
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {companies.map((company, index) => (
+              <tr
+                className={`h-11 ${index % 2 === 0 ? "bg-gray-50" : "bg-white"}`}
+                key={`${company.companyId}-${index}`}
+              >
+                <td
+                  className={`sticky left-0 z-10 whitespace-nowrap px-4 text-center ${
+                    index % 2 === 0 ? "bg-gray-50" : "bg-white"
+                  }`}
+                >
+                  {company.companyId}
+                </td>
+                <td className="whitespace-nowrap px-4">{company.region}</td>
+                <td className="whitespace-nowrap px-4">{company.foundedAt}</td>
+                <td className="whitespace-nowrap px-4">{company.industry}</td>
+                <td className="whitespace-nowrap px-4">{company.products}</td>
+                <td className="whitespace-nowrap px-4 text-right">{company.sales}</td>
+                <td className="whitespace-nowrap px-4 text-right">{company.employees}</td>
+                <td className="whitespace-nowrap px-4 text-right">{company.ipCount}</td>
+                <td className="whitespace-nowrap px-4 text-right">{company.ntisCount}</td>
+                <td className="whitespace-nowrap px-4 text-right">{company.supportCount}</td>
+                <td className="whitespace-nowrap px-4 text-right">{company.supportAmount}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+};
+
+const UploadPanel = () => {
+  const announcementInputRef = useRef<HTMLInputElement | null>(null);
+  const companyTemplateInputRef = useRef<HTMLInputElement | null>(null);
+  const [announcementStatus, setAnnouncementStatus] = useState<UploadStatus>({
+    type: "idle",
+    message: "",
+  });
+  const [templateStatus, setTemplateStatus] = useState<UploadStatus>({
+    type: "idle",
+    message: "",
+  });
+
+  const handleAnnouncementFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    setAnnouncementStatus({ type: "loading", message: "PDF 분석 및 저장 중입니다." });
+
+    try {
+      const formData = new FormData();
+      formData.append("announcementPdf", file);
+
+      const analysisResponse = await requestJson<SupportProgramAnnouncementAnalysisResponse>(
+        apiUrl("/support-programs/announcement-analysis"),
+        {
+          body: formData,
+          method: "POST",
+        },
+      );
+      const analysis = analysisResponse.data.analysis;
+
+      if (!analysis.programYear || !analysis.budgetProgramName) {
+        throw new Error("PDF 분석 결과에 필수 사업 정보가 없습니다.");
+      }
+
+      const saveResponse = await requestJson<SupportProgramSaveResponse>(
+        apiUrl("/support-programs"),
+        {
+          body: JSON.stringify({
+            ...analysis,
+            code: supportProgramCodeFromFileName(file.name),
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
+        },
+      );
+
+      setAnnouncementStatus({
+        type: "success",
+        message: `저장 완료: ${saveResponse.data.supportProgramCode}`,
+      });
+    } catch (error) {
+      setAnnouncementStatus({
+        type: "error",
+        message: error instanceof Error ? error.message : "PDF 업로드에 실패했습니다.",
+      });
+    }
+  };
+
+  const handleCompanyTemplateDownload = async () => {
+    setTemplateStatus({ type: "loading", message: "템플릿을 다운로드하는 중입니다." });
+
+    try {
+      const response = await fetch(apiUrl("/support-programs/company-template"));
+
+      if (!response.ok) {
+        throw new Error(`템플릿 다운로드에 실패했습니다. (${response.status})`);
+      }
+
+      const blob = await response.blob();
+      downloadBlob(blob, responseFileName(response, "company-info-template.xlsx"));
+      setTemplateStatus({ type: "success", message: "템플릿 다운로드를 시작했습니다." });
+    } catch (error) {
+      setTemplateStatus({
+        type: "error",
+        message: error instanceof Error ? error.message : "템플릿 다운로드에 실패했습니다.",
+      });
+    }
+  };
+
+  const handleCompanyTemplateFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    setTemplateStatus({ type: "loading", message: "엑셀 파일을 업로드하는 중입니다." });
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await requestJson<CompanyTemplateImportResponse>(
+        apiUrl("/support-programs/company-template/import"),
+        {
+          body: formData,
+          method: "POST",
+        },
+      );
+      const result = response.data;
+      const errorMessage = result.errors.length > 0 ? ` 오류 ${result.errors.length}건` : "";
+
+      setTemplateStatus({
+        type: result.errors.length > 0 ? "error" : "success",
+        message: `반영 ${result.importedRows}행, 생성 ${result.createdCompanies}개, 수정 ${result.updatedCompanies}개.${errorMessage}`,
+      });
+    } catch (error) {
+      setTemplateStatus({
+        type: "error",
+        message: error instanceof Error ? error.message : "엑셀 파일 업로드에 실패했습니다.",
+      });
+    }
+  };
+
+  const statusClassName = (status: UploadStatus) => {
+    if (status.type === "success") {
+      return "text-[#107c41]";
+    }
+
+    if (status.type === "error") {
+      return "text-red-600";
+    }
+
+    return "text-[#666]";
+  };
+
+  return (
+    <section className="min-h-[428px] min-w-0 flex-1 rounded-[10px] bg-white px-[30px] py-[45px]">
+      <div>
+        <h1 className="text-2xl font-medium">BTP 지원사업 공고 PDF 등록하기</h1>
+        <input
+          accept="application/pdf"
+          className="hidden"
+          onChange={handleAnnouncementFileChange}
+          ref={announcementInputRef}
+          type="file"
+        />
+        <button
+          className="mt-8 flex h-[70px] w-[342px] items-center justify-center gap-4 rounded-lg bg-[#2b7fff] text-2xl font-medium text-white disabled:opacity-60"
+          disabled={announcementStatus.type === "loading"}
+          onClick={() => announcementInputRef.current?.click()}
+          type="button"
+        >
+          <UploadIcon className="h-6 w-6" />
+          지원사업 공고 PDF 업로드
+        </button>
+        {announcementStatus.message && (
+          <p className={`mt-3 text-sm font-medium ${statusClassName(announcementStatus)}`}>
+            {announcementStatus.message}
+          </p>
+        )}
+      </div>
+
+      <div className="mt-16">
+        <h2 className="text-2xl font-medium">기업 목록 등록하기</h2>
+        <input
+          accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          className="hidden"
+          onChange={handleCompanyTemplateFileChange}
+          ref={companyTemplateInputRef}
+          type="file"
+        />
+        <div className="mt-8 flex flex-wrap gap-6">
+          <button
+            className="flex h-[70px] w-[342px] items-center justify-center gap-4 rounded-lg border-2 border-[#107c41] bg-white text-2xl font-medium text-[#107c41] disabled:opacity-60"
+            disabled={templateStatus.type === "loading"}
+            onClick={handleCompanyTemplateDownload}
+            type="button"
+          >
+            <DownloadIcon className="h-6 w-6" />
+            엑셀 템플릿 다운로드
+          </button>
+          <button
+            className="flex h-[70px] w-[342px] items-center justify-center gap-4 rounded-lg bg-[#107c41] text-2xl font-medium text-white disabled:opacity-60"
+            disabled={templateStatus.type === "loading"}
+            onClick={() => companyTemplateInputRef.current?.click()}
+            type="button"
+          >
+            <UploadIcon className="h-6 w-6" />
+            엑셀 파일 업로드
+          </button>
+        </div>
+        {templateStatus.message && (
+          <p className={`mt-3 text-sm font-medium ${statusClassName(templateStatus)}`}>
+            {templateStatus.message}
+          </p>
+        )}
+      </div>
+    </section>
+  );
+};
+
+const BusinessList = () => {
+  const [activeTab, setActiveTab] = useState<TabKey>("companies");
+
+  return (
+    <main className="flex gap-6 px-6 py-12">
+      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+      {activeTab === "companies" ? <CompanyTable /> : <UploadPanel />}
+    </main>
+  );
+};
+
+export default BusinessList;
