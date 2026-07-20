@@ -1,17 +1,15 @@
 import type { ChangeEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AnnouncementAnalysisLoadingModal from "./components/AnnouncementAnalysisLoadingModal";
+import SupportProgramRegisterModal from "./components/SupportProgramRegisterModal";
+import type { SupportProgramPeriod, SupportProgramSaveRequest } from "./types";
 
 type TabKey = "companies" | "uploads";
 type UploadStatus = { type: "idle" | "loading" | "success" | "error"; message: string };
 
 type ApiDataResponse<T> = {
   data: T;
-};
-
-type SupportProgramPeriod = {
-  startDate: string | null;
-  endDate: string | null;
 };
 
 type SupportProgramAnalysisPayload = {
@@ -147,19 +145,6 @@ const mapCompanyItem = (item: SupportProgramCompanyItem): CompanyRow => ({
   debtRatio: formatPercent(item.debtRatio),
   salesGrowthRate: formatPercent(item.salesGrowthRate),
 });
-
-const fileNameWithoutExtension = (fileName: string) => fileName.replace(/\.[^/.]+$/, "");
-
-const supportProgramCodeFromFileName = (fileName: string) => {
-  const code = fileNameWithoutExtension(fileName)
-    .toUpperCase()
-    .replace(/[^A-Z0-9_-]/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .slice(0, 20);
-
-  return code || `PROGRAM_${Date.now().toString().slice(-8)}`;
-};
 
 const responseFileName = (response: Response, fallbackFileName: string) => {
   const disposition = response.headers.get("content-disposition");
@@ -387,6 +372,11 @@ const UploadPanel = () => {
     type: "idle",
     message: "",
   });
+  const [isAnnouncementAnalyzing, setIsAnnouncementAnalyzing] = useState(false);
+  const [isAnnouncementSaving, setIsAnnouncementSaving] = useState(false);
+  const [announcementDraft, setAnnouncementDraft] = useState<SupportProgramSaveRequest | null>(
+    null,
+  );
   const [templateStatus, setTemplateStatus] = useState<UploadStatus>({
     type: "idle",
     message: "",
@@ -400,7 +390,8 @@ const UploadPanel = () => {
       return;
     }
 
-    setAnnouncementStatus({ type: "loading", message: "PDF 분석 및 저장 중입니다." });
+    setIsAnnouncementAnalyzing(true);
+    setAnnouncementStatus({ type: "loading", message: "" });
 
     try {
       const formData = new FormData();
@@ -419,12 +410,78 @@ const UploadPanel = () => {
         throw new Error("PDF 분석 결과에 필수 사업 정보가 없습니다.");
       }
 
+      setAnnouncementDraft({
+        code: "",
+        programYear: analysis.programYear,
+        budgetProgramName: analysis.budgetProgramName,
+        programCategory: analysis.programCategory ?? "",
+        supportType: analysis.supportType ?? "",
+        period: {
+          startDate: analysis.period?.startDate ?? "",
+          endDate: analysis.period?.endDate ?? "",
+        },
+        departmentName: analysis.departmentName ?? "",
+        localGovernmentName: analysis.localGovernmentName ?? "",
+        programSummary: analysis.programSummary ?? "",
+      });
+      setAnnouncementStatus({
+        type: "success",
+        message: "",
+      });
+    } catch (error) {
+      setAnnouncementStatus({
+        type: "error",
+        message: error instanceof Error ? error.message : "PDF 분석에 실패했습니다.",
+      });
+    } finally {
+      setIsAnnouncementAnalyzing(false);
+    }
+  };
+
+  const updateAnnouncementDraft = <Key extends keyof SupportProgramSaveRequest>(
+    key: Key,
+    value: SupportProgramSaveRequest[Key],
+  ) => {
+    setAnnouncementDraft((draft) => (draft ? { ...draft, [key]: value } : draft));
+  };
+
+  const updateAnnouncementPeriod = (key: keyof SupportProgramPeriod, value: string) => {
+    setAnnouncementDraft((draft) =>
+      draft
+        ? {
+            ...draft,
+            period: {
+              ...draft.period,
+              [key]: value,
+            },
+          }
+        : draft,
+    );
+  };
+
+  const handleAnnouncementSave = async () => {
+    if (!announcementDraft) {
+      return;
+    }
+
+    if (
+      !announcementDraft.code.trim() ||
+      !announcementDraft.programYear ||
+      !announcementDraft.budgetProgramName.trim()
+    ) {
+      alert("필수 항목을 확인해주세요.");
+      return;
+    }
+
+    setIsAnnouncementSaving(true);
+
+    try {
       const saveResponse = await requestJson<SupportProgramSaveResponse>(
         apiUrl("/support-programs"),
         {
           body: JSON.stringify({
-            ...analysis,
-            code: supportProgramCodeFromFileName(file.name),
+            ...announcementDraft,
+            programYear: Number(announcementDraft.programYear),
           }),
           headers: {
             "Content-Type": "application/json",
@@ -433,15 +490,13 @@ const UploadPanel = () => {
         },
       );
 
-      setAnnouncementStatus({
-        type: "success",
-        message: `저장 완료: ${saveResponse.data.supportProgramCode}`,
-      });
+      setAnnouncementDraft(null);
+      setAnnouncementStatus({ type: "idle", message: "" });
+      alert(`업로드 성공: ${saveResponse.data.supportProgramCode}`);
     } catch (error) {
-      setAnnouncementStatus({
-        type: "error",
-        message: error instanceof Error ? error.message : "PDF 업로드에 실패했습니다.",
-      });
+      alert(error instanceof Error ? error.message : "지원사업 공고 등록에 실패했습니다.");
+    } finally {
+      setIsAnnouncementSaving(false);
     }
   };
 
@@ -576,6 +631,21 @@ const UploadPanel = () => {
           </p>
         )}
       </div>
+
+      {isAnnouncementAnalyzing && (
+        <AnnouncementAnalysisLoadingModal />
+      )}
+
+      {announcementDraft && (
+        <SupportProgramRegisterModal
+          draft={announcementDraft}
+          isSaving={isAnnouncementSaving}
+          onCancel={() => setAnnouncementDraft(null)}
+          onChange={updateAnnouncementDraft}
+          onPeriodChange={updateAnnouncementPeriod}
+          onSubmit={() => void handleAnnouncementSave()}
+        />
+      )}
     </section>
   );
 };
