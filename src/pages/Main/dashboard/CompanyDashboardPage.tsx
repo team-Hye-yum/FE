@@ -1,3 +1,4 @@
+import { useSearchParams } from "react-router-dom";
 import DashboardHeader from "./components/DashboardHeader";
 import DashboardSection from "./components/DashboardSection";
 import DashboardShell from "./components/DashboardShell";
@@ -32,27 +33,30 @@ const sectionComponents = {
 } as const;
 
 const CompanyDashboardPage = () => {
-  const { orderedSections, reorderSection, toggleSectionVisibility } =
+  const [searchParams] = useSearchParams();
+  const { orderedSections, reorderSection, resetPanelConfig, toggleSectionVisibility } =
     useDashboardPanelConfig(dashboardSections);
   const scrollToSection = useScrollToSection();
   const visibleSections = orderedSections.filter((section) => section.visible);
+  const companyId = searchParams.get("companyId")?.trim() ?? "";
 
   return (
     <DashboardShell
       filterSections={orderedSections}
       navigationSections={visibleSections}
       onReorderSection={reorderSection}
+      onResetPanelConfig={resetPanelConfig}
       onSectionClick={scrollToSection}
       onToggleSectionVisibility={toggleSectionVisibility}
     >
-      <DashboardHeader />
-      <CompanyInfoSection />
+      <DashboardHeader companyId={companyId} />
+      <CompanyInfoSection companyId={companyId} />
       {visibleSections.map((section) => {
         const SectionContent = sectionComponents[section.id];
 
         return (
           <DashboardSection id={section.id} key={section.id} title={section.label}>
-            <SectionContent />
+            <SectionContent companyId={companyId} />
           </DashboardSection>
         );
       })}

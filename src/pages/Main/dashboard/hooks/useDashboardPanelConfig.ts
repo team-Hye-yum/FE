@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { DashboardSectionConfig } from "../types";
 
 const dashboardPanelStorageKey = "hyeyum-dashboard-panel-config";
@@ -41,11 +41,17 @@ const restoreSections = (sections: readonly DashboardSectionConfig[]) => {
 };
 
 export const useDashboardPanelConfig = (sections: readonly DashboardSectionConfig[]) => {
+  const shouldSkipNextPersistRef = useRef(false);
   const [orderedSections, setOrderedSections] = useState<DashboardSectionConfig[]>(() =>
     restoreSections(sections),
   );
 
   useEffect(() => {
+    if (shouldSkipNextPersistRef.current) {
+      shouldSkipNextPersistRef.current = false;
+      return;
+    }
+
     localStorage.setItem(dashboardPanelStorageKey, JSON.stringify(orderedSections));
   }, [orderedSections]);
 
@@ -77,9 +83,16 @@ export const useDashboardPanelConfig = (sections: readonly DashboardSectionConfi
     });
   };
 
+  const resetPanelConfig = () => {
+    shouldSkipNextPersistRef.current = true;
+    localStorage.removeItem(dashboardPanelStorageKey);
+    setOrderedSections([...sections]);
+  };
+
   return {
     orderedSections,
     reorderSection,
+    resetPanelConfig,
     toggleSectionVisibility,
   };
 };

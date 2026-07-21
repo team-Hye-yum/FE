@@ -11,6 +11,7 @@ type DashboardShellProps = {
     draggedSectionId: DashboardSectionConfig["id"],
     targetSectionId: DashboardSectionConfig["id"],
   ) => void;
+  onResetPanelConfig: () => void;
   onSectionClick: (sectionId: DashboardSectionConfig["id"]) => void;
   onToggleSectionVisibility: (sectionId: DashboardSectionConfig["id"]) => void;
 };
@@ -20,6 +21,7 @@ const DashboardShell = ({
   filterSections,
   navigationSections,
   onReorderSection,
+  onResetPanelConfig,
   onSectionClick,
   onToggleSectionVisibility,
 }: DashboardShellProps) => {
@@ -29,6 +31,7 @@ const DashboardShell = ({
       <div className="min-w-0 rounded-[10px] bg-white px-[30px] py-10">{children}</div>
       <DashboardFilterPanel
         onReorderSection={onReorderSection}
+        onResetPanelConfig={onResetPanelConfig}
         sections={filterSections}
         onToggleSectionVisibility={onToggleSectionVisibility}
       />

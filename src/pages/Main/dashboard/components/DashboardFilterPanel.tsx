@@ -6,12 +6,14 @@ type DashboardFilterPanelProps = {
     draggedSectionId: DashboardSectionConfig["id"],
     targetSectionId: DashboardSectionConfig["id"],
   ) => void;
+  onResetPanelConfig: () => void;
   sections: DashboardSectionConfig[];
   onToggleSectionVisibility: (sectionId: DashboardSectionConfig["id"]) => void;
 };
 
 const DashboardFilterPanel = ({
   onReorderSection,
+  onResetPanelConfig,
   sections,
   onToggleSectionVisibility,
 }: DashboardFilterPanelProps) => {
@@ -30,27 +32,50 @@ const DashboardFilterPanel = ({
     <aside className="sticky top-24 h-fit rounded-[10px] bg-white p-6">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="text-base font-medium text-[#333]">대시보드 필터링</h2>
-        <button
-          aria-label="대시보드 필터 순서 편집"
-          aria-pressed={isEditing}
-          className={`flex h-7 w-7 items-center justify-center rounded-full border ${
-            isEditing ? "border-[#51a2ff] text-[#51a2ff]" : "border-[#eee] text-[#666]"
-          }`}
-          onClick={() => {
-            handleDragEnd();
-            setIsEditing((currentValue) => !currentValue);
-          }}
-          type="button"
-        >
-          <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
-            <path
-              d="M4 20h4L19 9l-4-4L4 16v4Zm12.5-12.5 1-1a1.4 1.4 0 0 0 0-2l-1-1a1.4 1.4 0 0 0-2 0l-1 1 3 3Z"
-              stroke="currentColor"
-              strokeLinejoin="round"
-              strokeWidth="2"
-            />
-          </svg>
-        </button>
+        <div className="flex items-center gap-1.5">
+          {isEditing && (
+            <button
+              aria-label="대시보드 필터 설정 초기화"
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-[#eee] text-[#666] hover:border-red-200 hover:text-red-500"
+              onClick={() => {
+                handleDragEnd();
+                onResetPanelConfig();
+              }}
+              type="button"
+            >
+              <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+                <path
+                  d="M4 12a8 8 0 1 0 2.34-5.66M4 4v5h5"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                />
+              </svg>
+            </button>
+          )}
+          <button
+            aria-label="대시보드 필터 순서 편집"
+            aria-pressed={isEditing}
+            className={`flex h-7 w-7 items-center justify-center rounded-full border ${
+              isEditing ? "border-[#51a2ff] text-[#51a2ff]" : "border-[#eee] text-[#666]"
+            }`}
+            onClick={() => {
+              handleDragEnd();
+              setIsEditing((currentValue) => !currentValue);
+            }}
+            type="button"
+          >
+            <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+              <path
+                d="M4 20h4L19 9l-4-4L4 16v4Zm12.5-12.5 1-1a1.4 1.4 0 0 0 0-2l-1-1a1.4 1.4 0 0 0-2 0l-1 1 3 3Z"
+                stroke="currentColor"
+                strokeLinejoin="round"
+                strokeWidth="2"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
       <div className="flex flex-col gap-2">
         {sections.map((section) => (
@@ -93,7 +118,14 @@ const DashboardFilterPanel = ({
                 aria-hidden="true"
                 className="flex h-6 w-4 cursor-grab items-center justify-center text-[#aaa]"
               >
-                ⋮⋮
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 16 16">
+                  <path
+                    d="M5 3h.01M11 3h.01M5 8h.01M11 8h.01M5 13h.01M11 13h.01"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeWidth="2"
+                  />
+                </svg>
               </span>
             )}
             <button

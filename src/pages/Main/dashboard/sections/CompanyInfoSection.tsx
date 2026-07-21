@@ -1,5 +1,12 @@
-const CompanyInfoSection = () => {
+import type { DashboardCompanyProps } from "../types";
+import { useDashboardGet } from "../hooks/useDashboardApi";
+
+const CompanyInfoSection = ({ companyId }: DashboardCompanyProps) => {
+  useDashboardGet(companyId, "/companies/{companyId}/profile");
+
+  const displayCompanyId = companyId || "-";
   const leftItems = [
+    { label: "기업 일련번호", value: displayCompanyId },
     { label: "지역", value: "부산" },
     { label: "기업 유형", value: "법인기업" },
     { label: "기업 규모", value: "소상공인" },

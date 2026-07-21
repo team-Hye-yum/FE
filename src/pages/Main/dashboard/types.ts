@@ -19,3 +19,7 @@ export type DashboardSectionConfig = {
   label: string;
   visible: boolean;
 };
+
+export type DashboardCompanyProps = {
+  companyId: string;
+};

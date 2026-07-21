@@ -1,6 +1,6 @@
 import type { ChangeEvent, KeyboardEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
 type AppLayoutProps = {
   children: ReactNode;
@@ -42,8 +42,11 @@ const apiUrl = (path: string) => {
 
 const AppLayout = ({ children }: AppLayoutProps) => {
   const { pathname, search } = useLocation();
+  const navigate = useNavigate();
   const [searchKeyword, setSearchKeyword] = useState("");
-  const [supportProgramResults, setSupportProgramResults] = useState<SupportProgramSearchItem[]>([]);
+  const [supportProgramResults, setSupportProgramResults] = useState<SupportProgramSearchItem[]>(
+    [],
+  );
   const [activeResultIndex, setActiveResultIndex] = useState(-1);
   const [searchStatus, setSearchStatus] = useState<SearchStatus>({ type: "idle", message: "" });
   const searchAbortControllerRef = useRef<AbortController | null>(null);
@@ -84,9 +87,9 @@ const AppLayout = ({ children }: AppLayoutProps) => {
     const searchUrl = apiUrl("/support-programs/search");
     const abortController = new AbortController();
 
-      searchAbortControllerRef.current?.abort();
-      searchAbortControllerRef.current = abortController;
-      setSearchStatus({ type: "loading", message: "" });
+    searchAbortControllerRef.current?.abort();
+    searchAbortControllerRef.current = abortController;
+    setSearchStatus({ type: "loading", message: "" });
 
     fetch(`${searchUrl}?${new URLSearchParams({ keyword: trimmedKeyword })}`, {
       signal: abortController.signal,
@@ -127,6 +130,25 @@ const AppLayout = ({ children }: AppLayoutProps) => {
     setSearchKeyword(event.currentTarget.value);
   };
 
+  const submitCompanySearch = () => {
+    const nextSearchParams = new URLSearchParams(search);
+    const trimmedKeyword = searchKeyword.trim();
+
+    if (trimmedKeyword) {
+      nextSearchParams.set("companyId", trimmedKeyword);
+    } else {
+      nextSearchParams.delete("companyId");
+    }
+
+    navigate(
+      {
+        pathname: "/",
+        search: nextSearchParams.toString(),
+      },
+      { replace: true },
+    );
+  };
+
   const handleSupportProgramSelect = async (item: SupportProgramSearchItem) => {
     const label = `${item.programYear} ${item.budgetProgramName}`;
 
@@ -163,6 +185,12 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   };
 
   const handleSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (pathname === "/" && event.key === "Enter") {
+      event.preventDefault();
+      submitCompanySearch();
+      return;
+    }
+
     if (!shouldShowSupportProgramResults || supportProgramResults.length === 0) {
       return;
     }
@@ -189,8 +217,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
     }
   };
 
-  const searchStatusClassName =
-    searchStatus.type === "error" ? "text-red-600" : "text-[#666]";
+  const searchStatusClassName = searchStatus.type === "error" ? "text-red-600" : "text-[#666]";
 
   return (
     <div className="min-h-screen bg-[#f2f4f8] text-[#333]">
