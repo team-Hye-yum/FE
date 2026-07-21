@@ -215,6 +215,9 @@ const FileIcon = ({ className = "" }: { className?: string }) => (
   </svg>
 );
 
+const uploadButtonClassName =
+  "flex h-14 w-[280px] items-center justify-center gap-3 rounded-[7px] text-lg font-medium disabled:opacity-60";
+
 const Sidebar = ({
   activeTab,
   onTabChange,
@@ -223,7 +226,7 @@ const Sidebar = ({
   onTabChange: (tab: TabKey) => void;
 }) => {
   return (
-    <aside className="h-[145px] w-[314px] shrink-0 rounded-[10px] bg-white px-[30px] py-[31px]">
+    <aside className="h-[145px] w-[314px] shrink-0 rounded-[10px] bg-white px-[30px] py-[30px]">
       <div className="flex flex-col gap-[5px]">
         {menuItems.map((item) => {
           const isActive = activeTab === item.key;
@@ -572,7 +575,7 @@ const UploadPanel = () => {
   return (
     <section className="min-h-[428px] min-w-0 flex-1 rounded-[10px] bg-white px-[30px] py-[45px]">
       <div>
-        <h1 className="text-2xl font-medium">BTP 지원사업 공고 PDF 등록하기</h1>
+        <h1 className="text-[22px] font-medium">BTP 지원사업 공고 PDF 등록하기</h1>
         <input
           accept="application/pdf"
           className="hidden"
@@ -581,12 +584,12 @@ const UploadPanel = () => {
           type="file"
         />
         <button
-          className="mt-8 flex h-[70px] w-[342px] items-center justify-center gap-4 rounded-lg bg-[#2b7fff] text-2xl font-medium text-white disabled:opacity-60"
+          className={`mt-7 bg-[#2b7fff] text-white ${uploadButtonClassName}`}
           disabled={announcementStatus.type === "loading"}
           onClick={() => announcementInputRef.current?.click()}
           type="button"
         >
-          <UploadIcon className="h-6 w-6" />
+          <UploadIcon className="h-5 w-5" />
           지원사업 공고 PDF 업로드
         </button>
         {announcementStatus.message && (
@@ -596,8 +599,8 @@ const UploadPanel = () => {
         )}
       </div>
 
-      <div className="mt-16">
-        <h2 className="text-2xl font-medium">기업 목록 등록하기</h2>
+      <div className="mt-[64px]">
+        <h2 className="text-[22px] font-medium">기업 목록 등록하기</h2>
         <input
           accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           className="hidden"
@@ -605,23 +608,23 @@ const UploadPanel = () => {
           ref={companyTemplateInputRef}
           type="file"
         />
-        <div className="mt-8 flex flex-wrap gap-6">
+        <div className="mt-7 flex flex-wrap gap-5">
           <button
-            className="flex h-[70px] w-[342px] items-center justify-center gap-4 rounded-lg border-2 border-[#107c41] bg-white text-2xl font-medium text-[#107c41] disabled:opacity-60"
+            className={`border-2 border-[#107c41] bg-white text-[#107c41] ${uploadButtonClassName}`}
             disabled={templateStatus.type === "loading"}
             onClick={handleCompanyTemplateDownload}
             type="button"
           >
-            <DownloadIcon className="h-6 w-6" />
+            <DownloadIcon className="h-5 w-5" />
             엑셀 템플릿 다운로드
           </button>
           <button
-            className="flex h-[70px] w-[342px] items-center justify-center gap-4 rounded-lg bg-[#107c41] text-2xl font-medium text-white disabled:opacity-60"
+            className={`bg-[#107c41] text-white ${uploadButtonClassName}`}
             disabled={templateStatus.type === "loading"}
             onClick={() => companyTemplateInputRef.current?.click()}
             type="button"
           >
-            <UploadIcon className="h-6 w-6" />
+            <UploadIcon className="h-5 w-5" />
             엑셀 파일 업로드
           </button>
         </div>
