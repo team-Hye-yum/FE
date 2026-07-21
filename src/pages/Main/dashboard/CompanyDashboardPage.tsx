@@ -1,0 +1,63 @@
+import DashboardHeader from "./components/DashboardHeader";
+import DashboardSection from "./components/DashboardSection";
+import DashboardShell from "./components/DashboardShell";
+import { dashboardSections } from "./constants/dashboardSections";
+import { useDashboardPanelConfig } from "./hooks/useDashboardPanelConfig";
+import { useScrollToSection } from "./hooks/useScrollToSection";
+import AiAnalysisReportSection from "./sections/AiAnalysisReportSection";
+import AiReviewOpinionSection from "./sections/AiReviewOpinionSection";
+import CompanyAnalysisMetricsSection from "./sections/CompanyAnalysisMetricsSection";
+import CompanyInfoSection from "./sections/CompanyInfoSection";
+import CompanyScorecardSection from "./sections/CompanyScorecardSection";
+import DuplicateSupportReviewSection from "./sections/DuplicateSupportReviewSection";
+import EmploymentInfoSection from "./sections/EmploymentInfoSection";
+import FinancialStatusSection from "./sections/FinancialStatusSection";
+import GrowthScenarioSection from "./sections/GrowthScenarioSection";
+import IncomeStatementSection from "./sections/IncomeStatementSection";
+import IntellectualPropertySection from "./sections/IntellectualPropertySection";
+import ResearchDevelopmentSection from "./sections/ResearchDevelopmentSection";
+
+const sectionComponents = {
+  scorecard: CompanyScorecardSection,
+  employment: EmploymentInfoSection,
+  "income-statement": IncomeStatementSection,
+  "financial-status": FinancialStatusSection,
+  "ip-rights": IntellectualPropertySection,
+  rnd: ResearchDevelopmentSection,
+  "analysis-metrics": CompanyAnalysisMetricsSection,
+  "ai-review": AiReviewOpinionSection,
+  "growth-scenario": GrowthScenarioSection,
+  "duplicate-support": DuplicateSupportReviewSection,
+  "ai-report": AiAnalysisReportSection,
+} as const;
+
+const CompanyDashboardPage = () => {
+  const { orderedSections, reorderSection, toggleSectionVisibility } =
+    useDashboardPanelConfig(dashboardSections);
+  const scrollToSection = useScrollToSection();
+  const visibleSections = orderedSections.filter((section) => section.visible);
+
+  return (
+    <DashboardShell
+      filterSections={orderedSections}
+      navigationSections={visibleSections}
+      onReorderSection={reorderSection}
+      onSectionClick={scrollToSection}
+      onToggleSectionVisibility={toggleSectionVisibility}
+    >
+      <DashboardHeader />
+      <CompanyInfoSection />
+      {visibleSections.map((section) => {
+        const SectionContent = sectionComponents[section.id];
+
+        return (
+          <DashboardSection id={section.id} key={section.id} title={section.label}>
+            <SectionContent />
+          </DashboardSection>
+        );
+      })}
+    </DashboardShell>
+  );
+};
+
+export default CompanyDashboardPage;
