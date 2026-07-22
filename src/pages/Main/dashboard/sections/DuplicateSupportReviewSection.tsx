@@ -22,6 +22,11 @@ type SupportHistoryLatestVsPastResponse = {
     items: BtpSupportTimelineItem[];
   } | null;
   comparisons: ComparisonItem[];
+  latestSupportTargets: SupportHistoryCompareItem[];
+  summary: {
+    btpSelectedSupportCount: number;
+    latestSupportTargetCount: number;
+  } | null;
   yearlySupportChart: {
     items: YearlySupportCountItem[];
   } | null;
@@ -221,6 +226,10 @@ const sampleComparisons: ComparisonItem[] = [
   },
 ];
 
+const sampleLatestSupportTargets = sampleComparisons
+  .map((comparison) => comparison.latestSupport)
+  .filter((item): item is SupportHistoryCompareItem => item !== null);
+
 const emptyChartPoint = (year: number): ChartPoint => ({
   business: 0,
   other: 0,
@@ -300,6 +309,9 @@ const formatDate = (value: string | null | undefined) => {
 const formatNumber = (value: number | null | undefined) =>
   value === null || value === undefined ? "-" : value.toLocaleString();
 
+const formatCount = (value: number | null | undefined) =>
+  value === null || value === undefined ? "-" : `${value.toLocaleString()}건`;
+
 const formatDateRange = (startDate: string | null | undefined, endDate: string | null | undefined) => {
   const formattedStartDate = formatDate(startDate);
   const formattedEndDate = formatDate(endDate);
@@ -318,6 +330,44 @@ const formatSupportAmount = (value: number | null | undefined) => {
 
 const supportCategoryText = (item: BtpSupportTimelineItem) =>
   item.supportCategory || item.supportDetail || item.supportItem || "-";
+
+const latestSupportYear = (items: Array<{ supportYear: number | null }>) => {
+  const years = items
+    .map((item) => item.supportYear)
+    .filter((year): year is number => year !== null && year !== undefined);
+
+  return years.length > 0 ? Math.max(...years) : null;
+};
+
+const latestYearCount = (items: Array<{ supportYear: number | null }>, year: number | null) =>
+  year === null ? null : items.filter((item) => item.supportYear === year).length;
+
+const SummaryCards = ({
+  latestCount,
+  latestYear,
+  selectedCount,
+}: {
+  latestCount: number | null;
+  latestYear: number | null;
+  selectedCount: number | null;
+}) => (
+  <div className="mb-8 grid grid-cols-2 gap-5">
+    <article className="h-[124px] rounded-[10px] bg-[#f8f9fb] px-[30px] pt-[30px]">
+      <h3 className="text-lg font-medium leading-[22px] text-[#555]">부산TP 선정 지원</h3>
+      <p className="mt-[9px] text-[28px] font-medium leading-[34px] text-[#333]">
+        {formatCount(selectedCount)}
+      </p>
+    </article>
+    <article className="h-[124px] rounded-[10px] bg-[#f8f9fb] px-[30px] pt-[30px]">
+      <h3 className="text-lg font-medium leading-[22px] text-[#555]">
+        {latestYear ? `${latestYear}년 신청 현황` : "최신 신청 현황"}
+      </h3>
+      <p className="mt-[9px] text-[28px] font-medium leading-[34px] text-[#333]">
+        {formatCount(latestCount)}
+      </p>
+    </article>
+  </div>
+);
 
 const SupportTimelineTable = ({ items }: { items: BtpSupportTimelineItem[] }) => (
   <div className="mt-10">
@@ -500,6 +550,17 @@ const DuplicateSupportReviewSection = ({
       : data?.yearlySupportChart?.items ?? [];
   const timelineItems = isSample ? sampleTimelineItems : data?.btpSupportTimeline?.items ?? [];
   const comparisons = isSample ? sampleComparisons : data?.comparisons ?? [];
+  const latestSupportTargets = isSample
+    ? sampleLatestSupportTargets
+    : data?.latestSupportTargets ?? [];
+  const latestYear =
+    latestSupportYear(latestSupportTargets) ?? latestSupportYear(timelineItems);
+  const latestCount =
+    (isSample ? latestSupportTargets.length : data?.summary?.latestSupportTargetCount) ??
+    latestYearCount(timelineItems, latestYear);
+  const selectedCount = isSample
+    ? 12
+    : data?.summary?.btpSelectedSupportCount ?? timelineItems.length;
   const chartData = buildChartData(items);
 
   if (!isSample && error) {
@@ -521,6 +582,11 @@ const DuplicateSupportReviewSection = ({
 
   return (
     <div>
+      <SummaryCards
+        latestCount={latestCount}
+        latestYear={latestYear}
+        selectedCount={selectedCount}
+      />
       <div>
         <h3 className="mb-5 text-xl font-medium text-[#333]">부산TP 지원 현황 - 연도별 건수</h3>
         <div
