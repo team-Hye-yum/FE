@@ -29,6 +29,11 @@ type SupportProgramCompanyListResponse = {
   items: unknown[];
 };
 
+type CompanyExistenceResponse = {
+  companyId: number;
+  exists: boolean;
+};
+
 const navItems = [
   { label: "기업 조회", to: "/" },
   { label: "사업별 목록화", to: "/business-list" },
@@ -49,6 +54,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   );
   const [activeResultIndex, setActiveResultIndex] = useState(-1);
   const [searchStatus, setSearchStatus] = useState<SearchStatus>({ type: "idle", message: "" });
+  const [isCompanySearchChecking, setIsCompanySearchChecking] = useState(false);
   const searchAbortControllerRef = useRef<AbortController | null>(null);
   const selectedSupportProgramLabelRef = useRef("");
   const canSearchSupportPrograms = pathname === "/business-list";
@@ -130,9 +136,49 @@ const AppLayout = ({ children }: AppLayoutProps) => {
     setSearchKeyword(event.currentTarget.value);
   };
 
-  const submitCompanySearch = () => {
+  const submitCompanySearch = async () => {
     const nextSearchParams = new URLSearchParams(search);
     const trimmedKeyword = searchKeyword.trim();
+
+    if (isCompanySearchChecking) {
+      return;
+    }
+
+    if (!trimmedKeyword) {
+      nextSearchParams.delete("companyId");
+      navigate(
+        {
+          pathname: "/",
+          search: nextSearchParams.toString(),
+        },
+        { replace: true },
+      );
+      return;
+    }
+
+    setIsCompanySearchChecking(true);
+
+    try {
+      const response = await fetch(
+        apiUrl(`/companies/${encodeURIComponent(trimmedKeyword)}/existence`),
+      );
+
+      if (!response.ok) {
+        throw new Error(`기업 존재 여부 확인에 실패했습니다. (${response.status})`);
+      }
+
+      const result = (await response.json()) as ApiDataResponse<CompanyExistenceResponse>;
+
+      if (!result.data.exists) {
+        alert("해당 기업 일련번호를 찾을 수 없습니다.");
+        return;
+      }
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "기업 존재 여부 확인에 실패했습니다.");
+      return;
+    } finally {
+      setIsCompanySearchChecking(false);
+    }
 
     if (trimmedKeyword) {
       nextSearchParams.set("companyId", trimmedKeyword);
@@ -187,7 +233,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   const handleSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (pathname === "/" && event.key === "Enter") {
       event.preventDefault();
-      submitCompanySearch();
+      void submitCompanySearch();
       return;
     }
 
@@ -248,6 +294,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
                   placeholder={searchPlaceholder}
                   type="search"
                   value={searchKeyword}
+                  disabled={pathname === "/" && isCompanySearchChecking}
                 />
               </label>
               {searchStatus.type === "error" && searchStatus.message && (
