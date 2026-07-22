@@ -24,3 +24,9 @@ export type DashboardCompanyProps = {
   companyId: string;
   isSample?: boolean;
 };
+
+export type AiReviewOpinionResponse = {
+  display: boolean;
+  budgetMismatchLine: string | null;
+  employmentCarouselLine: string | null;
+};

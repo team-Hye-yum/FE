@@ -3,6 +3,7 @@ import DashboardHeader from "./components/DashboardHeader";
 import DashboardSection from "./components/DashboardSection";
 import DashboardShell from "./components/DashboardShell";
 import { dashboardSections } from "./constants/dashboardSections";
+import { useDashboardChainPostData } from "./hooks/useDashboardApi";
 import { useDashboardPanelConfig } from "./hooks/useDashboardPanelConfig";
 import { useScrollToSection } from "./hooks/useScrollToSection";
 import AiAnalysisReportSection from "./sections/AiAnalysisReportSection";
@@ -17,6 +18,7 @@ import GrowthScenarioSection from "./sections/GrowthScenarioSection";
 import IncomeStatementSection from "./sections/IncomeStatementSection";
 import IntellectualPropertySection from "./sections/IntellectualPropertySection";
 import ResearchDevelopmentSection from "./sections/ResearchDevelopmentSection";
+import type { AiReviewOpinionResponse } from "./types";
 
 const sectionComponents = {
   scorecard: CompanyScorecardSection,
@@ -26,7 +28,6 @@ const sectionComponents = {
   "ip-rights": IntellectualPropertySection,
   rnd: ResearchDevelopmentSection,
   "analysis-metrics": CompanyAnalysisMetricsSection,
-  "ai-review": AiReviewOpinionSection,
   "growth-scenario": GrowthScenarioSection,
   "duplicate-support": DuplicateSupportReviewSection,
   "ai-report": AiAnalysisReportSection,
@@ -37,16 +38,29 @@ const CompanyDashboardPage = () => {
   const { orderedSections, reorderSection, resetPanelConfig, toggleSectionVisibility } =
     useDashboardPanelConfig(dashboardSections);
   const scrollToSection = useScrollToSection();
-  const visibleSections = orderedSections.filter((section) => section.visible);
   const searchedCompanyId = searchParams.get("companyId")?.trim() ?? "";
   const isSample = !searchedCompanyId;
   const companyId = searchedCompanyId || "SAMPLE-001";
   const requestCompanyId = isSample ? "" : companyId;
+  const aiReviewState = useDashboardChainPostData<AiReviewOpinionResponse>(
+    requestCompanyId,
+    "/companies/{companyId}/ai-review/payload",
+    "/review/opinions",
+  );
+  const shouldShowAiReviewSection =
+    isSample ||
+    aiReviewState.isLoading ||
+    Boolean(aiReviewState.error) ||
+    aiReviewState.data?.display !== false;
+  const displayableSections = orderedSections.filter(
+    (section) => section.id !== "ai-review" || shouldShowAiReviewSection,
+  );
+  const visibleDisplayableSections = displayableSections.filter((section) => section.visible);
 
   return (
     <DashboardShell
-      filterSections={orderedSections}
-      navigationSections={visibleSections}
+      filterSections={displayableSections}
+      navigationSections={visibleDisplayableSections}
       onReorderSection={reorderSection}
       onResetPanelConfig={resetPanelConfig}
       onSectionClick={scrollToSection}
@@ -54,12 +68,21 @@ const CompanyDashboardPage = () => {
     >
       <DashboardHeader companyId={companyId} isSample={isSample} />
       <CompanyInfoSection companyId={companyId} isSample={isSample} />
-      {visibleSections.map((section) => {
-        const SectionContent = sectionComponents[section.id];
-
+      {visibleDisplayableSections.map((section) => {
         if (section.id === "ai-review") {
-          return <SectionContent companyId={requestCompanyId} isSample={isSample} key={section.id} />;
+          return (
+            <DashboardSection id={section.id} key={section.id} title={section.label}>
+              <AiReviewOpinionSection
+                data={aiReviewState.data}
+                error={aiReviewState.error}
+                isLoading={aiReviewState.isLoading}
+                isSample={isSample}
+              />
+            </DashboardSection>
+          );
         }
+
+        const SectionContent = sectionComponents[section.id];
 
         return (
           <DashboardSection id={section.id} key={section.id} title={section.label}>
