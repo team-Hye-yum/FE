@@ -6,11 +6,11 @@ import {
   CartesianGrid,
   ComposedChart,
   Line,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import ChartFrame from "../components/ChartFrame";
 
 type IncomeStatementPoint = {
   year: number;
@@ -165,8 +165,7 @@ const IncomeStatementSection = ({ companyId, isSample = false }: DashboardCompan
         </div>
 
         <div className="min-w-0">
-          <div className="h-[220px]">
-            <ResponsiveContainer height="100%" width="100%">
+          <ChartFrame height={220}>
               <BarChart data={chartData} margin={{ bottom: 6, left: 0, right: 14, top: 8 }}>
                 <CartesianGrid stroke="#eee" vertical={false} />
                 <XAxis
@@ -185,7 +184,7 @@ const IncomeStatementSection = ({ companyId, isSample = false }: DashboardCompan
                 <Bar
                   barSize={24}
                   dataKey="salesAmount"
-                  isAnimationActive animationDuration={550} animationEasing="ease-out"
+                  isAnimationActive={false}
                   fill="#51a2ff"
                   name="매출액"
                   radius={[4, 4, 0, 0]}
@@ -193,14 +192,13 @@ const IncomeStatementSection = ({ companyId, isSample = false }: DashboardCompan
                 <Bar
                   barSize={24}
                   dataKey="costOfSales"
-                  isAnimationActive animationDuration={550} animationEasing="ease-out"
+                  isAnimationActive={false}
                   fill="#9bd0ff"
                   name="매출 원가"
                   radius={[4, 4, 0, 0]}
                 />
               </BarChart>
-            </ResponsiveContainer>
-          </div>
+          </ChartFrame>
           <div className="mt-2 flex justify-center gap-5 text-xs text-[#666]">
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-[#51a2ff]" />
@@ -245,8 +243,7 @@ const IncomeStatementSection = ({ companyId, isSample = false }: DashboardCompan
         </div>
 
         <div className="min-w-0">
-          <div className="h-[220px]">
-            <ResponsiveContainer height="100%" width="100%">
+          <ChartFrame height={220}>
               <ComposedChart data={chartData} margin={{ bottom: 6, left: 0, right: 14, top: 8 }}>
                 <CartesianGrid stroke="#eee" vertical={false} />
                 <XAxis
@@ -277,7 +274,7 @@ const IncomeStatementSection = ({ companyId, isSample = false }: DashboardCompan
                 <Bar
                   barSize={24}
                   dataKey="operatingProfitLoss"
-                  isAnimationActive animationDuration={550} animationEasing="ease-out"
+                  isAnimationActive={false}
                   fill="#b69cff"
                   name="영업이익손실"
                   radius={[4, 4, 0, 0]}
@@ -286,7 +283,7 @@ const IncomeStatementSection = ({ companyId, isSample = false }: DashboardCompan
                 <Bar
                   barSize={24}
                   dataKey="netIncomeLoss"
-                  isAnimationActive animationDuration={550} animationEasing="ease-out"
+                  isAnimationActive={false}
                   fill="#d5c4ff"
                   name="당기순이익손실"
                   radius={[4, 4, 0, 0]}
@@ -294,7 +291,7 @@ const IncomeStatementSection = ({ companyId, isSample = false }: DashboardCompan
                 />
                 <Line
                   dataKey="operatingProfitMargin"
-                  isAnimationActive animationDuration={550} animationEasing="ease-out"
+                  isAnimationActive={false}
                   dot={false}
                   name="영업이익률"
                   stroke="#51d8c5"
@@ -303,8 +300,7 @@ const IncomeStatementSection = ({ companyId, isSample = false }: DashboardCompan
                   yAxisId="margin"
                 />
               </ComposedChart>
-            </ResponsiveContainer>
-          </div>
+          </ChartFrame>
           <div className="mt-2 flex justify-center gap-5 text-xs text-[#666]">
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-[#b69cff]" />

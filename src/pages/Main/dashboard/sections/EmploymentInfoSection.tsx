@@ -6,11 +6,11 @@ import {
   BarChart,
   Line,
   LineChart,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import ChartFrame from "../components/ChartFrame";
 
 type EmploymentPoint = {
   year: number;
@@ -156,8 +156,7 @@ const EmploymentInfoSection = ({ companyId, isSample = false }: DashboardCompany
   return (
     <div className="grid grid-cols-[1fr_1.05fr_1fr] items-end gap-7">
       <div className="min-w-0">
-        <div className="h-[170px]">
-          <ResponsiveContainer height="100%" width="100%">
+        <ChartFrame height={170}>
             <LineChart data={chartData} margin={{ bottom: 6, left: 0, right: 10, top: 8 }}>
               <CartesianGrid stroke="#eee" vertical={false} />
               <XAxis
@@ -176,7 +175,7 @@ const EmploymentInfoSection = ({ companyId, isSample = false }: DashboardCompany
               <Tooltip content={<EmploymentTooltip />} />
               <Line
                 dataKey="employeeCount"
-                isAnimationActive animationDuration={550} animationEasing="ease-out"
+                isAnimationActive={false}
                 dot={false}
                 name="종업원수"
                 stroke="#51a2ff"
@@ -185,7 +184,7 @@ const EmploymentInfoSection = ({ companyId, isSample = false }: DashboardCompany
               />
               <Line
                 dataKey="nationalPensionSubscriberCount"
-                isAnimationActive animationDuration={550} animationEasing="ease-out"
+                isAnimationActive={false}
                 dot={false}
                 name="국민연금 가입자수"
                 stroke="#6ee7b7"
@@ -193,8 +192,7 @@ const EmploymentInfoSection = ({ companyId, isSample = false }: DashboardCompany
                 type="monotone"
               />
             </LineChart>
-          </ResponsiveContainer>
-        </div>
+        </ChartFrame>
         <div className="mt-2 flex justify-center gap-5 text-xs text-[#666]">
           <span className="inline-flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-[#51a2ff]" />
@@ -208,8 +206,7 @@ const EmploymentInfoSection = ({ companyId, isSample = false }: DashboardCompany
       </div>
 
       <div className="min-w-0">
-        <div className="h-[190px]">
-          <ResponsiveContainer height="100%" width="100%">
+        <ChartFrame height={190}>
             <BarChart data={chartData} margin={{ bottom: 6, left: 0, right: 10, top: 8 }}>
               <CartesianGrid stroke="#eee" vertical={false} />
               <XAxis
@@ -229,7 +226,7 @@ const EmploymentInfoSection = ({ companyId, isSample = false }: DashboardCompany
               <Bar
                 barSize={18}
                 dataKey="nationalPensionJoinerCount"
-                isAnimationActive animationDuration={550} animationEasing="ease-out"
+                isAnimationActive={false}
                 fill="#51a2ff"
                 name="국민연금 취업자수"
                 radius={[4, 4, 0, 0]}
@@ -237,14 +234,13 @@ const EmploymentInfoSection = ({ companyId, isSample = false }: DashboardCompany
               <Bar
                 barSize={18}
                 dataKey="nationalPensionLeaverCount"
-                isAnimationActive animationDuration={550} animationEasing="ease-out"
+                isAnimationActive={false}
                 fill="#9bd0ff"
                 name="국민연금 퇴직자수"
                 radius={[4, 4, 0, 0]}
               />
             </BarChart>
-          </ResponsiveContainer>
-        </div>
+        </ChartFrame>
         <div className="mt-2 flex justify-center gap-5 text-xs text-[#666]">
           <span className="inline-flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-[#51a2ff]" />
@@ -258,8 +254,7 @@ const EmploymentInfoSection = ({ companyId, isSample = false }: DashboardCompany
       </div>
 
       <div className="min-w-0">
-        <div className="h-[190px]">
-          <ResponsiveContainer height="100%" width="100%">
+        <ChartFrame height={190}>
             <BarChart data={chartData} margin={{ bottom: 6, left: 0, right: 10, top: 8 }}>
               <CartesianGrid stroke="#eee" vertical={false} />
               <XAxis
@@ -280,14 +275,13 @@ const EmploymentInfoSection = ({ companyId, isSample = false }: DashboardCompany
               <Bar
                 barSize={26}
                 dataKey="averageSalaryTenThousand"
-                isAnimationActive animationDuration={550} animationEasing="ease-out"
+                isAnimationActive={false}
                 fill="#ffc928"
                 name="1인평균년간급여"
                 radius={[4, 4, 0, 0]}
               />
             </BarChart>
-          </ResponsiveContainer>
-        </div>
+        </ChartFrame>
         <div className="mt-2 flex justify-center text-xs text-[#666]">
           <span className="inline-flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-[#ffc928]" />

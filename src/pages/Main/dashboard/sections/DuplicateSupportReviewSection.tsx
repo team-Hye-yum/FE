@@ -6,11 +6,11 @@ import {
   BarChart,
   CartesianGrid,
   Legend,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import ChartFrame from "../components/ChartFrame";
 
 type YearlySupportCountItem = {
   supportYear: number | null;
@@ -925,10 +925,10 @@ const SupportTimelineTable = ({ items }: { items: BtpSupportTimelineItem[] }) =>
   <div className="mt-10">
     <h3 className="mb-5 text-xl font-medium text-[#333]">부산TP 지원 타임라인</h3>
     <div
-      className="max-h-[440px] overflow-y-auto overflow-x-hidden rounded-[10px] border border-[#eee] bg-white"
+      className="max-h-[440px] overflow-y-auto overflow-x-auto rounded-[10px] border border-[#eee] bg-white"
       data-dashboard-print-expand
     >
-      <table className="w-full table-fixed border-collapse text-left text-[15px] text-[#333]">
+      <table className="min-w-[760px] border-collapse text-left text-[15px] text-[#333] md:w-full md:table-fixed">
         <colgroup>
           <col className="w-[31%]" />
           <col className="w-[13%]" />
@@ -1591,7 +1591,7 @@ const DuplicateSupportReviewSection = ({
           className="rounded-[10px] border border-[#eee] bg-white px-[34px] pb-5 pt-5"
           style={{ height: 336 }}
         >
-          <ResponsiveContainer height="100%" width="100%">
+          <ChartFrame height={291}>
             <BarChart
               barCategoryGap="16%"
               barGap={0}
@@ -1618,7 +1618,7 @@ const DuplicateSupportReviewSection = ({
               {supportCategories.map((category) => (
                 <Bar
                   dataKey={category.dataKey}
-                  isAnimationActive animationDuration={550} animationEasing="ease-out"
+                  isAnimationActive={false}
                   fill={category.color}
                   key={category.dataKey}
                   name={category.label}
@@ -1626,7 +1626,7 @@ const DuplicateSupportReviewSection = ({
                 />
               ))}
             </BarChart>
-          </ResponsiveContainer>
+          </ChartFrame>
         </div>
       </div>
       <SupportTimelineTable items={timelineItems} />

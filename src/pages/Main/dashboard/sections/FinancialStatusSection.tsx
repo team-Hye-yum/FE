@@ -5,11 +5,11 @@ import {
   CartesianGrid,
   ComposedChart,
   Line,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import ChartFrame from "../components/ChartFrame";
 
 type FinancialPositionPoint = {
   year: number;
@@ -234,8 +234,7 @@ const FinancialStatusSection = ({ companyId, isSample = false }: DashboardCompan
         </div>
 
         <div className="min-w-0">
-          <div className="h-[220px]">
-          <ResponsiveContainer height="100%" width="100%">
+          <ChartFrame height={220}>
             <ComposedChart data={chartData} margin={{ bottom: 6, left: 0, right: 0, top: 8 }}>
               <CartesianGrid stroke="#eee" vertical={false} />
               <XAxis
@@ -254,7 +253,7 @@ const FinancialStatusSection = ({ companyId, isSample = false }: DashboardCompan
               <Bar
                 barSize={24}
                 dataKey="totalLiabilities"
-                isAnimationActive animationDuration={550} animationEasing="ease-out"
+                isAnimationActive={false}
                 fill="#51a2ff"
                 name="부채 총계"
                 radius={[4, 4, 0, 0]}
@@ -262,14 +261,14 @@ const FinancialStatusSection = ({ companyId, isSample = false }: DashboardCompan
               <Bar
                 barSize={24}
                 dataKey="totalEquity"
-                isAnimationActive animationDuration={550} animationEasing="ease-out"
+                isAnimationActive={false}
                 fill="#9bd0ff"
                 name="자본 총계"
                 radius={[4, 4, 0, 0]}
               />
               <Line
                 dataKey="totalAssets"
-                isAnimationActive animationDuration={550} animationEasing="ease-out"
+                isAnimationActive={false}
                 dot={false}
                 name="자산 총계"
                 stroke="#ffc928"
@@ -277,8 +276,7 @@ const FinancialStatusSection = ({ companyId, isSample = false }: DashboardCompan
                 type="monotone"
               />
             </ComposedChart>
-          </ResponsiveContainer>
-          </div>
+          </ChartFrame>
           <div className="mt-2 flex justify-center gap-5 text-xs text-[#666]">
           <span className="inline-flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-[#51a2ff]" />
@@ -312,8 +310,7 @@ const FinancialStatusSection = ({ companyId, isSample = false }: DashboardCompan
         </div>
 
         <div className="min-w-0">
-          <div className="h-[214px]">
-            <ResponsiveContainer height="100%" width="100%">
+          <ChartFrame height={214}>
               <ComposedChart data={rndChartData} margin={{ bottom: 6, left: 0, right: 0, top: 8 }}>
                 <CartesianGrid stroke="#eee" vertical={false} />
                 <XAxis
@@ -332,14 +329,13 @@ const FinancialStatusSection = ({ companyId, isSample = false }: DashboardCompan
                 <Bar
                   barSize={50}
                   dataKey="researchAndDevelopmentExpense"
-                  isAnimationActive animationDuration={550} animationEasing="ease-out"
+                  isAnimationActive={false}
                   fill="#ff8500"
                   name="연구개발비"
                   radius={[6, 6, 0, 0]}
                 />
               </ComposedChart>
-            </ResponsiveContainer>
-          </div>
+          </ChartFrame>
           <div className="mt-2 flex justify-center text-base text-[#333]">연구개발비</div>
         </div>
       </div>

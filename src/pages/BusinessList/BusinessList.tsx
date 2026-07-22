@@ -226,7 +226,7 @@ const Sidebar = ({
   onTabChange: (tab: TabKey) => void;
 }) => {
   return (
-    <aside className="w-full shrink-0 rounded-[10px] bg-white px-[30px] py-[30px] lg:h-[145px] lg:w-[314px]">
+    <aside className="w-full shrink-0 rounded-[10px] bg-white px-4 py-4 sm:px-[30px] sm:py-[30px] lg:h-[145px] lg:w-[314px]">
       <div className="flex flex-row gap-[5px] lg:flex-col">
         {menuItems.map((item) => {
           const isActive = activeTab === item.key;
@@ -234,7 +234,7 @@ const Sidebar = ({
           return (
             <button
               aria-current={isActive ? "true" : undefined}
-              className={`business-sidebar-tab h-10 flex-1 rounded-[5px] px-3 text-left text-base font-medium lg:flex-none ${
+              className={`business-sidebar-tab h-10 flex-1 rounded-[5px] px-3 text-center text-sm font-medium sm:text-base lg:flex-none lg:text-left ${
                 isActive ? "bg-blue-50 text-[#2b7fff]" : "text-[#666]"
               }`}
               key={item.key}
@@ -295,9 +295,9 @@ const CompanyTable = ({
   };
 
   return (
-    <section className="min-w-0 flex-1 rounded-[10px] bg-white px-[30px] py-[36px]">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-medium">{title}</h1>
+    <section className="min-w-0 flex-1 rounded-[10px] bg-white px-4 py-6 sm:px-[30px] sm:py-[36px]">
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <h1 className="text-[22px] font-medium leading-8 sm:text-2xl">{title}</h1>
         {isSample && (
           <span className="inline-flex h-8 min-w-[92px] items-center justify-center rounded-full bg-[#d10000] px-5 text-base font-bold text-white">
             SAMPLE
@@ -305,10 +305,10 @@ const CompanyTable = ({
         )}
       </div>
 
-      <div className="mt-[48px] flex items-center justify-between gap-6">
+      <div className="mt-8 flex flex-col items-stretch gap-4 sm:mt-[48px] sm:flex-row sm:items-center sm:justify-between sm:gap-6">
         <h2 className="text-lg font-medium">기업 목록</h2>
         <button
-          className="business-action-button flex h-10 shrink-0 items-center gap-2 rounded-[10px] bg-[#107c41] px-4 text-base font-medium text-white"
+          className="business-action-button flex h-10 shrink-0 items-center justify-center gap-2 rounded-[10px] bg-[#107c41] px-4 text-base font-medium text-white"
           onClick={handleCompanyListExcelDownload}
           type="button"
         >
@@ -594,7 +594,7 @@ const UploadPanel = () => {
   };
 
   return (
-    <section className="min-h-[428px] min-w-0 flex-1 rounded-[10px] bg-white px-[30px] py-[45px]">
+    <section className="min-h-[428px] min-w-0 flex-1 rounded-[10px] bg-white px-4 py-7 sm:px-[30px] sm:py-[45px]">
       <div>
         <h1 className="text-[22px] font-medium">BTP 지원사업 공고 PDF 등록하기</h1>
         <input

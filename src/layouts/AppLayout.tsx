@@ -269,17 +269,17 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   return (
     <div className="min-h-screen bg-[#f2f4f8] text-[#333]">
       <header className="h-[70px] bg-white" data-dashboard-print-exclude>
-        <div className="mx-auto flex h-full max-w-[1200px] items-center justify-between gap-4 px-4 lg:gap-8 lg:px-6">
+        <div className="mx-auto flex h-full max-w-[1200px] items-center justify-between gap-2 px-3 sm:gap-4 sm:px-4 lg:gap-8 lg:px-6">
           <NavLink className="shrink-0" to="/">
-            <img alt="Data On" className="h-9 w-[123px]" src="/logo.svg" />
+            <img alt="Data On" className="h-8 w-[108px] sm:h-9 sm:w-[123px]" src="/logo.svg" />
           </NavLink>
 
           {shouldShowSearch && (
-            <div className="relative w-[min(464px,52vw)] max-w-full lg:w-[464px]">
-              <label className="flex h-12 items-center gap-5 rounded-[35px] border-2 border-[#51a2ff] bg-white px-5">
+            <div className="relative min-w-0 flex-1 lg:w-[464px] lg:flex-none">
+              <label className="flex h-11 items-center gap-3 rounded-[35px] border-2 border-[#51a2ff] bg-white px-4 sm:h-12 sm:gap-5 sm:px-5">
                 <svg
                   aria-hidden="true"
-                  className="h-6 w-6 shrink-0"
+                  className="h-5 w-5 shrink-0 sm:h-6 sm:w-6"
                   fill="none"
                   viewBox="0 0 24 24"
                 >
@@ -289,7 +289,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
                   />
                 </svg>
                 <input
-                  className="h-full min-w-0 flex-1 bg-transparent text-lg font-medium text-[#333] outline-none placeholder:text-[#999]"
+                  className="h-full min-w-0 flex-1 bg-transparent text-base font-medium text-[#333] outline-none placeholder:text-[#999] sm:text-lg"
                   disabled={pathname === "/" && isCompanySearchChecking}
                   onChange={handleSearchChange}
                   onKeyDown={handleSearchKeyDown}

@@ -24,6 +24,111 @@ button {
   cursor: pointer;
 }
 
+@media screen and (max-width: 640px) {
+  body {
+    width: 100%;
+    min-width: 0;
+    height: auto;
+  }
+
+  [data-dashboard-print-area] {
+    overflow: visible;
+  }
+
+  [data-dashboard-print-area] [data-dashboard-print-content] > header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  [data-dashboard-print-area] [data-dashboard-print-content] > header h1 {
+    font-size: 22px;
+    line-height: 30px;
+  }
+
+  [data-dashboard-print-area] [data-dashboard-print-content] > header > div {
+    justify-content: space-between;
+  }
+
+  [data-company-info-card] {
+    min-height: 0 !important;
+    padding: 22px 18px !important;
+  }
+
+  [data-company-info-content] {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 14px !important;
+    transform: none !important;
+  }
+
+  [data-dashboard-print-area] section,
+  [data-dashboard-print-area] article,
+  [data-dashboard-print-area] div {
+    max-width: 100%;
+  }
+
+  [data-dashboard-print-area] .grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  [data-dashboard-print-area] :is(div, section, article):has(> table) {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  [data-dashboard-print-area] table {
+    min-width: 640px;
+    font-size: 13px;
+  }
+
+  [data-dashboard-print-area] .recharts-wrapper,
+  [data-dashboard-print-area] .recharts-responsive-container {
+    max-width: 100% !important;
+  }
+
+  [data-dashboard-print-area] .recharts-responsive-container {
+    min-height: 170px !important;
+    width: 100% !important;
+  }
+
+  [data-dashboard-print-area] .recharts-wrapper {
+    min-height: 170px !important;
+  }
+
+  [data-dashboard-print-area] .recharts-surface {
+    display: block;
+    max-width: 100%;
+  }
+
+  [data-dashboard-print-area] [class*="gap-7"],
+  [data-dashboard-print-area] [class*="gap-8"] {
+    gap: 18px !important;
+  }
+
+  [data-dashboard-print-area] [class*="px-[30px]"] {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+  }
+
+  [data-dashboard-print-area] [class*="text-[28px]"] {
+    font-size: 24px !important;
+    line-height: 30px !important;
+  }
+
+  .business-action-button {
+    width: 100%;
+    justify-content: center;
+    font-size: 15px;
+  }
+
+  .business-table-scroll {
+    margin-left: -8px;
+    margin-right: -8px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+
 html.dashboard-printing body {
   width: auto;
   height: auto;

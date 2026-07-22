@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import DashboardHeader from "./components/DashboardHeader";
 import DashboardSection from "./components/DashboardSection";
@@ -61,6 +62,18 @@ const CompanyDashboardPage = () => {
     "company-info",
     ...visibleDisplayableSections.map((section) => section.id),
   ]);
+
+  useEffect(() => {
+    const resizeTimers = [100, 350, 700].map((delay) =>
+      window.setTimeout(() => {
+        window.dispatchEvent(new Event("resize"));
+      }, delay),
+    );
+
+    return () => {
+      resizeTimers.forEach((timer) => window.clearTimeout(timer));
+    };
+  }, [isSample, visibleDisplayableSections.length]);
 
   return (
     <DashboardShell
