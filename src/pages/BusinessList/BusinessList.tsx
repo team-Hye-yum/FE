@@ -262,6 +262,10 @@ const CompanyTable = ({
   const isSample = !supportProgramCode.trim();
 
   const handleCompanyClick = (companyId: string) => {
+    if (isSample) {
+      return;
+    }
+
     navigate(`/?${new URLSearchParams({ companyId })}`);
   };
 
@@ -342,9 +346,9 @@ const CompanyTable = ({
           <tbody>
             {companies.map((company, index) => (
               <tr
-                className={`h-11 cursor-pointer transition hover:bg-blue-50 ${
-                  index % 2 === 0 ? "bg-gray-50" : "bg-white"
-                }`}
+                className={`h-11 transition ${
+                  isSample ? "cursor-default" : "cursor-pointer hover:bg-blue-50"
+                } ${index % 2 === 0 ? "bg-gray-50" : "bg-white"}`}
                 key={`${company.companyId}-${index}`}
                 onClick={() => handleCompanyClick(company.companyId)}
               >
