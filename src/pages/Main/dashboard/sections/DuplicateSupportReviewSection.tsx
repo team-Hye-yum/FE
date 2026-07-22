@@ -1618,7 +1618,7 @@ const DuplicateSupportReviewSection = ({
               {supportCategories.map((category) => (
                 <Bar
                   dataKey={category.dataKey}
-                  isAnimationActive={false}
+                  isAnimationActive animationDuration={550} animationEasing="ease-out"
                   fill={category.color}
                   key={category.dataKey}
                   name={category.label}

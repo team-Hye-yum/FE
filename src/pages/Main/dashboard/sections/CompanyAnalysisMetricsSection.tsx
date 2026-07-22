@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import type { DashboardCompanyProps } from "../types";
 import { useDashboardGetData } from "../hooks/useDashboardApi";
 
@@ -26,12 +27,12 @@ const metricOrder = [
 const sampleMetrics: ComputedMetricItem[] = [
   { code: "DEBT_RATIO", label: "부채 비율", unit: "PERCENT", value: 123.45 },
   { code: "COST_OF_SALES_RATIO", label: "매출 원가율", unit: "PERCENT", value: 54.32 },
-  { code: "SALES_GROWTH", label: "매출 성장성", unit: "PERCENT", value: 12.34 },
-  { code: "EMPLOYMENT_GROWTH", label: "고용 성장성", unit: "PERCENT", value: 8.76 },
+  { code: "SALES_GROWTH", label: "매출 성장률", unit: "PERCENT", value: 12.34 },
+  { code: "EMPLOYMENT_GROWTH", label: "고용 성장률", unit: "PERCENT", value: 8.76 },
   { code: "GOVERNMENT_RD_DEPENDENCY", label: "정부 R&D 의존도", unit: "PERCENT", value: 45.67 },
   {
     code: "SUPPORTED_COMPANY_SALES_CHANGE_RATE",
-    label: "지원 기업 매출 변화율",
+    label: "지원기업 매출 변화율",
     unit: "PERCENT",
     value: 6.54,
   },
@@ -55,6 +56,56 @@ const formatMetricValue = (metric: ComputedMetricItem) => {
   return value;
 };
 
+const AnimatedMetricValue = ({ metric }: { metric: ComputedMetricItem }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+  const decimalPlaces = useMemo(() => {
+    if (metric.value === null || metric.value === undefined || Number.isInteger(metric.value)) {
+      return 0;
+    }
+
+    return 2;
+  }, [metric.value]);
+
+  useEffect(() => {
+    if (metric.value === null || metric.value === undefined) {
+      return;
+    }
+
+    const animationDuration = 700;
+    const startTime = performance.now();
+    let animationFrame = 0;
+
+    const animate = (time: number) => {
+      const progress = Math.min((time - startTime) / animationDuration, 1);
+      const easedProgress = 1 - (1 - progress) ** 3;
+
+      setDisplayValue(metric.value! * easedProgress);
+
+      if (progress < 1) {
+        animationFrame = requestAnimationFrame(animate);
+      }
+    };
+
+    animationFrame = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(animationFrame);
+  }, [metric.value]);
+
+  if (metric.value === null || metric.value === undefined) {
+    return <>{formatMetricValue(metric)}</>;
+  }
+
+  const value = decimalPlaces === 0 ? displayValue.toFixed(0) : displayValue.toFixed(decimalPlaces);
+  const suffix = metric.unit === "PERCENT" || metric.unit === "PERCENT_POINT" ? "%" : "";
+
+  return (
+    <>
+      {value}
+      {suffix}
+    </>
+  );
+};
+
 const sortMetrics = (metrics: ComputedMetricItem[]) =>
   metrics
     .slice()
@@ -65,12 +116,12 @@ const sortMetrics = (metrics: ComputedMetricItem[]) =>
     );
 
 const MetricCard = ({ metric }: { metric: ComputedMetricItem }) => (
-  <article className="h-[124px] rounded-[10px] bg-[#f8f9fb] px-[30px] pt-[30px]">
+  <article className="h-[124px] rounded-[10px] border border-transparent bg-[#f8f9fb] px-[30px] pt-[30px] transition duration-200 hover:-translate-y-0.5 hover:border-[#cfe5ff] hover:bg-[#f8fbff] hover:shadow-[0_8px_22px_rgba(15,23,42,0.08)]">
     <h3 className="truncate whitespace-nowrap text-[17px] font-medium leading-[22px] text-[#555]">
       {metric.label}
     </h3>
     <p className="mt-[9px] text-[28px] font-medium leading-[34px] text-[#333]">
-      {formatMetricValue(metric)}
+      <AnimatedMetricValue metric={metric} />
     </p>
   </article>
 );
@@ -94,7 +145,7 @@ const CompanyAnalysisMetricsSection = ({ companyId, isSample = false }: Dashboar
     return (
       <div className="grid grid-cols-4 gap-5">
         {metricOrder.map((code) => (
-          <div className="h-[124px] animate-pulse rounded-[10px] bg-[#f8f9fb]" key={code} />
+          <div className="dashboard-skeleton h-[124px] rounded-[10px]" key={code} />
         ))}
       </div>
     );

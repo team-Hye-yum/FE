@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, type DragEvent } from "react";
+import { LayoutGroup, motion } from "motion/react";
 import type { DashboardSectionConfig } from "../types";
 
 type DashboardFilterPanelProps = {
@@ -31,17 +32,18 @@ const DashboardFilterPanel = ({
   return (
     <aside className="sticky top-24 h-fit rounded-[10px] bg-white p-6">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-base font-medium text-[#333]">대시보드 필터링</h2>
+        <h2 className="text-base font-medium text-[#333]">대시보드 필터</h2>
         <div className="flex items-center gap-1.5">
           {isEditing && (
-            <button
+            <motion.button
               aria-label="대시보드 필터 설정 초기화"
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-[#eee] text-[#666] hover:border-red-200 hover:text-red-500"
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-[#eee] text-[#666] transition hover:border-red-200 hover:text-red-500"
               onClick={() => {
                 handleDragEnd();
                 onResetPanelConfig();
               }}
               type="button"
+              whileTap={{ scale: 0.95 }}
             >
               <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
                 <path
@@ -52,12 +54,12 @@ const DashboardFilterPanel = ({
                   strokeWidth="2"
                 />
               </svg>
-            </button>
+            </motion.button>
           )}
-          <button
+          <motion.button
             aria-label="대시보드 필터 순서 편집"
             aria-pressed={isEditing}
-            className={`flex h-7 w-7 items-center justify-center rounded-full border ${
+            className={`flex h-7 w-7 items-center justify-center rounded-full border transition ${
               isEditing ? "border-[#51a2ff] text-[#51a2ff]" : "border-[#eee] text-[#666]"
             }`}
             onClick={() => {
@@ -65,6 +67,7 @@ const DashboardFilterPanel = ({
               setIsEditing((currentValue) => !currentValue);
             }}
             type="button"
+            whileTap={{ scale: 0.95 }}
           >
             <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
               <path
@@ -74,72 +77,81 @@ const DashboardFilterPanel = ({
                 strokeWidth="2"
               />
             </svg>
-          </button>
+          </motion.button>
         </div>
       </div>
-      <div className="flex flex-col gap-2">
-        {sections.map((section) => (
-          <div
-            className={`flex items-center gap-1.5 rounded-[18px] transition ${
-              dragOverSectionId === section.id ? "bg-blue-50" : ""
-            } ${draggedSectionId === section.id ? "opacity-50" : ""}`}
-            draggable={isEditing}
-            key={section.id}
-            onDragEnd={handleDragEnd}
-            onDragOver={(event) => {
-              if (!isEditing || draggedSectionId === section.id) {
-                return;
-              }
+      <LayoutGroup>
+        <div className="flex flex-col gap-2">
+          {sections.map((section) => (
+            <motion.div
+              className={`flex items-center gap-1.5 rounded-[18px] transition ${
+                dragOverSectionId === section.id ? "bg-blue-50" : ""
+              } ${draggedSectionId === section.id ? "opacity-50" : ""}`}
+              draggable={isEditing}
+              key={section.id}
+              layout
+              onDragEnd={handleDragEnd}
+              onDragOver={(event) => {
+                if (!isEditing || draggedSectionId === section.id) {
+                  return;
+                }
 
-              event.preventDefault();
-              setDragOverSectionId(section.id);
-            }}
-            onDragStart={(event) => {
-              event.dataTransfer.effectAllowed = "move";
-              event.dataTransfer.setData("text/plain", section.id);
-              setDraggedSectionId(section.id);
-            }}
-            onDrop={(event) => {
-              event.preventDefault();
+                event.preventDefault();
+                setDragOverSectionId(section.id);
+              }}
+              onDragStart={(event) => {
+                const dragEvent = event as unknown as DragEvent<HTMLDivElement>;
 
-              const droppedSectionId =
-                (event.dataTransfer.getData("text/plain") as DashboardSectionConfig["id"]) ||
-                draggedSectionId;
+                dragEvent.dataTransfer.effectAllowed = "move";
+                dragEvent.dataTransfer.setData("text/plain", section.id);
+                setDraggedSectionId(section.id);
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
 
-              if (droppedSectionId && droppedSectionId !== section.id) {
-                onReorderSection(droppedSectionId, section.id);
-              }
+                const droppedSectionId =
+                  (event.dataTransfer.getData("text/plain") as DashboardSectionConfig["id"]) ||
+                  draggedSectionId;
 
-              handleDragEnd();
-            }}
-          >
-            {isEditing && (
-              <span
-                aria-hidden="true"
-                className="flex h-6 w-4 cursor-grab items-center justify-center text-[#aaa]"
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 16 16">
-                  <path
-                    d="M5 3h.01M11 3h.01M5 8h.01M11 8h.01M5 13h.01M11 13h.01"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeWidth="2"
-                  />
-                </svg>
-              </span>
-            )}
-            <button
-              className={`w-fit rounded-[15px] px-[15px] py-1.5 text-sm font-medium ${
-                section.visible ? "bg-[#51a2ff] text-white" : "border border-[#ddd] text-[#888]"
-              }`}
-              onClick={() => onToggleSectionVisibility(section.id)}
-              type="button"
+                if (droppedSectionId && droppedSectionId !== section.id) {
+                  onReorderSection(droppedSectionId, section.id);
+                }
+
+                handleDragEnd();
+              }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
             >
-              {section.label}
-            </button>
-          </div>
-        ))}
-      </div>
+              {isEditing && (
+                <span
+                  aria-hidden="true"
+                  className="flex h-6 w-4 cursor-grab items-center justify-center text-[#aaa]"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 16 16">
+                    <path
+                      d="M5 3h.01M11 3h.01M5 8h.01M11 8h.01M5 13h.01M11 13h.01"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeWidth="2"
+                    />
+                  </svg>
+                </span>
+              )}
+              <motion.button
+                className={`w-fit rounded-[15px] px-[15px] py-1.5 text-sm font-medium transition ${
+                  section.visible
+                    ? "bg-[#51a2ff] text-white shadow-[0_5px_14px_rgba(81,162,255,0.18)]"
+                    : "border border-[#ddd] text-[#888] hover:border-[#b9d8ff] hover:text-[#2b7fff]"
+                }`}
+                onClick={() => onToggleSectionVisibility(section.id)}
+                type="button"
+                whileTap={{ scale: 0.97 }}
+              >
+                {section.label}
+              </motion.button>
+            </motion.div>
+          ))}
+        </div>
+      </LayoutGroup>
     </aside>
   );
 };

@@ -1,3 +1,15 @@
 @import "tailwindcss";
 @import "./tailwind.css";
 @import "./reset.css";
+
+.dashboard-skeleton {
+  background: linear-gradient(90deg, #eef2f7 0%, #f8fafc 42%, #eef2f7 78%);
+  background-size: 220% 100%;
+  animation: dashboard-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes dashboard-shimmer {
+  to {
+    background-position: -220% 0;
+  }
+}

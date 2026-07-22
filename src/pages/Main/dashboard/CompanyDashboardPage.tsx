@@ -5,6 +5,7 @@ import DashboardShell from "./components/DashboardShell";
 import { dashboardSections } from "./constants/dashboardSections";
 import { useDashboardChainPostData } from "./hooks/useDashboardApi";
 import { useDashboardPanelConfig } from "./hooks/useDashboardPanelConfig";
+import { useSectionScrollSpy } from "./hooks/useSectionScrollSpy";
 import { useScrollToSection } from "./hooks/useScrollToSection";
 import AiAnalysisReportSection from "./sections/AiAnalysisReportSection";
 import AiReviewOpinionSection from "./sections/AiReviewOpinionSection";
@@ -56,9 +57,14 @@ const CompanyDashboardPage = () => {
     (section) => section.id !== "ai-review" || shouldShowAiReviewSection,
   );
   const visibleDisplayableSections = displayableSections.filter((section) => section.visible);
+  const { activeSectionId } = useSectionScrollSpy([
+    "company-info",
+    ...visibleDisplayableSections.map((section) => section.id),
+  ]);
 
   return (
     <DashboardShell
+      activeSectionId={activeSectionId}
       filterSections={displayableSections}
       navigationSections={visibleDisplayableSections}
       onReorderSection={reorderSection}
