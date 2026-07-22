@@ -226,15 +226,15 @@ const Sidebar = ({
   onTabChange: (tab: TabKey) => void;
 }) => {
   return (
-    <aside className="h-[145px] w-[314px] shrink-0 rounded-[10px] bg-white px-[30px] py-[30px]">
-      <div className="flex flex-col gap-[5px]">
+    <aside className="w-full shrink-0 rounded-[10px] bg-white px-[30px] py-[30px] lg:h-[145px] lg:w-[314px]">
+      <div className="flex flex-row gap-[5px] lg:flex-col">
         {menuItems.map((item) => {
           const isActive = activeTab === item.key;
 
           return (
             <button
               aria-current={isActive ? "true" : undefined}
-              className={`business-sidebar-tab h-10 rounded-[5px] px-3 text-left text-base font-medium ${
+              className={`business-sidebar-tab h-10 flex-1 rounded-[5px] px-3 text-left text-base font-medium lg:flex-none ${
                 isActive ? "bg-blue-50 text-[#2b7fff]" : "text-[#666]"
               }`}
               key={item.key}
@@ -318,7 +318,7 @@ const CompanyTable = ({
       </div>
 
       <div className="business-table-scroll mt-7 overflow-x-auto pb-3">
-        <table className="min-w-[1447px] border-collapse text-left text-base">
+        <table className="min-w-[1540px] border-collapse text-left text-base">
           <thead>
             <tr className="h-11 bg-white">
               <th className="sticky left-0 z-20 whitespace-nowrap bg-white px-4 font-normal">
@@ -342,6 +342,7 @@ const CompanyTable = ({
               </th>
               <th className="whitespace-nowrap px-4 text-right font-normal">부채 비율</th>
               <th className="whitespace-nowrap px-4 text-right font-normal">매출 성장성</th>
+              <th className="whitespace-nowrap px-4 text-center font-normal">상세</th>
             </tr>
           </thead>
           <tbody>
@@ -372,6 +373,13 @@ const CompanyTable = ({
                 <td className="whitespace-nowrap px-4 text-right">{company.supportAmount}</td>
                 <td className="whitespace-nowrap px-4 text-right">{company.debtRatio}</td>
                 <td className="whitespace-nowrap px-4 text-right">{company.salesGrowthRate}</td>
+                <td className="whitespace-nowrap px-4 text-center">
+                  {!isSample && (
+                    <span className="inline-flex h-7 items-center rounded-full bg-[#eaf3ff] px-3 text-sm font-medium text-[#2b7fff]">
+                      보기
+                    </span>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -692,7 +700,7 @@ const BusinessList = () => {
   }, []);
 
   return (
-    <main className="flex gap-6 px-6 py-12">
+    <main className="flex flex-col gap-6 px-4 py-8 lg:flex-row lg:px-6 lg:py-12">
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
       {activeTab === "companies" ? (
         <CompanyTable companies={companies} supportProgramCode={supportProgramCode} title={title} />

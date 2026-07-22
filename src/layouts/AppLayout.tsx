@@ -110,7 +110,10 @@ const AppLayout = ({ children }: AppLayoutProps) => {
       .then((response) => {
         setSupportProgramResults(response.data.items);
         setActiveResultIndex(response.data.items.length > 0 ? 0 : -1);
-        setSearchStatus({ type: "success", message: "" });
+        setSearchStatus({
+          type: response.data.items.length > 0 ? "success" : "error",
+          message: response.data.items.length > 0 ? "" : "검색 결과가 없습니다.",
+        });
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") {
@@ -145,18 +148,22 @@ const AppLayout = ({ children }: AppLayoutProps) => {
     }
 
     if (!trimmedKeyword) {
+      setSearchStatus({ type: "idle", message: "" });
       nextSearchParams.delete("companyId");
-      navigate(
-        {
-          pathname: "/",
-          search: nextSearchParams.toString(),
-        },
-        { replace: true },
-      );
+      navigate({ pathname: "/", search: nextSearchParams.toString() }, { replace: true });
+      return;
+    }
+
+    if (!/^\d+$/.test(trimmedKeyword)) {
+      setSearchStatus({
+        type: "error",
+        message: "기업 일련번호는 숫자만 입력해 주세요. 예: 888",
+      });
       return;
     }
 
     setIsCompanySearchChecking(true);
+    setSearchStatus({ type: "loading", message: "기업 일련번호를 확인하는 중입니다." });
 
     try {
       const response = await fetch(
@@ -164,35 +171,29 @@ const AppLayout = ({ children }: AppLayoutProps) => {
       );
 
       if (!response.ok) {
-        throw new Error(`기업 존재 여부 확인에 실패했습니다. (${response.status})`);
+        throw new Error(`기업 일련번호 확인에 실패했습니다. (${response.status})`);
       }
 
       const result = (await response.json()) as ApiDataResponse<CompanyExistenceResponse>;
 
       if (!result.data.exists) {
-        alert("해당 기업 일련번호를 찾을 수 없습니다.");
+        alert("해당 기업 일련번호를 찾을 수 없습니다. 다른 번호를 입력해 주세요.");
+        setSearchStatus({ type: "idle", message: "" });
         return;
       }
     } catch (error) {
-      alert(error instanceof Error ? error.message : "기업 존재 여부 확인에 실패했습니다.");
+      setSearchStatus({
+        type: "error",
+        message: error instanceof Error ? error.message : "기업 일련번호 확인에 실패했습니다.",
+      });
       return;
     } finally {
       setIsCompanySearchChecking(false);
     }
 
-    if (trimmedKeyword) {
-      nextSearchParams.set("companyId", trimmedKeyword);
-    } else {
-      nextSearchParams.delete("companyId");
-    }
-
-    navigate(
-      {
-        pathname: "/",
-        search: nextSearchParams.toString(),
-      },
-      { replace: true },
-    );
+    setSearchStatus({ type: "idle", message: "" });
+    nextSearchParams.set("companyId", trimmedKeyword);
+    navigate({ pathname: "/", search: nextSearchParams.toString() }, { replace: true });
   };
 
   const handleSupportProgramSelect = async (item: SupportProgramSearchItem) => {
@@ -268,13 +269,13 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   return (
     <div className="min-h-screen bg-[#f2f4f8] text-[#333]">
       <header className="h-[70px] bg-white" data-dashboard-print-exclude>
-        <div className="mx-auto flex h-full max-w-[1200px] items-center justify-between gap-8 px-6">
+        <div className="mx-auto flex h-full max-w-[1200px] items-center justify-between gap-4 px-4 lg:gap-8 lg:px-6">
           <NavLink className="shrink-0" to="/">
             <img alt="Data On" className="h-9 w-[123px]" src="/logo.svg" />
           </NavLink>
 
           {shouldShowSearch && (
-            <div className="relative w-[464px] max-w-full">
+            <div className="relative w-[min(464px,52vw)] max-w-full lg:w-[464px]">
               <label className="flex h-12 items-center gap-5 rounded-[35px] border-2 border-[#51a2ff] bg-white px-5">
                 <svg
                   aria-hidden="true"
@@ -289,25 +290,59 @@ const AppLayout = ({ children }: AppLayoutProps) => {
                 </svg>
                 <input
                   className="h-full min-w-0 flex-1 bg-transparent text-lg font-medium text-[#333] outline-none placeholder:text-[#999]"
+                  disabled={pathname === "/" && isCompanySearchChecking}
                   onChange={handleSearchChange}
                   onKeyDown={handleSearchKeyDown}
                   placeholder={searchPlaceholder}
                   type="search"
                   value={searchKeyword}
-                  disabled={pathname === "/" && isCompanySearchChecking}
                 />
               </label>
-              {searchStatus.type === "error" && searchStatus.message && (
-                <p
-                  className={`absolute left-5 top-[52px] text-xs font-medium ${searchStatusClassName}`}
-                >
-                  {searchStatus.message}
-                </p>
+              {(searchStatus.type === "error" || searchStatus.type === "loading") &&
+                searchStatus.message &&
+                !shouldShowSupportProgramResults && (
+                  <p
+                    className={`absolute left-5 top-[52px] text-xs font-medium ${searchStatusClassName}`}
+                  >
+                    {searchStatus.message}
+                  </p>
+                )}
+              {shouldShowSupportProgramResults && (
+                <div className="absolute left-0 right-0 top-[58px] z-30 rounded-[10px] border border-[#e5eaf2] bg-white p-2 shadow-[0_16px_40px_rgba(15,23,42,0.14)]">
+                  {searchStatus.type === "error" && supportProgramResults.length === 0 && (
+                    <p className="px-4 py-3 text-sm font-medium text-red-600">
+                      {searchStatus.message}
+                    </p>
+                  )}
+                  {supportProgramResults.map((item, index) => (
+                    <button
+                      className={`flex min-h-12 w-full items-center justify-between gap-4 rounded-[7px] px-4 text-left text-sm transition hover:bg-blue-50 ${
+                        activeResultIndex === index ? "bg-blue-50" : "bg-white"
+                      }`}
+                      key={`${item.code}-${item.programYear}-${index}`}
+                      onClick={() => void handleSupportProgramSelect(item)}
+                      onMouseEnter={() => setActiveResultIndex(index)}
+                      type="button"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium text-[#333]">
+                          {item.budgetProgramName}
+                        </span>
+                        <span className="mt-0.5 block text-xs text-[#888]">
+                          {item.programYear}년 · {item.code}
+                        </span>
+                      </span>
+                      <span className="shrink-0 rounded-full bg-[#50a2ff] px-3 py-1 text-xs font-medium text-white">
+                        선택
+                      </span>
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
           )}
 
-          <nav className="flex shrink-0 items-center gap-6 text-lg text-[#333]">
+          <nav className="hidden shrink-0 items-center gap-6 text-lg text-[#333] md:flex">
             {navItems.map((item) => (
               <NavLink
                 className={({ isActive }) =>
@@ -323,33 +358,6 @@ const AppLayout = ({ children }: AppLayoutProps) => {
           </nav>
         </div>
       </header>
-      {shouldShowSupportProgramResults && (
-        <div className="fixed inset-x-0 bottom-0 top-[70px] z-30 bg-black/30" data-dashboard-print-exclude>
-          <div className="mx-auto mt-2 w-[708px] rounded-[10px] bg-white px-[23px] py-[30px]">
-            {searchStatus.type === "error" && (
-              <p className="px-4 py-2 text-base text-red-600">{searchStatus.message}</p>
-            )}
-            {supportProgramResults.map((item, index) => (
-              <button
-                className={`flex h-10 w-full items-center justify-between gap-4 rounded-[5px] px-4 text-left text-base transition hover:bg-blue-50 ${
-                  activeResultIndex === index ? "bg-blue-50" : "bg-white"
-                }`}
-                key={`${item.code}-${item.programYear}-${index}`}
-                onClick={() => void handleSupportProgramSelect(item)}
-                onMouseEnter={() => setActiveResultIndex(index)}
-                type="button"
-              >
-                <span className="min-w-0 truncate text-[#333]">
-                  {item.programYear} {item.budgetProgramName}
-                </span>
-                <span className="flex h-[30px] shrink-0 items-center rounded-[15px] bg-[#50a2ff] px-[15px] pb-1.5 pt-[5px] font-medium text-white">
-                  {item.code}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
       {children}
     </div>
   );
