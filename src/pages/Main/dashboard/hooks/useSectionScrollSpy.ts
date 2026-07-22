@@ -20,47 +20,44 @@ export const useSectionScrollSpy = (sectionIds: DashboardSectionId[]) => {
       return;
     }
 
-    const visibleSections = new Map<DashboardSectionId, number>();
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const sectionId = entry.target.id as DashboardSectionId;
+    let animationFrame = 0;
 
-          if (entry.isIntersecting) {
-            visibleSections.set(sectionId, entry.intersectionRatio);
-          } else {
-            visibleSections.delete(sectionId);
-          }
-        });
+    const updateActiveSection = () => {
+      const activationOffset = 128;
+      const scrollBottom = window.scrollY + window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
 
-        const nextActiveSectionId = Array.from(visibleSections.entries()).sort(
-          ([firstSectionId, firstRatio], [secondSectionId, secondRatio]) => {
-            if (secondRatio !== firstRatio) {
-              return secondRatio - firstRatio;
-            }
+      if (documentHeight - scrollBottom < 8) {
+        setActiveSectionId(sections.at(-1)?.id as DashboardSectionId);
+        return;
+      }
 
-            return sectionIds.indexOf(firstSectionId) - sectionIds.indexOf(secondSectionId);
-          },
-        )[0]?.[0];
+      const currentSection =
+        sections
+          .map((section) => ({
+            id: section.id as DashboardSectionId,
+            top: section.getBoundingClientRect().top,
+          }))
+          .filter((section) => section.top <= activationOffset)
+          .at(-1) ?? null;
 
-        if (nextActiveSectionId) {
-          setActiveSectionId(nextActiveSectionId);
-        }
-      },
-      {
-        rootMargin: "-96px 0px -58% 0px",
-        threshold: [0.1, 0.35, 0.6],
-      },
-    );
+      setActiveSectionId(currentSection?.id ?? (sections[0].id as DashboardSectionId));
+    };
 
-    sections.forEach((section) => observer.observe(section));
-    setActiveSectionId((currentActiveSectionId) =>
-      currentActiveSectionId && sectionIds.includes(currentActiveSectionId)
-        ? currentActiveSectionId
-        : sectionIds[0],
-    );
+    const scheduleUpdate = () => {
+      cancelAnimationFrame(animationFrame);
+      animationFrame = requestAnimationFrame(updateActiveSection);
+    };
 
-    return () => observer.disconnect();
+    updateActiveSection();
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate);
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      window.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
+    };
   }, [sectionIds.join("|")]);
 
   return {
