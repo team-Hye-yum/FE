@@ -21,6 +21,7 @@ type SupportHistoryLatestVsPastResponse = {
   btpSupportTimeline: {
     items: BtpSupportTimelineItem[];
   } | null;
+  comparisons: ComparisonItem[];
   yearlySupportChart: {
     items: YearlySupportCountItem[];
   } | null;
@@ -40,6 +41,26 @@ type BtpSupportTimelineItem = {
   supportItem?: string | null;
   supportYear: number | null;
   supportType: string | null;
+};
+
+type ComparisonItem = {
+  comparisonId: string;
+  latestSupport: SupportHistoryCompareItem | null;
+  pastSupport: SupportHistoryCompareItem | null;
+};
+
+type SupportHistoryCompareItem = {
+  budgetProgramName: string | null;
+  endDate: string | null;
+  selectionResult?: string | null;
+  startDate: string | null;
+  supportAmount: {
+    value: number | null;
+    unit: string;
+  } | null;
+  supportItem: string | null;
+  supportType: string | null;
+  supportYear: number | null;
 };
 
 type ChartPoint = {
@@ -155,6 +176,51 @@ const sampleTimelineItems: BtpSupportTimelineItem[] = [
   },
 ];
 
+const sampleComparisons: ComparisonItem[] = [
+  {
+    comparisonId: "sample-package",
+    latestSupport: {
+      budgetProgramName: "지역기업성장사다리지원사업",
+      endDate: "20261130",
+      startDate: "20260701",
+      supportAmount: { unit: "KRW_THOUSAND", value: 8000 },
+      supportItem: "고액분리기 고정밀 고강성 여과망 개발을 위한 트라이바 시제품 제작",
+      supportType: "패키지지원",
+      supportYear: 2026,
+    },
+    pastSupport: {
+      budgetProgramName: "지역기업성장사다리지원사업",
+      endDate: "20241031",
+      startDate: "20240601",
+      supportAmount: { unit: "KRW_THOUSAND", value: 20000 },
+      supportItem: "고액분리기 고정밀 고강성 여과망 개발을 위한 트라이바 시제품 제작",
+      supportType: "패키지지원",
+      supportYear: 2024,
+    },
+  },
+  {
+    comparisonId: "sample-technical",
+    latestSupport: {
+      budgetProgramName: "지역기업성장사다리지원사업",
+      endDate: "20261130",
+      startDate: "20260701",
+      supportAmount: { unit: "KRW_THOUSAND", value: 8000 },
+      supportItem: "고액분리기 고정밀 고강성 여과망 개발을 위한 트라이바 시제품 제작",
+      supportType: "기술지원",
+      supportYear: 2026,
+    },
+    pastSupport: {
+      budgetProgramName: "지역기업성장사다리지원사업",
+      endDate: "20241031",
+      startDate: "20240601",
+      supportAmount: { unit: "KRW_THOUSAND", value: 20000 },
+      supportItem: "고액분리기 고정밀 고강성 여과망 개발을 위한 트라이바 시제품 제작",
+      supportType: "기술지원",
+      supportYear: 2024,
+    },
+  },
+];
+
 const emptyChartPoint = (year: number): ChartPoint => ({
   business: 0,
   other: 0,
@@ -234,6 +300,22 @@ const formatDate = (value: string | null | undefined) => {
 const formatNumber = (value: number | null | undefined) =>
   value === null || value === undefined ? "-" : value.toLocaleString();
 
+const formatDateRange = (startDate: string | null | undefined, endDate: string | null | undefined) => {
+  const formattedStartDate = formatDate(startDate);
+  const formattedEndDate = formatDate(endDate);
+
+  if (formattedStartDate === "-" && formattedEndDate === "-") {
+    return "-";
+  }
+
+  return `${formattedStartDate.replaceAll("-", ".")}~${formattedEndDate.replaceAll("-", ".")}.`;
+};
+
+const formatSupportAmount = (value: number | null | undefined) => {
+  const formattedValue = formatNumber(value);
+  return formattedValue === "-" ? "-" : `${formattedValue}천원`;
+};
+
 const supportCategoryText = (item: BtpSupportTimelineItem) =>
   item.supportCategory || item.supportDetail || item.supportItem || "-";
 
@@ -286,6 +368,81 @@ const SupportTimelineTable = ({ items }: { items: BtpSupportTimelineItem[] }) =>
     </div>
   </div>
 );
+
+const badgeClassName = (supportType: string | null | undefined) => {
+  if (supportType?.includes("패키지")) {
+    return "bg-[#ffd6a7] text-[#ca3500]";
+  }
+
+  if (supportType?.includes("기술")) {
+    return "bg-blue-100 text-[#155dfc]";
+  }
+
+  if (supportType?.includes("사업화")) {
+    return "bg-[#d8f3e8] text-[#047857]";
+  }
+
+  return "bg-[#eee] text-[#555]";
+};
+
+const CompareColumn = ({
+  item,
+  title,
+}: {
+  item: SupportHistoryCompareItem | null;
+  title: string;
+}) => (
+  <div className="min-w-0">
+    <h4 className="mb-8 text-center text-base font-normal text-[#555]">{title}</h4>
+    <dl className="grid grid-cols-[92px_minmax(0,1fr)] gap-x-5 gap-y-5 text-base">
+      <dt className="text-[#555]">사업명</dt>
+      <dd className="font-medium text-[#333]">{item?.budgetProgramName || "-"}</dd>
+
+      <dt className="text-[#555]">사업유형</dt>
+      <dd>
+        <span
+          className={`inline-flex h-[30px] items-center rounded-[15px] px-[15px] pb-1.5 pt-[5px] text-base font-medium ${badgeClassName(
+            item?.supportType,
+          )}`}
+        >
+          {item?.supportType || "-"}
+        </span>
+      </dd>
+
+      <dt className="text-[#555]">지원품목</dt>
+      <dd className="break-keep font-medium leading-6 text-[#333]">{item?.supportItem || "-"}</dd>
+
+      <dt className="text-[#555]">지원기간</dt>
+      <dd className="font-medium text-[#333]">{formatDateRange(item?.startDate, item?.endDate)}</dd>
+
+      <dt className="text-[#555]">지원금</dt>
+      <dd className="font-medium text-[#333]">{formatSupportAmount(item?.supportAmount?.value)}</dd>
+    </dl>
+  </div>
+);
+
+const SupportComparisonList = ({ comparisons }: { comparisons: ComparisonItem[] }) => {
+  if (comparisons.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-10">
+      <h3 className="mb-5 text-xl font-medium text-[#333]">최신 지원 - 과거 지원 이력 비교</h3>
+      <div className="space-y-7">
+        {comparisons.map((comparison) => (
+          <article
+            className="grid grid-cols-2 gap-[60px] rounded-[10px] border border-[#eee] bg-white px-[30px] py-[30px]"
+            key={comparison.comparisonId}
+          >
+            <CompareColumn item={comparison.latestSupport} title="현재 신청 [기업 제출]" />
+            <CompareColumn item={comparison.pastSupport} title="과거 지원 [BTP 확정 이력]" />
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const SupportTooltip = ({
   active,
@@ -342,6 +499,7 @@ const DuplicateSupportReviewSection = ({
       ? buildSupportItemsFromTimeline(data.btpSupportTimeline.items)
       : data?.yearlySupportChart?.items ?? [];
   const timelineItems = isSample ? sampleTimelineItems : data?.btpSupportTimeline?.items ?? [];
+  const comparisons = isSample ? sampleComparisons : data?.comparisons ?? [];
   const chartData = buildChartData(items);
 
   if (!isSample && error) {
@@ -403,6 +561,7 @@ const DuplicateSupportReviewSection = ({
         </div>
       </div>
       <SupportTimelineTable items={timelineItems} />
+      <SupportComparisonList comparisons={comparisons} />
     </div>
   );
 };
