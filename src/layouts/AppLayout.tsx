@@ -268,7 +268,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
 
   return (
     <div className="min-h-screen bg-[#f2f4f8] text-[#333]">
-      <header className="h-[70px] bg-white" data-dashboard-print-exclude>
+      <header className="relative z-40 h-[70px] bg-white" data-dashboard-print-exclude>
         <div className="mx-auto flex h-full max-w-[1200px] items-center justify-between gap-2 px-3 sm:gap-4 sm:px-4 lg:gap-8 lg:px-6">
           <NavLink className="shrink-0" to="/">
             <img alt="Data On" className="h-8 w-[108px] sm:h-9 sm:w-[123px]" src="/logo.svg" />
@@ -307,38 +307,6 @@ const AppLayout = ({ children }: AppLayoutProps) => {
                     {searchStatus.message}
                   </p>
                 )}
-              {shouldShowSupportProgramResults && (
-                <div className="absolute left-0 right-0 top-[58px] z-30 rounded-[10px] border border-[#e5eaf2] bg-white p-2 shadow-[0_16px_40px_rgba(15,23,42,0.14)]">
-                  {searchStatus.type === "error" && supportProgramResults.length === 0 && (
-                    <p className="px-4 py-3 text-sm font-medium text-red-600">
-                      {searchStatus.message}
-                    </p>
-                  )}
-                  {supportProgramResults.map((item, index) => (
-                    <button
-                      className={`flex min-h-12 w-full items-center justify-between gap-4 rounded-[7px] px-4 text-left text-sm transition hover:bg-blue-50 ${
-                        activeResultIndex === index ? "bg-blue-50" : "bg-white"
-                      }`}
-                      key={`${item.code}-${item.programYear}-${index}`}
-                      onClick={() => void handleSupportProgramSelect(item)}
-                      onMouseEnter={() => setActiveResultIndex(index)}
-                      type="button"
-                    >
-                      <span className="min-w-0">
-                        <span className="block truncate font-medium text-[#333]">
-                          {item.budgetProgramName}
-                        </span>
-                        <span className="mt-0.5 block text-xs text-[#888]">
-                          {item.programYear}년 · {item.code}
-                        </span>
-                      </span>
-                      <span className="shrink-0 rounded-full bg-[#50a2ff] px-3 py-1 text-xs font-medium text-white">
-                        선택
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
           )}
 
@@ -358,6 +326,48 @@ const AppLayout = ({ children }: AppLayoutProps) => {
           </nav>
         </div>
       </header>
+      {shouldShowSupportProgramResults && (
+        <div
+          className="fixed inset-x-0 bottom-0 top-[70px] z-30 bg-black/30"
+          data-dashboard-print-exclude
+          onMouseDown={() => {
+            setSupportProgramResults([]);
+            setActiveResultIndex(-1);
+            setSearchStatus({ type: "idle", message: "" });
+          }}
+        >
+          <div
+            className="mx-auto mt-2.5 w-[min(708px,calc(100vw-48px))] rounded-[10px] bg-white px-[22px] py-[30px] shadow-[0_18px_44px_rgba(15,23,42,0.16)]"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            {searchStatus.type === "error" && supportProgramResults.length === 0 && (
+              <p className="px-3 py-2 text-sm font-medium text-red-600">
+                {searchStatus.message}
+              </p>
+            )}
+            <div className="space-y-1">
+              {supportProgramResults.map((item, index) => (
+                <button
+                  className={`flex h-10 w-full items-center justify-between gap-5 rounded-[5px] px-4 text-left text-[16px] font-medium text-[#333] transition hover:bg-[#eef6ff] ${
+                    activeResultIndex === index ? "bg-[#eef6ff]" : "bg-white"
+                  }`}
+                  key={`${item.code}-${item.programYear}-${index}`}
+                  onClick={() => void handleSupportProgramSelect(item)}
+                  onMouseEnter={() => setActiveResultIndex(index)}
+                  type="button"
+                >
+                  <span className="min-w-0 truncate">
+                    {item.programYear} {item.budgetProgramName}
+                  </span>
+                  <span className="inline-flex h-[30px] min-w-[85px] shrink-0 items-center justify-center rounded-full bg-[#50a2ff] px-4 text-[16px] font-semibold text-white">
+                    {item.code}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
       {children}
     </div>
   );
