@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
 import type { DashboardCompanyProps, DashboardSectionId } from "../types";
 import { useDashboardGetData } from "../hooks/useDashboardApi";
@@ -190,6 +190,110 @@ const formatEmployeeChange = (value: number | null | undefined) => {
   }
 
   return `전년 대비 ${trendPrefix(value)}${Math.abs(value)}명`;
+};
+
+const formatSalesAmount = (value: number) => {
+  const eokValue = value / 100000;
+  const fixedValue = Number.isInteger(eokValue) ? eokValue.toFixed(0) : eokValue.toFixed(1);
+
+  return `${fixedValue}억원`;
+};
+
+const AnimatedNumber = ({
+  fallback,
+  formatter,
+  value,
+}: {
+  fallback: string;
+  formatter: (value: number) => string;
+  value: number | null | undefined;
+}) => {
+  const [displayValue, setDisplayValue] = useState(value ?? 0);
+  const elementRef = useRef<HTMLSpanElement | null>(null);
+  const hasAnimatedRef = useRef(false);
+
+  useEffect(() => {
+    if (value === null || value === undefined) {
+      hasAnimatedRef.current = false;
+      setDisplayValue(0);
+      return undefined;
+    }
+
+    hasAnimatedRef.current = false;
+    setDisplayValue(0);
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const isPrintMode = window.matchMedia("print").matches;
+
+    if (prefersReducedMotion || isPrintMode) {
+      hasAnimatedRef.current = true;
+      setDisplayValue(value);
+      return undefined;
+    }
+
+    const finishForPrint = () => {
+      hasAnimatedRef.current = true;
+      setDisplayValue(value);
+    };
+
+    window.addEventListener("beforeprint", finishForPrint);
+
+    const startAnimation = () => {
+      if (hasAnimatedRef.current) {
+        return;
+      }
+
+      hasAnimatedRef.current = true;
+      const duration = 780;
+      const startTime = performance.now();
+
+      const tick = (now: number) => {
+        const progress = Math.min((now - startTime) / duration, 1);
+        const easedProgress = 1 - Math.pow(1 - progress, 3);
+
+        setDisplayValue(value * easedProgress);
+
+        if (progress < 1) {
+          requestAnimationFrame(tick);
+          return;
+        }
+
+        setDisplayValue(value);
+      };
+
+      requestAnimationFrame(tick);
+    };
+
+    const element = elementRef.current;
+
+    if (!element || !("IntersectionObserver" in window)) {
+      startAnimation();
+      return () => window.removeEventListener("beforeprint", finishForPrint);
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          observer.disconnect();
+          startAnimation();
+        }
+      },
+      { threshold: 0.25 },
+    );
+
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("beforeprint", finishForPrint);
+    };
+  }, [value]);
+
+  if (value === null || value === undefined) {
+    return <span>{fallback}</span>;
+  }
+
+  return <span ref={elementRef}>{formatter(displayValue)}</span>;
 };
 
 const ScorecardCard = ({
@@ -469,7 +573,13 @@ const CompanyScorecardSection = ({ companyId, isSample = false }: DashboardCompa
       <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))" }}>
         <ScorecardCard onClick={() => scrollToSection("income-statement")}>
           <CardTitle>재무</CardTitle>
-          <CardValue>{financial?.salesAmount?.displayText || "데이터 없음"}</CardValue>
+          <CardValue>
+            <AnimatedNumber
+              fallback={financial?.salesAmount?.displayText || "데이터 없음"}
+              formatter={formatSalesAmount}
+              value={financial?.salesAmount?.value}
+            />
+          </CardValue>
           <p className="mt-1.5 text-sm font-medium text-[#666]">
             {financial?.salesYear ? `${financial.salesYear}년 매출액 기준` : "매출액 기준"}
           </p>
@@ -492,9 +602,11 @@ const CompanyScorecardSection = ({ companyId, isSample = false }: DashboardCompa
         <ScorecardCard onClick={() => scrollToSection("employment")}>
           <CardTitle>고용</CardTitle>
           <CardValue>
-            {employment?.employeeCount === null || employment?.employeeCount === undefined
-              ? "데이터 없음"
-              : `${employment.employeeCount.toLocaleString()}명`}
+            <AnimatedNumber
+              fallback="데이터 없음"
+              formatter={(value) => `${Math.round(value).toLocaleString()}명`}
+              value={employment?.employeeCount}
+            />
           </CardValue>
           <p className="mt-1.5 text-sm font-medium text-[#666]">
             {employment?.employeeYear ? `${employment.employeeYear}년 종업원수 기준` : "종업원수 기준"}
@@ -509,7 +621,13 @@ const CompanyScorecardSection = ({ companyId, isSample = false }: DashboardCompa
 
         <ScorecardCard onClick={() => scrollToSection("ip-rights")}>
           <CardTitle>특허·인증</CardTitle>
-          <CardValue>{formatCount(certificationsIp?.activeRegisteredPatentCount)}</CardValue>
+          <CardValue>
+            <AnimatedNumber
+              fallback={formatCount(certificationsIp?.activeRegisteredPatentCount)}
+              formatter={(value) => formatCount(Math.round(value))}
+              value={certificationsIp?.activeRegisteredPatentCount}
+            />
+          </CardValue>
           <p className="mt-1.5 text-sm font-medium text-[#666]">유효 등록 특허 건수</p>
           <Divider />
           <div className="flex flex-wrap" style={{ columnGap: 12, rowGap: 10 }}>
@@ -525,7 +643,13 @@ const CompanyScorecardSection = ({ companyId, isSample = false }: DashboardCompa
 
         <ScorecardCard onClick={() => scrollToSection("rnd")}>
           <CardTitle>연구·활동</CardTitle>
-          <CardValue>{formatCount(researchActivity?.ntisLeadProjectCount)}</CardValue>
+          <CardValue>
+            <AnimatedNumber
+              fallback={formatCount(researchActivity?.ntisLeadProjectCount)}
+              formatter={(value) => formatCount(Math.round(value))}
+              value={researchActivity?.ntisLeadProjectCount}
+            />
+          </CardValue>
           <p className="mt-1.5 text-sm font-medium text-[#666]">
             NTIS(주관) 과제 수와 NTIS(위탁) 과제 수 합계
           </p>
