@@ -72,12 +72,15 @@ export const useDashboardGets = (companyId: string, paths: readonly string[]) =>
   useQueries({
     queries: paths.map((path) => ({
       enabled: Boolean(companyId),
-      queryFn: ({ signal }: { signal: AbortSignal }) =>
-        requestJson(
+      queryFn: async ({ signal }: { signal: AbortSignal }) => {
+        const response = await requestJson<unknown>(
           apiUrl(path.replace("{companyId}", encodeURIComponent(companyId))),
           undefined,
           signal,
-        ),
+        );
+
+        return unwrapApiData(response);
+      },
       queryKey: ["dashboard-get", companyId, path],
     })),
   });
