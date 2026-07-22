@@ -1,9 +1,5 @@
 import type { DashboardCompanyProps } from "../types";
-import { useDashboardChainPostData, useDashboardGetData } from "../hooks/useDashboardApi";
-
-type AiSummaryResponse = {
-  aiSummary: string | null;
-};
+import { useDashboardChainPostData } from "../hooks/useDashboardApi";
 
 type AnalysisLine = {
   type: "IDENTITY" | "PERFORMANCE" | "EMPLOYMENT_SUPPORT";
@@ -20,12 +16,6 @@ const lineLabels: Record<AnalysisLine["type"], string> = {
   EMPLOYMENT_SUPPORT: "고용·지원",
 };
 
-const splitSummary = (summary: string | null | undefined) =>
-  summary
-    ?.split(/\r?\n/)
-    .map((line) => line.replace(/^[-•]\s*/, "").trim())
-    .filter(Boolean) ?? [];
-
 const AiReportLoadingBox = () => (
   <div className="rounded-[10px] bg-[#eef8ff] px-7 py-6">
     <div className="flex items-center gap-3 text-sm font-medium text-[#2b7fff]">
@@ -41,32 +31,35 @@ const AiReportLoadingBox = () => (
         <div className="h-3 w-10/12 animate-pulse rounded-full bg-white/80" />
         <div className="h-3 w-8/12 animate-pulse rounded-full bg-white/80" />
       </div>
-      {[0, 1, 2].map((item) => (
-        <div className="rounded-[8px] bg-white/70 px-5 py-4" key={item}>
-          <div className="h-3 w-24 animate-pulse rounded-full bg-[#cfeaff]" />
-          <div className="mt-3 h-3 w-full animate-pulse rounded-full bg-[#edf6ff]" />
-          <div className="mt-2 h-3 w-9/12 animate-pulse rounded-full bg-[#edf6ff]" />
-        </div>
-      ))}
     </div>
   </div>
 );
 
-const AiAnalysisReportSection = ({ companyId }: DashboardCompanyProps) => {
-  const summaryState = useDashboardGetData<AiSummaryResponse>(
-    companyId,
-    "/companies/{companyId}/ai-summary",
-  );
+const sampleAnalysisLines: AnalysisLine[] = [
+  {
+    type: "IDENTITY",
+    line: "샘플 업종과 샘플 제품군을 기준으로 기업 정체성을 파악하는 예시 문장입니다.",
+  },
+  {
+    type: "PERFORMANCE",
+    line: "샘플 재무 지표, 특허, NTIS 이력을 나란히 보며 성과 흐름을 확인하는 예시 문장입니다.",
+  },
+  {
+    type: "EMPLOYMENT_SUPPORT",
+    line: "샘플 고용 변화와 지원사업 선정 시점을 함께 비교하는 예시 문장입니다.",
+  },
+];
+
+const AiAnalysisReportSection = ({ companyId, isSample = false }: DashboardCompanyProps) => {
   const analysisState = useDashboardChainPostData<AiAnalysisResponse>(
-    companyId,
+    isSample ? "" : companyId,
     "/companies/{companyId}/ai-analysis/payload",
     "/companies/analysis",
   );
 
-  const summaryLines = splitSummary(summaryState.data?.aiSummary);
-  const analysisLines = analysisState.data?.analysisLines ?? [];
-  const isLoading = summaryState.isLoading || analysisState.isLoading;
-  const hasError = summaryState.error || analysisState.error;
+  const analysisLines = isSample ? sampleAnalysisLines : analysisState.data?.analysisLines ?? [];
+  const isLoading = analysisState.isLoading;
+  const hasError = analysisState.error;
 
   if (hasError) {
     return (
@@ -76,35 +69,27 @@ const AiAnalysisReportSection = ({ companyId }: DashboardCompanyProps) => {
     );
   }
 
-  if (isLoading && summaryLines.length === 0 && analysisLines.length === 0) {
+  if (isLoading && analysisLines.length === 0) {
     return <AiReportLoadingBox />;
   }
 
   return (
     <div className="rounded-[10px] bg-[#eef8ff] px-7 py-6">
-      {summaryLines.length > 0 && (
+      {analysisLines.length > 0 && (
         <ul className="space-y-2 text-sm leading-6 text-[#333]">
-          {summaryLines.map((line) => (
-            <li className="flex gap-2" key={line}>
+          {analysisLines.map((item) => (
+            <li className="flex gap-2" key={item.type}>
               <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[#333]" />
-              <span>{line}</span>
+              <span>
+                <strong className="font-medium text-[#333]">{lineLabels[item.type]}: </strong>
+                {item.line}
+              </span>
             </li>
           ))}
         </ul>
       )}
 
-      {analysisLines.length > 0 && (
-        <div className={summaryLines.length > 0 ? "mt-5 space-y-3" : "space-y-3"}>
-          {analysisLines.map((item) => (
-            <article className="rounded-[8px] bg-white/70 px-5 py-4" key={item.type}>
-              <h3 className="text-sm font-semibold text-[#2b7fff]">{lineLabels[item.type]}</h3>
-              <p className="mt-2 text-sm leading-6 text-[#333]">{item.line}</p>
-            </article>
-          ))}
-        </div>
-      )}
-
-      {!isLoading && summaryLines.length === 0 && analysisLines.length === 0 && (
+      {!isLoading && analysisLines.length === 0 && (
         <p className="text-sm leading-6 text-[#333]">표시할 AI 분석 리포트가 없습니다.</p>
       )}
     </div>

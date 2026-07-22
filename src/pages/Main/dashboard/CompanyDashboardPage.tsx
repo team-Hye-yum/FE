@@ -40,7 +40,8 @@ const CompanyDashboardPage = () => {
   const visibleSections = orderedSections.filter((section) => section.visible);
   const searchedCompanyId = searchParams.get("companyId")?.trim() ?? "";
   const isSample = !searchedCompanyId;
-  const companyId = searchedCompanyId || "117";
+  const companyId = searchedCompanyId || "SAMPLE-001";
+  const requestCompanyId = isSample ? "" : companyId;
 
   return (
     <DashboardShell
@@ -56,9 +57,13 @@ const CompanyDashboardPage = () => {
       {visibleSections.map((section) => {
         const SectionContent = sectionComponents[section.id];
 
+        if (section.id === "ai-review") {
+          return <SectionContent companyId={requestCompanyId} isSample={isSample} key={section.id} />;
+        }
+
         return (
           <DashboardSection id={section.id} key={section.id} title={section.label}>
-            <SectionContent companyId={companyId} isSample={isSample} />
+            <SectionContent companyId={requestCompanyId} isSample={isSample} />
           </DashboardSection>
         );
       })}

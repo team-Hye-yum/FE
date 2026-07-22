@@ -1,7 +1,16 @@
 import type { DashboardCompanyProps } from "../types";
+import { useDashboardGetData } from "../hooks/useDashboardApi";
+
+type CompanyProfileHeaderResponse = {
+  companyId: number | null;
+};
 
 const DashboardHeader = ({ companyId, isSample = false }: DashboardCompanyProps) => {
-  const displayCompanyId = companyId || "-";
+  const { data } = useDashboardGetData<CompanyProfileHeaderResponse>(
+    isSample ? "" : companyId,
+    "/companies/{companyId}/profile",
+  );
+  const displayCompanyId = data?.companyId ?? (companyId || "-");
   const handlePdfExport = () => {
     window.print();
   };
