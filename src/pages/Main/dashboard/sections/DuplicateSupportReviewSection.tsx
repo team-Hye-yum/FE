@@ -924,7 +924,10 @@ const SummaryCards = ({
 const SupportTimelineTable = ({ items }: { items: BtpSupportTimelineItem[] }) => (
   <div className="mt-10">
     <h3 className="mb-5 text-xl font-medium text-[#333]">부산TP 지원 타임라인</h3>
-    <div className="max-h-[440px] overflow-y-auto overflow-x-hidden rounded-[10px] border border-[#eee] bg-white">
+    <div
+      className="max-h-[440px] overflow-y-auto overflow-x-hidden rounded-[10px] border border-[#eee] bg-white"
+      data-dashboard-print-expand
+    >
       <table className="w-full table-fixed border-collapse text-left text-[15px] text-[#333]">
         <colgroup>
           <col className="w-[31%]" />
@@ -1035,6 +1038,7 @@ const SupportComparisonList = ({ comparisons }: { comparisons: ComparisonItem[] 
         {comparisons.map((comparison) => (
           <article
             className="grid grid-cols-2 gap-[60px] rounded-[10px] border border-[#eee] bg-white px-[30px] py-[30px]"
+            data-dashboard-print-avoid
             key={comparison.comparisonId}
           >
             <CompareColumn item={comparison.latestSupport} title="현재 신청 [기업 제출]" />
@@ -1111,6 +1115,7 @@ const PostSupportChangeSection = ({
                   ? "pb-[30px]"
                   : "border-t border-[#eee] py-[30px] last:pb-0"
               }
+              data-dashboard-print-avoid
               key={`${item.supportEndYear}-${item.observationYear}-${index}`}
             >
               <div className="flex items-center justify-between gap-5">
@@ -1587,7 +1592,12 @@ const DuplicateSupportReviewSection = ({
           style={{ height: 336 }}
         >
           <ResponsiveContainer height="100%" width="100%">
-            <BarChart data={chartData} margin={{ bottom: 10, left: 0, right: 0, top: 8 }}>
+            <BarChart
+              barCategoryGap="16%"
+              barGap={0}
+              data={chartData}
+              margin={{ bottom: 10, left: 0, right: 0, top: 8 }}
+            >
               <CartesianGrid stroke="#eee" vertical={false} />
               <XAxis
                 axisLine={{ stroke: "#ddd" }}
@@ -1607,8 +1617,8 @@ const DuplicateSupportReviewSection = ({
               <Legend content={<LegendContent />} verticalAlign="bottom" />
               {supportCategories.map((category) => (
                 <Bar
-                  barSize={105}
                   dataKey={category.dataKey}
+                  isAnimationActive={false}
                   fill={category.color}
                   key={category.dataKey}
                   name={category.label}

@@ -267,7 +267,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
 
   return (
     <div className="min-h-screen bg-[#f2f4f8] text-[#333]">
-      <header className="h-[70px] bg-white">
+      <header className="h-[70px] bg-white" data-dashboard-print-exclude>
         <div className="mx-auto flex h-full max-w-[1200px] items-center justify-between gap-8 px-6">
           <NavLink className="shrink-0" to="/">
             <img alt="Data On" className="h-9 w-[123px]" src="/logo.svg" />
@@ -324,7 +324,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
         </div>
       </header>
       {shouldShowSupportProgramResults && (
-        <div className="fixed inset-x-0 bottom-0 top-[70px] z-30 bg-black/30">
+        <div className="fixed inset-x-0 bottom-0 top-[70px] z-30 bg-black/30" data-dashboard-print-exclude>
           <div className="mx-auto mt-2 w-[708px] rounded-[10px] bg-white px-[23px] py-[30px]">
             {searchStatus.type === "error" && (
               <p className="px-4 py-2 text-base text-red-600">{searchStatus.message}</p>

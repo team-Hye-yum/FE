@@ -176,6 +176,7 @@ const EmploymentInfoSection = ({ companyId, isSample = false }: DashboardCompany
               <Tooltip content={<EmploymentTooltip />} />
               <Line
                 dataKey="employeeCount"
+                isAnimationActive={false}
                 dot={false}
                 name="종업원수"
                 stroke="#51a2ff"
@@ -184,6 +185,7 @@ const EmploymentInfoSection = ({ companyId, isSample = false }: DashboardCompany
               />
               <Line
                 dataKey="nationalPensionSubscriberCount"
+                isAnimationActive={false}
                 dot={false}
                 name="국민연금 가입자수"
                 stroke="#6ee7b7"
@@ -227,6 +229,7 @@ const EmploymentInfoSection = ({ companyId, isSample = false }: DashboardCompany
               <Bar
                 barSize={18}
                 dataKey="nationalPensionJoinerCount"
+                isAnimationActive={false}
                 fill="#51a2ff"
                 name="국민연금 취업자수"
                 radius={[4, 4, 0, 0]}
@@ -234,6 +237,7 @@ const EmploymentInfoSection = ({ companyId, isSample = false }: DashboardCompany
               <Bar
                 barSize={18}
                 dataKey="nationalPensionLeaverCount"
+                isAnimationActive={false}
                 fill="#9bd0ff"
                 name="국민연금 퇴직자수"
                 radius={[4, 4, 0, 0]}
@@ -276,6 +280,7 @@ const EmploymentInfoSection = ({ companyId, isSample = false }: DashboardCompany
               <Bar
                 barSize={26}
                 dataKey="averageSalaryTenThousand"
+                isAnimationActive={false}
                 fill="#ffc928"
                 name="1인평균년간급여"
                 radius={[4, 4, 0, 0]}

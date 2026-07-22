@@ -26,15 +26,21 @@ const DashboardShell = ({
   onToggleSectionVisibility,
 }: DashboardShellProps) => {
   return (
-    <main className="grid grid-cols-[240px_minmax(0,1fr)_240px] gap-6 px-6 py-12">
-      <DashboardSidebarNav sections={navigationSections} onSectionClick={onSectionClick} />
-      <div className="min-w-0 rounded-[10px] bg-white px-[30px] py-10">{children}</div>
-      <DashboardFilterPanel
-        onReorderSection={onReorderSection}
-        onResetPanelConfig={onResetPanelConfig}
-        sections={filterSections}
-        onToggleSectionVisibility={onToggleSectionVisibility}
-      />
+    <main className="dashboard-shell grid grid-cols-[240px_minmax(0,1fr)_240px] gap-6 px-6 py-12">
+      <div data-dashboard-print-exclude>
+        <DashboardSidebarNav sections={navigationSections} onSectionClick={onSectionClick} />
+      </div>
+      <div className="min-w-0 rounded-[10px] bg-white px-[30px] py-10" data-dashboard-print-area>
+        <div data-dashboard-print-content>{children}</div>
+      </div>
+      <div data-dashboard-print-exclude>
+        <DashboardFilterPanel
+          onReorderSection={onReorderSection}
+          onResetPanelConfig={onResetPanelConfig}
+          sections={filterSections}
+          onToggleSectionVisibility={onToggleSectionVisibility}
+        />
+      </div>
     </main>
   );
 };

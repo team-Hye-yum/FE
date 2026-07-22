@@ -254,6 +254,7 @@ const FinancialStatusSection = ({ companyId, isSample = false }: DashboardCompan
               <Bar
                 barSize={24}
                 dataKey="totalLiabilities"
+                isAnimationActive={false}
                 fill="#51a2ff"
                 name="부채 총계"
                 radius={[4, 4, 0, 0]}
@@ -261,12 +262,14 @@ const FinancialStatusSection = ({ companyId, isSample = false }: DashboardCompan
               <Bar
                 barSize={24}
                 dataKey="totalEquity"
+                isAnimationActive={false}
                 fill="#9bd0ff"
                 name="자본 총계"
                 radius={[4, 4, 0, 0]}
               />
               <Line
                 dataKey="totalAssets"
+                isAnimationActive={false}
                 dot={false}
                 name="자산 총계"
                 stroke="#ffc928"
@@ -329,6 +332,7 @@ const FinancialStatusSection = ({ companyId, isSample = false }: DashboardCompan
                 <Bar
                   barSize={50}
                   dataKey="researchAndDevelopmentExpense"
+                  isAnimationActive={false}
                   fill="#ff8500"
                   name="연구개발비"
                   radius={[6, 6, 0, 0]}

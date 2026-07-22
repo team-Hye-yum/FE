@@ -1,6 +1,7 @@
 body {
   width: 100vw;
   height: 100vh;
+  margin: 0;
   overflow-x: hidden;
   font-family:
     "Pretendard",
@@ -21,4 +22,200 @@ body {
 
 button {
   cursor: pointer;
+}
+
+html.dashboard-printing body {
+  width: auto;
+  height: auto;
+  overflow: visible;
+  background: #fff !important;
+}
+
+html.dashboard-printing body > div,
+html.dashboard-printing .dashboard-shell {
+  background: #fff !important;
+}
+
+html.dashboard-printing [data-dashboard-print-exclude],
+html.dashboard-printing [data-dashboard-print-exclude] * {
+  display: none !important;
+}
+
+html.dashboard-printing .dashboard-shell {
+  display: block !important;
+  padding: 0 !important;
+}
+
+html.dashboard-printing [data-dashboard-print-area] {
+  -webkit-box-decoration-break: clone !important;
+  box-decoration-break: clone !important;
+  box-sizing: border-box !important;
+  width: 210mm !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 auto !important;
+  padding: 25.4mm !important;
+  border-radius: 0 !important;
+  background: #fff !important;
+  box-shadow: none !important;
+}
+
+html.dashboard-printing [data-dashboard-print-content] {
+  width: 900px !important;
+  background: #fff !important;
+  zoom: 0.668;
+}
+
+html.dashboard-printing [data-dashboard-print-expand] {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+html.dashboard-printing [data-dashboard-print-avoid] {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+html.dashboard-printing [data-company-info-content] {
+  transform: translateY(8px);
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  html,
+  body {
+    width: auto;
+    height: auto;
+    margin: 0 !important;
+    overflow: visible;
+    background: #fff !important;
+  }
+
+  body > div {
+    background: #fff !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  [data-dashboard-print-exclude],
+  [data-dashboard-print-exclude] * {
+    display: none !important;
+  }
+
+  .dashboard-shell {
+    display: block !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  [data-dashboard-print-area] {
+    -webkit-box-decoration-break: clone !important;
+    box-decoration-break: clone !important;
+    box-sizing: border-box !important;
+    width: 210mm !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 25.4mm !important;
+    border-radius: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+
+  [data-dashboard-print-content] {
+    width: 900px !important;
+    background: #fff !important;
+    zoom: 0.668;
+  }
+
+  [data-dashboard-print-expand] {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  [data-dashboard-print-avoid] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  [data-company-info-content] {
+    transform: translateY(8px);
+  }
+
+  [data-dashboard-print-page-start] {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  [data-dashboard-print-content] > section {
+    padding-top: 8mm !important;
+  }
+
+  [data-dashboard-print-content] > section:first-of-type {
+    padding-top: 0 !important;
+  }
+
+  [data-dashboard-print-content] > header,
+  [data-dashboard-print-content] > section {
+    padding-bottom: 6mm !important;
+  }
+
+  [data-dashboard-print-area] h2,
+  [data-dashboard-print-area] h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  [data-dashboard-print-area] article,
+  [data-dashboard-print-area] table,
+  [data-dashboard-print-area] canvas {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  [data-dashboard-print-area] .recharts-responsive-container,
+  [data-dashboard-print-area] .dashboard-print-chart-image {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  [data-dashboard-print-area] [class*="max-h-"],
+  [data-dashboard-print-area] [class*="overflow-y-auto"],
+  [data-dashboard-print-area] [class*="overflow-x-hidden"] {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  [data-dashboard-print-area] .recharts-wrapper,
+  [data-dashboard-print-area] .recharts-surface {
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  [data-dashboard-print-area] .recharts-surface * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  [data-dashboard-print-area] .recharts-line-curve,
+  [data-dashboard-print-area] .recharts-bar-rectangle,
+  [data-dashboard-print-area] .recharts-rectangle {
+    clip-path: none !important;
+  }
+
+  [data-dashboard-print-area] .recharts-layer,
+  [data-dashboard-print-area] .recharts-rectangle,
+  [data-dashboard-print-area] .recharts-line,
+  [data-dashboard-print-area] .recharts-dot {
+    opacity: 1 !important;
+  }
 }

@@ -66,7 +66,9 @@ const sortMetrics = (metrics: ComputedMetricItem[]) =>
 
 const MetricCard = ({ metric }: { metric: ComputedMetricItem }) => (
   <article className="h-[124px] rounded-[10px] bg-[#f8f9fb] px-[30px] pt-[30px]">
-    <h3 className="text-lg font-medium leading-[22px] text-[#555]">{metric.label}</h3>
+    <h3 className="truncate whitespace-nowrap text-[17px] font-medium leading-[22px] text-[#555]">
+      {metric.label}
+    </h3>
     <p className="mt-[9px] text-[28px] font-medium leading-[34px] text-[#333]">
       {formatMetricValue(metric)}
     </p>

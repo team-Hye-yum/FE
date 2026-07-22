@@ -72,26 +72,35 @@ const CompanyInfoSection = ({ companyId, isSample = false }: DashboardCompanyPro
 
   if (error) {
     return (
-      <section className="mb-10 min-h-[209px] rounded-[10px] border border-[#eee] bg-white px-[30px] py-[30px] text-sm font-medium text-red-600">
+      <section
+        className="mb-10 min-h-[209px] rounded-[10px] border border-[#eee] bg-white px-[30px] py-[30px] text-sm font-medium text-red-600"
+        data-company-info-card
+      >
         기업 정보를 불러오지 못했습니다.
       </section>
     );
   }
 
   return (
-    <section className="mb-10 min-h-[209px] rounded-[10px] border border-[#eee] bg-white px-[30px] py-[30px]">
-      <div className="flex justify-between">
+    <section
+      className="mb-10 flex min-h-[209px] items-center rounded-[10px] border border-[#eee] bg-white px-[30px] py-[30px]"
+      data-company-info-card
+    >
+      <div className="grid w-full grid-cols-2 gap-x-[70px]" data-company-info-content>
         {[leftItems, rightItems].map((items, groupIndex) => (
           <dl
-            className={`grid w-[306px] gap-x-[30px] gap-y-4 ${
+            className={`grid min-w-0 gap-x-[30px] gap-y-4 ${
               groupIndex === 0 ? "grid-cols-[77px_minmax(0,1fr)]" : "grid-cols-[89px_minmax(0,1fr)]"
             }`}
             key={groupIndex}
           >
             {items.map((item) => (
               <div className="contents" key={item.label}>
-                <dt className="text-sm leading-5 text-[#666]">{item.label}</dt>
-                <dd className="text-sm leading-5 text-[#333]">
+                <dt className="whitespace-nowrap text-sm leading-5 text-[#666]">{item.label}</dt>
+                <dd
+                  className="min-w-0 truncate whitespace-nowrap text-sm leading-5 text-[#333]"
+                  title={item.value}
+                >
                   {isLoading && !data && !isSample ? "불러오는 중" : item.value}
                 </dd>
               </div>
