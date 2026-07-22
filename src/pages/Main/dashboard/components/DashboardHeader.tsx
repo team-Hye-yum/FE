@@ -97,6 +97,45 @@ const createPrintChartImages = () => {
   };
 };
 
+const waitForFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+
+const waitForDashboardIdle = async (printArea: Element | null) => {
+  if (document.fonts?.ready) {
+    await document.fonts.ready;
+  }
+
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const isLoading =
+      printArea?.textContent?.includes("불러오는 중") ||
+      Boolean(printArea?.querySelector(".animate-pulse"));
+
+    if (!isLoading) {
+      break;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+};
+
+const prepareDashboardSectionsForPrint = async () => {
+  const originalScrollX = window.scrollX;
+  const originalScrollY = window.scrollY;
+  const sections = Array.from(
+    document.querySelectorAll<HTMLElement>("[data-dashboard-print-content] > section"),
+  );
+
+  for (const section of sections) {
+    section.scrollIntoView({ block: "center" });
+    window.dispatchEvent(new Event("scroll"));
+    window.dispatchEvent(new Event("resize"));
+    await waitForFrame();
+  }
+
+  window.scrollTo(originalScrollX, originalScrollY);
+  window.dispatchEvent(new Event("resize"));
+  await waitForFrame();
+};
+
 const DashboardHeader = ({ companyId, isSample = false }: DashboardCompanyProps) => {
   const { data } = useDashboardGetData<CompanyProfileHeaderResponse>(
     isSample ? "" : companyId,
@@ -108,23 +147,8 @@ const DashboardHeader = ({ companyId, isSample = false }: DashboardCompanyProps)
     const printArea = document.querySelector("[data-dashboard-print-area]");
     const root = document.documentElement;
 
-    const waitForFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
-
-    if (document.fonts?.ready) {
-      await document.fonts.ready;
-    }
-
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      const isLoading =
-        printArea?.textContent?.includes("불러오는 중") ||
-        Boolean(printArea?.querySelector(".animate-pulse"));
-
-      if (!isLoading) {
-        break;
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 250));
-    }
+    await waitForDashboardIdle(printArea);
+    await prepareDashboardSectionsForPrint();
 
     root.classList.add("dashboard-printing");
     window.dispatchEvent(new Event("resize"));

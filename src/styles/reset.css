@@ -171,6 +171,11 @@ html.dashboard-printing [data-dashboard-print-content] {
   zoom: 0.668;
 }
 
+html.dashboard-printing [data-dashboard-print-content] > section {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
 html.dashboard-printing [data-dashboard-print-expand] {
   height: auto !important;
   max-height: none !important;
@@ -239,6 +244,11 @@ html.dashboard-printing [data-company-info-content] {
     width: 900px !important;
     background: #fff !important;
     zoom: 0.668;
+  }
+
+  [data-dashboard-print-content] > section {
+    opacity: 1 !important;
+    transform: none !important;
   }
 
   [data-dashboard-print-expand] {
