@@ -27,6 +27,17 @@ type SupportHistoryLatestVsPastResponse = {
 };
 
 type BtpSupportTimelineItem = {
+  budgetProgramName?: string | null;
+  endDate?: string | null;
+  selectedDate?: string | null;
+  startDate?: string | null;
+  supportAmount?: {
+    value: number | null;
+    unit: string;
+  } | null;
+  supportCategory?: string | null;
+  supportDetail?: string | null;
+  supportItem?: string | null;
   supportYear: number | null;
   supportType: string | null;
 };
@@ -59,6 +70,89 @@ const sampleSupportItems: YearlySupportCountItem[] = [
   { supportCount: 2, supportType: "패키지지원", supportYear: 2023 },
   { supportCount: 1, supportType: "기술지원", supportYear: 2024 },
   { supportCount: 1, supportType: "기타", supportYear: 2024 },
+];
+
+const sampleTimelineItems: BtpSupportTimelineItem[] = [
+  {
+    budgetProgramName: "부산글로벌스타기업육성사업",
+    endDate: "20220731",
+    selectedDate: "20211223",
+    startDate: "20211223",
+    supportAmount: { unit: "KRW_THOUSAND", value: 10377 },
+    supportCategory: "전시회",
+    supportType: "사업화지원",
+    supportYear: 2021,
+  },
+  {
+    budgetProgramName: "친환경미래에너지마케팅사업",
+    endDate: "20221130",
+    selectedDate: "20220518",
+    startDate: "20220601",
+    supportAmount: { unit: "KRW_THOUSAND", value: 13200 },
+    supportCategory: "수출지원",
+    supportType: "패키지지원",
+    supportYear: 2022,
+  },
+  {
+    budgetProgramName: "탄소중립 친환경미래에너지산업 지원사업",
+    endDate: "20220331",
+    selectedDate: "20220826",
+    startDate: "20220901",
+    supportAmount: { unit: "KRW_THOUSAND", value: 13400 },
+    supportCategory: "전시회",
+    supportType: "패키지지원",
+    supportYear: 2022,
+  },
+  {
+    budgetProgramName: "지역기업 성장사다리 지원사업",
+    endDate: "20230331",
+    selectedDate: "20220826",
+    startDate: "20220901",
+    supportAmount: { unit: "KRW_THOUSAND", value: 13400 },
+    supportCategory: "전시회",
+    supportType: "사업화지원",
+    supportYear: 2022,
+  },
+  {
+    budgetProgramName: "지역기업 성장사다리 지원사업",
+    endDate: "20231103",
+    selectedDate: "20230822",
+    startDate: "20230822",
+    supportAmount: { unit: "KRW_THOUSAND", value: 3850 },
+    supportCategory: "수출지원",
+    supportType: "패키지지원",
+    supportYear: 2023,
+  },
+  {
+    budgetProgramName: "탄소중립 친환경미래에너지산업 지원사업",
+    endDate: "20231117",
+    selectedDate: "20230919",
+    startDate: "20230918",
+    supportAmount: { unit: "KRW_THOUSAND", value: 20000 },
+    supportCategory: "시제품제작",
+    supportType: "패키지지원",
+    supportYear: 2023,
+  },
+  {
+    budgetProgramName: "저온고압에너지저장공급 사업화지원",
+    endDate: "20240331",
+    selectedDate: "20230615",
+    startDate: "20230401",
+    supportAmount: { unit: "KRW_THOUSAND", value: 4730 },
+    supportCategory: "전시회",
+    supportType: "사업화지원",
+    supportYear: 2023,
+  },
+  {
+    budgetProgramName: "지역기업성장사다리지원사업",
+    endDate: "20241031",
+    selectedDate: "20240524",
+    startDate: "20240617",
+    supportAmount: { unit: "KRW_THOUSAND", value: 20000 },
+    supportCategory: "시제품제작",
+    supportType: "패키지지원",
+    supportYear: 2024,
+  },
 ];
 
 const emptyChartPoint = (year: number): ChartPoint => ({
@@ -124,6 +218,75 @@ const buildSupportItemsFromTimeline = (items: BtpSupportTimelineItem[]) =>
     supportYear: item.supportYear,
   }));
 
+const formatDate = (value: string | null | undefined) => {
+  if (!value) {
+    return "-";
+  }
+
+  const normalizedValue = value.replaceAll("-", "");
+  if (!/^\d{8}$/.test(normalizedValue)) {
+    return value;
+  }
+
+  return `${normalizedValue.slice(0, 4)}-${normalizedValue.slice(4, 6)}-${normalizedValue.slice(6)}`;
+};
+
+const formatNumber = (value: number | null | undefined) =>
+  value === null || value === undefined ? "-" : value.toLocaleString();
+
+const supportCategoryText = (item: BtpSupportTimelineItem) =>
+  item.supportCategory || item.supportDetail || item.supportItem || "-";
+
+const SupportTimelineTable = ({ items }: { items: BtpSupportTimelineItem[] }) => (
+  <div className="mt-10">
+    <h3 className="mb-5 text-xl font-medium text-[#333]">부산TP 지원 타임라인</h3>
+    <div className="max-h-[440px] overflow-y-auto overflow-x-hidden rounded-[10px] border border-[#eee] bg-white">
+      <table className="w-full table-fixed border-collapse text-left text-[15px] text-[#333]">
+        <colgroup>
+          <col className="w-[31%]" />
+          <col className="w-[13%]" />
+          <col className="w-[17%]" />
+          <col className="w-[12%]" />
+          <col className="w-[12%]" />
+          <col className="w-[15%]" />
+        </colgroup>
+        <thead>
+          <tr className="sticky top-0 z-10 h-10 bg-gray-50">
+            <th className="whitespace-nowrap px-3 font-normal">사업명</th>
+            <th className="whitespace-nowrap px-3 font-normal">사업유형</th>
+            <th className="whitespace-nowrap px-3 font-normal">지원구분(주요지원)</th>
+            <th className="whitespace-nowrap px-3 font-normal">시작일</th>
+            <th className="whitespace-nowrap px-3 font-normal">종료일</th>
+            <th className="whitespace-nowrap px-3 text-right font-normal">
+              지원금(천원)
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item, index) => (
+            <tr className="h-10 border-t border-[#eee]" key={`${item.budgetProgramName}-${index}`}>
+              <td className="truncate px-3" title={item.budgetProgramName || "-"}>
+                {item.budgetProgramName || "-"}
+              </td>
+              <td className="truncate px-3" title={item.supportType || "-"}>
+                {item.supportType || "-"}
+              </td>
+              <td className="truncate px-3" title={supportCategoryText(item)}>
+                {supportCategoryText(item)}
+              </td>
+              <td className="whitespace-nowrap px-3">{formatDate(item.startDate || item.selectedDate)}</td>
+              <td className="whitespace-nowrap px-3">{formatDate(item.endDate)}</td>
+              <td className="whitespace-nowrap px-3 text-right">
+                {formatNumber(item.supportAmount?.value)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+);
+
 const SupportTooltip = ({
   active,
   label,
@@ -178,6 +341,7 @@ const DuplicateSupportReviewSection = ({
     : data?.btpSupportTimeline?.items
       ? buildSupportItemsFromTimeline(data.btpSupportTimeline.items)
       : data?.yearlySupportChart?.items ?? [];
+  const timelineItems = isSample ? sampleTimelineItems : data?.btpSupportTimeline?.items ?? [];
   const chartData = buildChartData(items);
 
   if (!isSample && error) {
@@ -199,43 +363,46 @@ const DuplicateSupportReviewSection = ({
 
   return (
     <div>
-      <h3 className="mb-5 text-xl font-medium text-[#333]">부산TP 지원 현황 - 연도별 건수</h3>
-      <div
-        className="rounded-[10px] border border-[#eee] bg-white px-[34px] pb-5 pt-5"
-        style={{ height: 336 }}
-      >
-        <ResponsiveContainer height="100%" width="100%">
-          <BarChart data={chartData} margin={{ bottom: 10, left: 0, right: 0, top: 8 }}>
-            <CartesianGrid stroke="#eee" vertical={false} />
-            <XAxis
-              axisLine={{ stroke: "#ddd" }}
-              dataKey="yearLabel"
-              tick={{ fill: "#666", fontSize: 18, fontWeight: 500 }}
-              tickLine={false}
-            />
-            <YAxis
-              allowDecimals={false}
-              axisLine={{ stroke: "#ddd" }}
-              domain={[0, "dataMax"]}
-              tick={{ fill: "#666", fontSize: 18, fontWeight: 500 }}
-              tickLine={false}
-              width={36}
-            />
-            <Tooltip content={<SupportTooltip />} />
-            <Legend content={<LegendContent />} verticalAlign="bottom" />
-            {supportCategories.map((category) => (
-              <Bar
-                barSize={105}
-                dataKey={category.dataKey}
-                fill={category.color}
-                key={category.dataKey}
-                name={category.label}
-                stackId="support"
+      <div>
+        <h3 className="mb-5 text-xl font-medium text-[#333]">부산TP 지원 현황 - 연도별 건수</h3>
+        <div
+          className="rounded-[10px] border border-[#eee] bg-white px-[34px] pb-5 pt-5"
+          style={{ height: 336 }}
+        >
+          <ResponsiveContainer height="100%" width="100%">
+            <BarChart data={chartData} margin={{ bottom: 10, left: 0, right: 0, top: 8 }}>
+              <CartesianGrid stroke="#eee" vertical={false} />
+              <XAxis
+                axisLine={{ stroke: "#ddd" }}
+                dataKey="yearLabel"
+                tick={{ fill: "#666", fontSize: 18, fontWeight: 500 }}
+                tickLine={false}
               />
-            ))}
-          </BarChart>
-        </ResponsiveContainer>
+              <YAxis
+                allowDecimals={false}
+                axisLine={{ stroke: "#ddd" }}
+                domain={[0, "dataMax"]}
+                tick={{ fill: "#666", fontSize: 18, fontWeight: 500 }}
+                tickLine={false}
+                width={36}
+              />
+              <Tooltip content={<SupportTooltip />} />
+              <Legend content={<LegendContent />} verticalAlign="bottom" />
+              {supportCategories.map((category) => (
+                <Bar
+                  barSize={105}
+                  dataKey={category.dataKey}
+                  fill={category.color}
+                  key={category.dataKey}
+                  name={category.label}
+                  stackId="support"
+                />
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
+      <SupportTimelineTable items={timelineItems} />
     </div>
   );
 };
