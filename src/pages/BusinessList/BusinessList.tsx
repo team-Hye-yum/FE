@@ -233,7 +233,8 @@ const Sidebar = ({
 
           return (
             <button
-              className={`h-10 rounded-[5px] px-3 text-left text-base font-medium ${
+              aria-current={isActive ? "true" : undefined}
+              className={`business-sidebar-tab h-10 rounded-[5px] px-3 text-left text-base font-medium ${
                 isActive ? "bg-blue-50 text-[#2b7fff]" : "text-[#666]"
               }`}
               key={item.key}
@@ -307,7 +308,7 @@ const CompanyTable = ({
       <div className="mt-[48px] flex items-center justify-between gap-6">
         <h2 className="text-lg font-medium">기업 목록</h2>
         <button
-          className="flex h-10 shrink-0 items-center gap-2 rounded-[10px] bg-[#107c41] px-4 text-base font-medium text-white"
+          className="business-action-button flex h-10 shrink-0 items-center gap-2 rounded-[10px] bg-[#107c41] px-4 text-base font-medium text-white"
           onClick={handleCompanyListExcelDownload}
           type="button"
         >
@@ -316,7 +317,7 @@ const CompanyTable = ({
         </button>
       </div>
 
-      <div className="mt-7 overflow-x-auto pb-3">
+      <div className="business-table-scroll mt-7 overflow-x-auto pb-3">
         <table className="min-w-[1447px] border-collapse text-left text-base">
           <thead>
             <tr className="h-11 bg-white">
@@ -346,7 +347,7 @@ const CompanyTable = ({
           <tbody>
             {companies.map((company, index) => (
               <tr
-                className={`h-11 transition ${
+                className={`business-table-row h-11 transition ${
                   isSample ? "cursor-default" : "cursor-pointer hover:bg-blue-50"
                 } ${index % 2 === 0 ? "bg-gray-50" : "bg-white"}`}
                 key={`${company.companyId}-${index}`}
@@ -596,7 +597,7 @@ const UploadPanel = () => {
           type="file"
         />
         <button
-          className={`mt-7 bg-[#2b7fff] text-white ${uploadButtonClassName}`}
+          className={`business-action-button mt-7 bg-[#2b7fff] text-white ${uploadButtonClassName}`}
           disabled={announcementStatus.type === "loading"}
           onClick={() => announcementInputRef.current?.click()}
           type="button"
@@ -605,7 +606,7 @@ const UploadPanel = () => {
           지원사업 공고 PDF 업로드
         </button>
         {announcementStatus.message && (
-          <p className={`mt-3 text-sm font-medium ${statusClassName(announcementStatus)}`}>
+          <p className={`business-status-message mt-3 text-sm font-medium ${statusClassName(announcementStatus)}`}>
             {announcementStatus.message}
           </p>
         )}
@@ -622,7 +623,7 @@ const UploadPanel = () => {
         />
         <div className="mt-7 flex flex-wrap gap-5">
           <button
-            className={`border-2 border-[#107c41] bg-white text-[#107c41] ${uploadButtonClassName}`}
+            className={`business-action-button border-2 border-[#107c41] bg-white text-[#107c41] ${uploadButtonClassName}`}
             disabled={templateStatus.type === "loading"}
             onClick={handleCompanyTemplateDownload}
             type="button"
@@ -631,7 +632,7 @@ const UploadPanel = () => {
             엑셀 템플릿 다운로드
           </button>
           <button
-            className={`bg-[#107c41] text-white ${uploadButtonClassName}`}
+            className={`business-action-button bg-[#107c41] text-white ${uploadButtonClassName}`}
             disabled={templateStatus.type === "loading"}
             onClick={() => companyTemplateInputRef.current?.click()}
             type="button"
@@ -641,7 +642,7 @@ const UploadPanel = () => {
           </button>
         </div>
         {templateStatus.message && (
-          <p className={`mt-3 text-sm font-medium ${statusClassName(templateStatus)}`}>
+          <p className={`business-status-message mt-3 text-sm font-medium ${statusClassName(templateStatus)}`}>
             {templateStatus.message}
           </p>
         )}

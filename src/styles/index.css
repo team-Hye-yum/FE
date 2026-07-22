@@ -13,3 +13,81 @@
     background-position: -220% 0;
   }
 }
+
+.business-sidebar-tab {
+  position: relative;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.business-sidebar-tab[aria-current="true"]::before {
+  background: #2b7fff;
+  border-radius: 999px;
+  bottom: 8px;
+  content: "";
+  left: 0;
+  position: absolute;
+  top: 8px;
+  width: 3px;
+}
+
+.business-action-button {
+  transition:
+    box-shadow 0.16s ease,
+    filter 0.16s ease,
+    transform 0.16s ease;
+}
+
+.business-action-button:hover:not(:disabled) {
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1);
+  filter: brightness(1.02);
+  transform: translateY(-1px);
+}
+
+.business-action-button:active:not(:disabled) {
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+  transform: translateY(0);
+}
+
+.business-table-scroll {
+  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-width: thin;
+}
+
+.business-table-row {
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.12s ease;
+}
+
+.business-table-row:hover {
+  box-shadow: inset 3px 0 0 #2b7fff;
+}
+
+.business-table-row:active {
+  transform: scale(0.998);
+}
+
+.business-status-message {
+  animation: business-status-fade-in 0.18s ease-out;
+}
+
+.business-analysis-shimmer {
+  background: linear-gradient(90deg, #eef2f7 0%, #f8fafc 42%, #eef2f7 78%);
+  background-size: 220% 100%;
+  animation: dashboard-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes business-status-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

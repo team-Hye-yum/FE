@@ -1,4 +1,5 @@
 import type { SupportProgramPeriod, SupportProgramSaveRequest } from "../types";
+import { motion } from "motion/react";
 
 type SupportProgramRegisterModalProps = {
   draft: SupportProgramSaveRequest;
@@ -40,8 +41,18 @@ const SupportProgramRegisterModal = ({
   onSubmit,
 }: SupportProgramRegisterModalProps) => {
   return (
-    <div className="fixed inset-x-0 bottom-0 top-[70px] z-40 overflow-y-auto bg-black/30 py-12">
-      <div className="mx-auto w-[708px] rounded-[10px] bg-white px-[50px] py-[45px]">
+    <motion.div
+      animate={{ opacity: 1 }}
+      className="fixed inset-x-0 bottom-0 top-[70px] z-40 overflow-y-auto bg-black/30 py-12"
+      initial={{ opacity: 0 }}
+      transition={{ duration: 0.16, ease: "easeOut" }}
+    >
+      <motion.div
+        animate={{ opacity: 1, y: 0 }}
+        className="mx-auto w-[708px] rounded-[10px] bg-white px-[50px] py-[45px]"
+        initial={{ opacity: 0, y: 10 }}
+        transition={{ duration: 0.18, ease: "easeOut" }}
+      >
         <h2 className="text-2xl font-medium text-[#333]">BTP 지원사업 공고 등록</h2>
 
         <div className="mt-9 grid grid-cols-2 gap-x-6 gap-y-5">
@@ -158,8 +169,8 @@ const SupportProgramRegisterModal = ({
             등록
           </button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
