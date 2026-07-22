@@ -158,13 +158,12 @@ const IpDetailModal = ({
               <th className="whitespace-nowrap px-4 font-normal">출원일</th>
               <th className="whitespace-nowrap px-4 font-normal">등록일</th>
               <th className="whitespace-nowrap px-4 font-normal">기업 관계</th>
-              <th className="whitespace-nowrap px-4 text-right font-normal">식별번호</th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 ? (
               <tr className="h-20 border-t border-[#eee]">
-                <td className="px-4 text-center text-[#666]" colSpan={6}>
+                <td className="px-4 text-center text-[#666]" colSpan={5}>
                   표시할 데이터가 없습니다.
                 </td>
               </tr>
@@ -176,9 +175,6 @@ const IpDetailModal = ({
                   <td className="whitespace-nowrap px-4">{formatDate(item.applicationDate)}</td>
                   <td className="whitespace-nowrap px-4">{formatDate(item.registrationDate)}</td>
                   <td className="whitespace-nowrap px-4">{item.companyRelationCode || "-"}</td>
-                  <td className="whitespace-nowrap px-4 text-right">
-                    {item.patentId?.toLocaleString() ?? "-"}
-                  </td>
                 </tr>
               ))
             )}
