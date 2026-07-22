@@ -218,8 +218,8 @@ const IncomeStatementSection = ({ companyId, isSample = false }: DashboardCompan
             <thead>
               <tr className="h-8 bg-gray-50">
                 <th className="w-[106px] border-b border-r border-[#eee] font-normal">구분</th>
-                <th className="border-b border-r border-[#eee] font-normal">영업이익손실</th>
-                <th className="border-b border-r border-[#eee] font-normal">당기순이익손실</th>
+                <th className="border-b border-r border-[#eee] font-normal">영업손익</th>
+                <th className="border-b border-r border-[#eee] font-normal">당기순익</th>
                 <th className="border-b border-[#eee] font-normal">영업이익률</th>
               </tr>
             </thead>
@@ -276,7 +276,7 @@ const IncomeStatementSection = ({ companyId, isSample = false }: DashboardCompan
                   dataKey="operatingProfitLoss"
                   isAnimationActive={false}
                   fill="#b69cff"
-                  name="영업이익손실"
+                  name="영업손익"
                   radius={[4, 4, 0, 0]}
                   yAxisId="amount"
                 />
@@ -285,7 +285,7 @@ const IncomeStatementSection = ({ companyId, isSample = false }: DashboardCompan
                   dataKey="netIncomeLoss"
                   isAnimationActive={false}
                   fill="#d5c4ff"
-                  name="당기순이익손실"
+                  name="당기순익"
                   radius={[4, 4, 0, 0]}
                   yAxisId="amount"
                 />
@@ -304,11 +304,11 @@ const IncomeStatementSection = ({ companyId, isSample = false }: DashboardCompan
           <div className="mt-2 flex justify-center gap-5 text-xs text-[#666]">
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-[#b69cff]" />
-              영업이익손실
+              영업손익
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-[#d5c4ff]" />
-              당기순이익손실
+              당기순익
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-[#51d8c5]" />
