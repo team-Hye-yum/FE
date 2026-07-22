@@ -259,6 +259,7 @@ const CompanyTable = ({
   title: string;
 }) => {
   const navigate = useNavigate();
+  const isSample = !supportProgramCode.trim();
 
   const handleCompanyClick = (companyId: string) => {
     navigate(`/?${new URLSearchParams({ companyId })}`);
@@ -290,7 +291,14 @@ const CompanyTable = ({
 
   return (
     <section className="min-w-0 flex-1 rounded-[10px] bg-white px-[30px] py-[36px]">
-      <h1 className="text-2xl font-medium">{title}</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-medium">{title}</h1>
+        {isSample && (
+          <span className="inline-flex h-8 min-w-[92px] items-center justify-center rounded-full bg-[#d10000] px-5 text-base font-bold text-white">
+            SAMPLE
+          </span>
+        )}
+      </div>
 
       <div className="mt-[48px] flex items-center justify-between gap-6">
         <h2 className="text-lg font-medium">기업 목록</h2>
