@@ -1,9 +1,15 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 // TODO: 실제 데이터 렌더링 단계에서는 React Query로 요청 캐싱/상태 관리를 묶어 중복 호출을 줄인다.
 
 type ApiDataResponse<T> = {
   data: T;
+};
+
+type DashboardRequestState<T> = {
+  data: T | null;
+  error: Error | null;
+  isLoading: boolean;
 };
 
 const apiUrl = (path: string) => {
@@ -59,6 +65,53 @@ export const useDashboardGet = (companyId: string, path: string) => {
       abortController.abort();
     };
   }, [companyId, path]);
+};
+
+export const useDashboardGetData = <T,>(companyId: string, path: string) => {
+  const [state, setState] = useState<DashboardRequestState<T>>({
+    data: null,
+    error: null,
+    isLoading: false,
+  });
+
+  useEffect(() => {
+    if (!companyId) {
+      setState({ data: null, error: null, isLoading: false });
+      return undefined;
+    }
+
+    const abortController = new AbortController();
+
+    setState((currentState) => ({ ...currentState, error: null, isLoading: true }));
+
+    void requestJson<T | ApiDataResponse<T>>(
+      apiUrl(path.replace("{companyId}", encodeURIComponent(companyId))),
+      undefined,
+      abortController.signal,
+    )
+      .then((response) => {
+        setState({
+          data: unwrapApiData(response),
+          error: null,
+          isLoading: false,
+        });
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        const nextError = error instanceof Error ? error : new Error("Dashboard API request failed.");
+        setState({ data: null, error: nextError, isLoading: false });
+        console.error("Failed to load dashboard data.", { path, error });
+      });
+
+    return () => {
+      abortController.abort();
+    };
+  }, [companyId, path]);
+
+  return state;
 };
 
 export const useDashboardGets = (companyId: string, paths: readonly string[]) => {
@@ -137,4 +190,66 @@ export const useDashboardChainPost = (
       abortController.abort();
     };
   }, [companyId, getPath, postPath]);
+};
+
+export const useDashboardChainPostData = <T,>(
+  companyId: string,
+  getPath: string,
+  postPath: string,
+) => {
+  const [state, setState] = useState<DashboardRequestState<T>>({
+    data: null,
+    error: null,
+    isLoading: false,
+  });
+
+  useEffect(() => {
+    if (!companyId) {
+      setState({ data: null, error: null, isLoading: false });
+      return undefined;
+    }
+
+    const abortController = new AbortController();
+    const encodedCompanyId = encodeURIComponent(companyId);
+
+    setState((currentState) => ({ ...currentState, error: null, isLoading: true }));
+
+    void requestJson<unknown>(
+      apiUrl(getPath.replace("{companyId}", encodedCompanyId)),
+      undefined,
+      abortController.signal,
+    )
+      .then((payloadResponse) =>
+        requestJson<T>(
+          aiUrl(postPath),
+          {
+            body: JSON.stringify(unwrapApiData(payloadResponse)),
+            headers: {
+              "Content-Type": "application/json",
+            },
+            method: "POST",
+          },
+          abortController.signal,
+        ),
+      )
+      .then((response) => {
+        setState({ data: response, error: null, isLoading: false });
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        const nextError =
+          error instanceof Error ? error : new Error("Dashboard chained API request failed.");
+        setState({ data: null, error: nextError, isLoading: false });
+        console.error("Failed to load chained dashboard data.", { getPath, postPath, error });
+      });
+
+    return () => {
+      abortController.abort();
+    };
+  }, [companyId, getPath, postPath]);
+
+  return state;
 };

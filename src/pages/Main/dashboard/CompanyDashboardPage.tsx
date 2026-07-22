@@ -38,7 +38,9 @@ const CompanyDashboardPage = () => {
     useDashboardPanelConfig(dashboardSections);
   const scrollToSection = useScrollToSection();
   const visibleSections = orderedSections.filter((section) => section.visible);
-  const companyId = searchParams.get("companyId")?.trim() ?? "";
+  const searchedCompanyId = searchParams.get("companyId")?.trim() ?? "";
+  const isSample = !searchedCompanyId;
+  const companyId = searchedCompanyId || "117";
 
   return (
     <DashboardShell
@@ -49,14 +51,14 @@ const CompanyDashboardPage = () => {
       onSectionClick={scrollToSection}
       onToggleSectionVisibility={toggleSectionVisibility}
     >
-      <DashboardHeader companyId={companyId} />
-      <CompanyInfoSection companyId={companyId} />
+      <DashboardHeader companyId={companyId} isSample={isSample} />
+      <CompanyInfoSection companyId={companyId} isSample={isSample} />
       {visibleSections.map((section) => {
         const SectionContent = sectionComponents[section.id];
 
         return (
           <DashboardSection id={section.id} key={section.id} title={section.label}>
-            <SectionContent companyId={companyId} />
+            <SectionContent companyId={companyId} isSample={isSample} />
           </DashboardSection>
         );
       })}

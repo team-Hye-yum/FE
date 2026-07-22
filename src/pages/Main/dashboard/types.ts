@@ -22,4 +22,5 @@ export type DashboardSectionConfig = {
 
 export type DashboardCompanyProps = {
   companyId: string;
+  isSample?: boolean;
 };
