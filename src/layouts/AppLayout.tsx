@@ -1,6 +1,7 @@
 import type { ChangeEvent, KeyboardEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import AppAlertHost, { showAppAlert } from "@/components/AppAlert";
 
 type AppLayoutProps = {
   children: ReactNode;
@@ -292,7 +293,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
       const result = (await response.json()) as ApiDataResponse<CompanyExistenceResponse>;
 
       if (!result.data.exists) {
-        alert("해당 기업 일련번호를 찾을 수 없습니다. 다른 번호를 입력해 주세요.");
+        showAppAlert("해당 기업 일련번호를 찾을 수 없습니다. 다른 번호를 입력해 주세요.");
         setSearchStatus({ type: "idle", message: "" });
         return;
       }
@@ -539,6 +540,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
         </div>
       )}
       {children}
+      <AppAlertHost />
     </div>
   );
 };

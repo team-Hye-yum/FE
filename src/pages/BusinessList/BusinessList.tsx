@@ -1,6 +1,7 @@
 import type { ChangeEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { showAppAlert } from "@/components/AppAlert";
 import AnnouncementAnalysisLoadingModal from "./components/AnnouncementAnalysisLoadingModal";
 import SupportProgramRegisterModal from "./components/SupportProgramRegisterModal";
 import type { SupportProgramPeriod, SupportProgramSaveRequest } from "./types";
@@ -277,7 +278,7 @@ const CompanyTable = ({
     const trimmedCode = supportProgramCode.trim();
 
     if (!trimmedCode) {
-      alert("사업을 먼저 선택해주세요.");
+      showAppAlert("사업을 먼저 선택해주세요.");
       return;
     }
 
@@ -293,7 +294,7 @@ const CompanyTable = ({
       const blob = await response.blob();
       downloadBlob(blob, responseFileName(response, `support-program-companies-${trimmedCode}.xlsx`));
     } catch (error) {
-      alert(error instanceof Error ? error.message : "엑셀 파일 다운로드에 실패했습니다.");
+      showAppAlert(error instanceof Error ? error.message : "엑셀 파일 다운로드에 실패했습니다.");
     }
   };
 
@@ -496,7 +497,7 @@ const UploadPanel = () => {
       !announcementDraft.programYear ||
       !announcementDraft.budgetProgramName.trim()
     ) {
-      alert("필수 항목을 확인해주세요.");
+      showAppAlert("필수 항목을 확인해주세요.");
       return;
     }
 
@@ -519,9 +520,9 @@ const UploadPanel = () => {
 
       setAnnouncementDraft(null);
       setAnnouncementStatus({ type: "idle", message: "" });
-      alert(`업로드 성공: ${saveResponse.data.supportProgramCode}`);
+      showAppAlert(`업로드 성공: ${saveResponse.data.supportProgramCode}`);
     } catch (error) {
-      alert(error instanceof Error ? error.message : "지원사업 공고 등록에 실패했습니다.");
+      showAppAlert(error instanceof Error ? error.message : "지원사업 공고 등록에 실패했습니다.");
     } finally {
       setIsAnnouncementSaving(false);
     }
@@ -742,7 +743,7 @@ const BusinessList = () => {
 
         if (isInvalidUrlParamError(error)) {
           console.error("Failed to load support program companies from URL parameter.", error);
-          alert("잘못된 지원사업 URL입니다. 기본 화면으로 이동합니다.");
+          showAppAlert("잘못된 지원사업 URL입니다. 기본 화면으로 이동합니다.");
           setCompanies(fallbackCompanies);
           setSupportProgramCode("");
           setTitle("샘플 지원사업 기업 목록");

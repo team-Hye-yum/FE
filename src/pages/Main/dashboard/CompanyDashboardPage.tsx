@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { showAppAlert } from "@/components/AppAlert";
 import DashboardHeader from "./components/DashboardHeader";
 import DashboardSection from "./components/DashboardSection";
 import DashboardShell from "./components/DashboardShell";
@@ -107,7 +108,7 @@ const CompanyDashboardPage = () => {
 
         if (invalidCompanyAlertedRef.current !== searchedCompanyId) {
           invalidCompanyAlertedRef.current = searchedCompanyId;
-          alert("잘못된 기업 URL입니다. 기본 화면으로 이동합니다.");
+          showAppAlert("잘못된 기업 URL입니다. 기본 화면으로 이동합니다.");
         }
 
         navigate("/", { replace: true });

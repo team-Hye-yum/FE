@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { showAppAlert } from "@/components/AppAlert";
 import {
   Bar,
   BarChart,
@@ -642,21 +643,20 @@ const BtpSolution = () => {
       })
       .catch((error: unknown) => {
         console.error("Failed to load BTP solution overview from URL parameter.", error);
+        if (isInvalidUrlParamError(error)) {
+          if (invalidIndustryAlertedRef.current !== divisionCode) {
+            invalidIndustryAlertedRef.current = divisionCode;
+            showAppAlert("잘못된 BTP 솔루션 URL입니다. 기본 화면으로 이동합니다.");
+          }
+
+          navigate("/btp-solution", { replace: true });
+          return;
+        }
+
         setStatus("error");
         setErrorMessage(
           error instanceof Error ? error.message : "산업 분석 정보를 불러오지 못했습니다.",
         );
-
-        if (!isInvalidUrlParamError(error)) {
-          return;
-        }
-
-        if (invalidIndustryAlertedRef.current !== divisionCode) {
-          invalidIndustryAlertedRef.current = divisionCode;
-          alert("잘못된 BTP 솔루션 URL입니다. 기본 화면으로 이동합니다.");
-        }
-
-        navigate("/btp-solution", { replace: true });
       });
   };
 
