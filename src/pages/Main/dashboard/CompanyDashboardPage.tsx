@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useEffect, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardHeader from "./components/DashboardHeader";
 import DashboardSection from "./components/DashboardSection";
 import DashboardShell from "./components/DashboardShell";
@@ -22,6 +22,13 @@ import IntellectualPropertySection from "./sections/IntellectualPropertySection"
 import ResearchDevelopmentSection from "./sections/ResearchDevelopmentSection";
 import type { AiReviewOpinionResponse } from "./types";
 
+const apiUrl = (path: string) => {
+  const baseUrl = import.meta.env.API_URL || import.meta.env.VITE_API_URL || "/api";
+  return `${baseUrl.replace(/\/$/, "")}${path}`;
+};
+
+const invalidUrlParamError = "invalid-url-param";
+
 const sectionComponents = {
   scorecard: CompanyScorecardSection,
   employment: EmploymentInfoSection,
@@ -37,6 +44,8 @@ const sectionComponents = {
 
 const CompanyDashboardPage = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const invalidCompanyAlertedRef = useRef("");
   const { orderedSections, reorderSection, resetPanelConfig, toggleSectionVisibility } =
     useDashboardPanelConfig(dashboardSections);
   const scrollToSection = useScrollToSection();
@@ -62,6 +71,52 @@ const CompanyDashboardPage = () => {
     "company-info",
     ...visibleDisplayableSections.map((section) => section.id),
   ]);
+
+  useEffect(() => {
+    if (!searchedCompanyId) {
+      invalidCompanyAlertedRef.current = "";
+      return;
+    }
+
+    const abortController = new AbortController();
+
+    fetch(apiUrl(`/companies/${encodeURIComponent(searchedCompanyId)}/profile`), {
+      signal: abortController.signal,
+    })
+      .then((response) => {
+        if (!response.ok) {
+          if (response.status === 400 || response.status === 404) {
+            throw new Error(invalidUrlParamError);
+          }
+
+          throw new Error(`company-validation-failed-${response.status}`);
+        }
+
+        invalidCompanyAlertedRef.current = "";
+      })
+      .catch((error: unknown) => {
+        if (abortController.signal.aborted) {
+          return;
+        }
+
+        console.error("Failed to validate company URL parameter.", error);
+
+        if (!(error instanceof Error) || error.message !== invalidUrlParamError) {
+          return;
+        }
+
+        if (invalidCompanyAlertedRef.current !== searchedCompanyId) {
+          invalidCompanyAlertedRef.current = searchedCompanyId;
+          alert("잘못된 기업 URL입니다. 기본 화면으로 이동합니다.");
+        }
+
+        navigate("/", { replace: true });
+      });
+
+    return () => {
+      abortController.abort();
+    };
+  }, [navigate, searchedCompanyId]);
 
   useEffect(() => {
     const resizeTimers = [100, 350, 700].map((delay) =>

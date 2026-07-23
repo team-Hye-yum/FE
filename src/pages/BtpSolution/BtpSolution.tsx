@@ -371,6 +371,9 @@ const apiUrl = (path: string) => {
   return `${baseUrl.replace(/\/$/, "")}${path}`;
 };
 
+const isInvalidUrlParamError = (error: unknown) =>
+  error instanceof Error && /\((400|404)\)/.test(error.message);
+
 const getKakaoMapKey = () =>
   import.meta.env.VITE_KAKAO_MAP_APP_KEY ||
   import.meta.env.VITE_KAKAO_JAVASCRIPT_KEY ||
@@ -486,7 +489,7 @@ const hubMarkerImageUrl = (hub: InfraHub, selected: boolean) => {
       </filter>
       <path d="M25 55c-2.8-5.8-17-14.3-17-31C8 14.6 15.6 7 25 7s17 7.6 17 17c0 16.7-14.2 25.2-17 31Z" fill="${fill}" filter="url(#shadow)"/>
       <circle cx="25" cy="24" r="18" fill="${fill}" stroke="#ffffff" stroke-width="3"/>
-      <text x="25" y="29" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="900" fill="${textColor}">${escapeHtml(label)}</text>
+      <text x="25" y="29" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="13" font-weight="900" fill="${textColor}">${escapeHtml(label)}</text>
     </svg>
   `;
 
@@ -599,6 +602,7 @@ const BtpSolution = () => {
   const [connectionEvidencePage, setConnectionEvidencePage] = useState(0);
   const [connectionEvidenceSize, setConnectionEvidenceSize] = useState(10);
   const [isSampleIndustry, setIsSampleIndustry] = useState(false);
+  const invalidIndustryAlertedRef = useRef("");
 
   const loadOverview = (divisionCode: string) => {
     setOverview(null);
@@ -615,6 +619,7 @@ const BtpSolution = () => {
       })
       .then((response) => {
         setOverview(response.data);
+        invalidIndustryAlertedRef.current = "";
         setSelectedIndustry((currentIndustry) => {
           const isCodeOnlyLabel = currentIndustry?.displayName === response.data.divisionCode;
 
@@ -636,10 +641,22 @@ const BtpSolution = () => {
         setStatus("idle");
       })
       .catch((error: unknown) => {
+        console.error("Failed to load BTP solution overview from URL parameter.", error);
         setStatus("error");
         setErrorMessage(
           error instanceof Error ? error.message : "산업 분석 정보를 불러오지 못했습니다.",
         );
+
+        if (!isInvalidUrlParamError(error)) {
+          return;
+        }
+
+        if (invalidIndustryAlertedRef.current !== divisionCode) {
+          invalidIndustryAlertedRef.current = divisionCode;
+          alert("잘못된 BTP 솔루션 URL입니다. 기본 화면으로 이동합니다.");
+        }
+
+        navigate("/btp-solution", { replace: true });
       });
   };
 
@@ -696,6 +713,7 @@ const BtpSolution = () => {
 
   useEffect(() => {
     if (!divisionCodeFromUrl) {
+      invalidIndustryAlertedRef.current = "";
       setSelectedIndustry(SAMPLE_INDUSTRY);
       setIsSampleIndustry(true);
       resetConnectionEvidence();
@@ -844,6 +862,7 @@ const BtpSolution = () => {
           {(connectionEvidenceStatus !== "idle" || connectionEvidence) && (
             <ConnectionEvidenceCompanies
               errorMessage={connectionEvidenceErrorMessage}
+              isSample={isSampleIndustry}
               keyword={connectionEvidenceSearchText}
               onKeywordChange={setConnectionEvidenceSearchText}
               onPageChange={(page) => updateConnectionEvidenceSearchParams({ page })}
@@ -1220,6 +1239,7 @@ const InfraHubDetail = ({ hub }: InfraHubDetailProps) => (
 
 type ConnectionEvidenceCompaniesProps = {
   errorMessage: string;
+  isSample: boolean;
   keyword: string;
   onKeywordChange: (keyword: string) => void;
   onPageChange: (page: number) => void;
@@ -1232,6 +1252,7 @@ type ConnectionEvidenceCompaniesProps = {
 
 const ConnectionEvidenceCompanies = ({
   errorMessage,
+  isSample,
   keyword,
   onKeywordChange,
   onPageChange,
@@ -1361,7 +1382,7 @@ const ConnectionEvidenceCompanies = ({
                   </thead>
                   <tbody className="divide-y divide-[#e2eaf4] text-sm text-[#334766]">
                     {response.items.map((item) => (
-                      <ConnectionEvidenceRow item={item} key={item.companyId} />
+                      <ConnectionEvidenceRow isSample={isSample} item={item} key={item.companyId} />
                     ))}
                   </tbody>
                 </table>
@@ -1439,10 +1460,11 @@ const EvidenceSummaryMetric = ({ label, value }: EvidenceSummaryMetricProps) => 
 );
 
 type ConnectionEvidenceRowProps = {
+  isSample: boolean;
   item: ConnectionEvidenceCompany;
 };
 
-const ConnectionEvidenceRow = ({ item }: ConnectionEvidenceRowProps) => (
+const ConnectionEvidenceRow = ({ isSample, item }: ConnectionEvidenceRowProps) => (
   <tr className="align-top">
     <td className="px-4 py-5 font-black text-[#123b7a]">{item.companyName}</td>
     <td className="px-4 py-5">
@@ -1463,12 +1485,22 @@ const ConnectionEvidenceRow = ({ item }: ConnectionEvidenceRowProps) => (
     </td>
     <td className="px-4 py-5 font-semibold leading-6 text-[#44566e]">{item.evidenceText ?? "-"}</td>
     <td className="px-4 py-5 text-center">
-      <a
-        className="inline-flex h-10 items-center justify-center rounded-[8px] border border-[#d7e2f0] px-4 text-sm font-black text-[#123b7a]"
-        href={`/?companyId=${encodeURIComponent(String(item.companyId))}`}
-      >
-        보기
-      </a>
+      {isSample ? (
+        <button
+          className="inline-flex h-10 cursor-not-allowed items-center justify-center rounded-[8px] border border-[#d7e2f0] px-4 text-sm font-black text-[#8aa0ba] opacity-70"
+          disabled
+          type="button"
+        >
+          보기
+        </button>
+      ) : (
+        <a
+          className="inline-flex h-10 items-center justify-center rounded-[8px] border border-[#d7e2f0] px-4 text-sm font-black text-[#123b7a]"
+          href={`/?companyId=${encodeURIComponent(String(item.companyId))}`}
+        >
+          보기
+        </a>
+      )}
     </td>
   </tr>
 );

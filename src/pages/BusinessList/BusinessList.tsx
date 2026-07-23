@@ -179,6 +179,9 @@ const requestJson = async <T,>(url: string, init?: RequestInit) => {
   return (await response.json()) as ApiDataResponse<T>;
 };
 
+const isInvalidUrlParamError = (error: unknown) =>
+  error instanceof Error && /\((400|404)\)/.test(error.message);
+
 const UploadIcon = ({ className = "" }: { className?: string }) => (
   <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
     <path
@@ -676,6 +679,7 @@ const UploadPanel = () => {
 
 const BusinessList = () => {
   const { search } = useLocation();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabKey>("companies");
   const [companies, setCompanies] = useState<CompanyRow[]>(fallbackCompanies);
   const [supportProgramCode, setSupportProgramCode] = useState("");
@@ -733,6 +737,17 @@ const BusinessList = () => {
       })
       .catch((error: unknown) => {
         if (ignore) {
+          return;
+        }
+
+        if (isInvalidUrlParamError(error)) {
+          console.error("Failed to load support program companies from URL parameter.", error);
+          alert("잘못된 지원사업 URL입니다. 기본 화면으로 이동합니다.");
+          setCompanies(fallbackCompanies);
+          setSupportProgramCode("");
+          setTitle("샘플 지원사업 기업 목록");
+          setActiveTab("companies");
+          navigate("/business-list", { replace: true });
           return;
         }
 

@@ -10,6 +10,5 @@ export const dashboardSections = [
   { id: "analysis-metrics", label: "기업 분석 지표", visible: true },
   { id: "ai-review", label: "AI 검토 의견", visible: true },
   { id: "growth-scenario", label: "기업 성장 시나리오", visible: true },
-  { id: "duplicate-support", label: "중복지원 검토 필터", visible: true },
   { id: "ai-report", label: "AI 분석 리포트", visible: true },
 ] as const satisfies readonly DashboardSectionConfig[];

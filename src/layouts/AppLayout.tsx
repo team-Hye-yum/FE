@@ -422,7 +422,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
           </NavLink>
 
           <div className="relative min-w-0 flex-1 lg:w-[464px] lg:flex-none">
-            <label className="flex h-11 items-center gap-3 rounded-[35px] border-2 border-[#51a2ff] bg-white px-4 sm:h-12 sm:gap-5 sm:px-5">
+            <label className="flex h-11 w-full min-w-0 items-center gap-3 rounded-[35px] border-2 border-[#51a2ff] bg-white px-4 sm:h-12 sm:gap-5 sm:px-5">
               <svg
                 aria-hidden="true"
                 className="h-5 w-5 shrink-0 sm:h-6 sm:w-6"
