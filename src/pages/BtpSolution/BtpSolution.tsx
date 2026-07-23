@@ -62,6 +62,15 @@ type IndustryOverview = {
   employeeSizeRatio: EmployeeSizeRatio[];
 };
 
+type FunctionInfraCoverage = {
+  divisionCode: string;
+  divisionName: string;
+  detectedFunctionCount: number;
+  connectedFunctionCount: number;
+  unconnectedFunctionCount: number;
+  coverageRate: number | null;
+};
+
 type InfraHubFacility = {
   facilityId: number;
   siteName: string | null;
@@ -235,6 +244,15 @@ const SAMPLE_OVERVIEW: IndustryOverview = {
     { name: "50~299인", busanRatio: 0.03, btpRatio: 0.25 },
     { name: "300인 이상", busanRatio: 0.002, btpRatio: 0 },
   ],
+};
+
+const SAMPLE_FUNCTION_INFRA_COVERAGE: FunctionInfraCoverage = {
+  divisionCode: SAMPLE_DIVISION_CODE,
+  divisionName: "기타 기계 및 장비 제조업",
+  detectedFunctionCount: 12,
+  connectedFunctionCount: 8,
+  unconnectedFunctionCount: 4,
+  coverageRate: 67,
 };
 
 const SAMPLE_INFRA_HUBS: InfraHub[] = [
@@ -589,6 +607,7 @@ const BtpSolution = () => {
   const companySizeFromUrl = getPositiveIntegerSearchParam(search, "size", 10);
   const [selectedIndustry, setSelectedIndustry] = useState<IndustrySearchItem | null>(null);
   const [overview, setOverview] = useState<IndustryOverview | null>(null);
+  const [functionInfraCoverage, setFunctionInfraCoverage] = useState<FunctionInfraCoverage | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [infraHubs, setInfraHubs] = useState<InfraHub[]>([]);
@@ -666,6 +685,26 @@ const BtpSolution = () => {
     setConnectionEvidenceErrorMessage("");
   };
 
+  const loadFunctionInfraCoverage = (divisionCode: string) => {
+    setFunctionInfraCoverage(null);
+
+    fetch(apiUrl(`/btp-solution/industries/${encodeURIComponent(divisionCode)}/function-infra-coverage`))
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`기능-인프라 연결 범위를 불러오지 못했습니다. (${response.status})`);
+        }
+
+        return response.json() as Promise<ApiDataResponse<FunctionInfraCoverage>>;
+      })
+      .then((response) => {
+        setFunctionInfraCoverage(response.data);
+      })
+      .catch((error: unknown) => {
+        console.error("Failed to load function-infra coverage.", error);
+        setFunctionInfraCoverage(null);
+      });
+  };
+
   const loadInfraHubs = (divisionCode: string) => {
     setInfraHubs([]);
     setInfraStatus("loading");
@@ -701,6 +740,7 @@ const BtpSolution = () => {
       setIsSampleIndustry(false);
       resetConnectionEvidence();
       loadOverview(industry.divisionCode);
+      loadFunctionInfraCoverage(industry.divisionCode);
       loadInfraHubs(industry.divisionCode);
     };
 
@@ -718,6 +758,7 @@ const BtpSolution = () => {
       setIsSampleIndustry(true);
       resetConnectionEvidence();
       setOverview(SAMPLE_OVERVIEW);
+      setFunctionInfraCoverage(SAMPLE_FUNCTION_INFRA_COVERAGE);
       setStatus("idle");
       setErrorMessage("");
       setInfraHubs(SAMPLE_INFRA_HUBS);
@@ -741,6 +782,7 @@ const BtpSolution = () => {
     setIsSampleIndustry(false);
     resetConnectionEvidence();
     loadOverview(divisionCodeFromUrl);
+    loadFunctionInfraCoverage(divisionCodeFromUrl);
     loadInfraHubs(divisionCodeFromUrl);
   }, [divisionCodeFromUrl]);
 
@@ -847,7 +889,13 @@ const BtpSolution = () => {
             </div>
           )}
 
-          {overview && <IndustryStatus isSample={isSampleIndustry} overview={overview} />}
+          {overview && (
+            <IndustryStatus
+              functionInfraCoverage={functionInfraCoverage}
+              isSample={isSampleIndustry}
+              overview={overview}
+            />
+          )}
 
           {(infraStatus !== "idle" || infraHubs.length > 0) && (
             <InfraHubExplorer
@@ -1638,11 +1686,12 @@ const paginationPages = (currentPage: number, totalPages: number) => {
 };
 
 type IndustryStatusProps = {
+  functionInfraCoverage: FunctionInfraCoverage | null;
   isSample: boolean;
   overview: IndustryOverview;
 };
 
-const IndustryStatus = ({ isSample, overview }: IndustryStatusProps) => {
+const IndustryStatus = ({ functionInfraCoverage, isSample, overview }: IndustryStatusProps) => {
   const busanRatio = overview.businessTypeRatio.busan;
   const btpRatio = overview.businessTypeRatio.btp;
 
@@ -1658,7 +1707,7 @@ const IndustryStatus = ({ isSample, overview }: IndustryStatusProps) => {
 
           .btp-industry-status .detail-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1.18fr) minmax(360px, 0.86fr);
             gap: 20px;
           }
 
@@ -1824,7 +1873,7 @@ const IndustryStatus = ({ isSample, overview }: IndustryStatusProps) => {
             </div>
           </div>
 
-          <div className="employee-panel pl-5" style={{ borderLeft: "1px solid #e1e8f2" }}>
+          <div className="employee-panel px-5" style={{ borderLeft: "1px solid #e1e8f2" }}>
             <h3 className="font-extrabold" style={{ color: "#123b7a", fontSize: 17 }}>
               종사자 규모별 비중 비교
             </h3>
@@ -1832,11 +1881,118 @@ const IndustryStatus = ({ isSample, overview }: IndustryStatusProps) => {
               <EmployeeSizeChart items={overview.employeeSizeRatio} />
             </div>
           </div>
+
+          <FunctionInfraCoveragePanel coverage={functionInfraCoverage} />
         </div>
       </div>
     </div>
   );
 };
+
+type FunctionInfraCoveragePanelProps = {
+  coverage: FunctionInfraCoverage | null;
+};
+
+const FunctionInfraCoveragePanel = ({ coverage }: FunctionInfraCoveragePanelProps) => {
+  const detectedCount = coverage?.detectedFunctionCount ?? 0;
+  const connectedCount = coverage?.connectedFunctionCount ?? 0;
+  const unconnectedCount = coverage?.unconnectedFunctionCount ?? Math.max(detectedCount - connectedCount, 0);
+  const connectedRate = detectedCount > 0 ? Math.round((connectedCount * 1000) / detectedCount) / 10 : 0;
+  const unconnectedRate = Math.max(0, Math.round((100 - connectedRate) * 10) / 10);
+  const displayRate = coverage?.coverageRate ?? connectedRate;
+
+  return (
+    <aside className="rounded-[8px] border border-[#5ec9c0] bg-white p-4">
+      <h3 className="inline-flex items-center gap-1 font-extrabold text-[#123b7a]" style={{ fontSize: 19 }}>
+        기능-인프라 연결 범위
+        <span
+          className="inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white"
+          style={{ backgroundColor: "#9bb5d8" }}
+        >
+          i
+        </span>
+      </h3>
+
+      <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <CoverageMetricCard label="확인된 고유 기능" tone="teal" value={detectedCount} />
+        <CoverageMetricCard label="장비 연결 근거 확인" tone="blue" value={connectedCount} />
+        <CoverageMetricCard
+          label="기능-인프라 연결률"
+          ratioText={`(${formatCount(connectedCount)}/${formatCount(detectedCount)})`}
+          tone="purple"
+          value={displayRate}
+          valueSuffix="%"
+        />
+      </div>
+
+      <h4 className="mt-6 font-extrabold text-[#123b7a]">연결 현황</h4>
+      <div className="mt-3 overflow-hidden rounded-[6px] bg-[#e5e7eb] text-center text-sm font-extrabold">
+        <div className="flex h-11">
+          <div
+            className="flex items-center justify-center bg-[#1f67d2] text-white"
+            style={{ width: `${Math.max(0, Math.min(100, connectedRate))}%` }}
+          >
+            {formatCount(connectedCount)}개 ({formatPercentNumber(connectedRate)})
+          </div>
+          <div
+            className="flex items-center justify-center bg-[#e5e7eb] text-[#334766]"
+            style={{ width: `${Math.max(0, Math.min(100, 100 - connectedRate))}%` }}
+          >
+            {formatCount(unconnectedCount)}개 ({formatPercentNumber(unconnectedRate)})
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap justify-center gap-5 text-sm font-bold text-[#334766]">
+        <LegendItem color="#1f67d2" label="장비 연결 근거 확인" />
+        <LegendItem color="#b7bfcc" label="연결 근거 미확인" />
+      </div>
+
+      <p className="mt-6 border-t border-[#e2eaf4] pt-5 text-sm font-semibold leading-6 text-[#44566e]">
+        기능 수는 기업의 주요제품·지원품목·NTIS 과제 등에서 확인된 원문을 정규화하고 중복을
+        제거한 고유 기능 기준입니다.
+        <br />
+        기능-인프라 연결은 현재 보유한 BTP 장비 데이터에서 확인되는 연결 근거를 의미하며, 실제
+        장비 수요나 지원 필요성을 의미하지 않습니다.
+      </p>
+    </aside>
+  );
+};
+
+type CoverageMetricCardProps = {
+  label: string;
+  ratioText?: string;
+  tone: "blue" | "purple" | "teal";
+  value: number;
+  valueSuffix?: string;
+};
+
+const coverageToneColor = {
+  blue: "#0b5fc8",
+  purple: "#7447c9",
+  teal: "#189b91",
+} as const;
+
+const CoverageMetricCard = ({ label, ratioText, tone, value, valueSuffix = "개" }: CoverageMetricCardProps) => (
+  <div className="flex min-h-[104px] flex-col items-center justify-center rounded-[6px] border border-[#d7e2f0] bg-white px-2 py-3 text-center">
+    <p className="text-xs font-extrabold text-[#123b7a]">{label}</p>
+    <p className="mt-3 text-2xl font-black leading-none" style={{ color: coverageToneColor[tone] }}>
+      {valueSuffix === "%" ? formatCompactPercent(value) : formatCount(value)}
+      <span className="ml-1 text-sm font-black">{valueSuffix}</span>
+    </p>
+    {ratioText && <p className="mt-2 text-xs font-extrabold text-[#334766]">{ratioText}</p>}
+  </div>
+);
+
+const formatCompactPercent = (value: number | null) => {
+  if (value === null || Number.isNaN(value)) {
+    return "-";
+  }
+
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+};
+
+const formatPercentNumber = (value: number) => `${formatCompactPercent(value)}%`;
 
 type LegendItemProps = {
   color: string;
