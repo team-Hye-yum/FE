@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import {
   Bar,
@@ -60,18 +60,151 @@ type IndustryOverview = {
   employeeSizeRatio: EmployeeSizeRatio[];
 };
 
+type InfraHubFacility = {
+  facilityId: number;
+  siteName: string | null;
+  buildingNo: string | null;
+  buildingName: string;
+  grossFloorArea: string | null;
+  floors: string | null;
+  purpose: string | null;
+};
+
+type InfraHubCategoryCount = {
+  name: string;
+  count: number;
+};
+
+type InfraHubSampleEquipment = {
+  equipmentId: number;
+  equipmentName: string;
+  categoryLarge: string | null;
+  locationName: string | null;
+};
+
+type InfraHub = {
+  hubId: number;
+  hubName: string;
+  hubKind: string;
+  centerName: string | null;
+  summary: string | null;
+  address: string | null;
+  districtName: string | null;
+  tel: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  imageUrl: string | null;
+  spaceUrl: string | null;
+  directionsUrl: string | null;
+  equipmentCount: number;
+  topEquipmentCategories: InfraHubCategoryCount[];
+  sampleEquipments: InfraHubSampleEquipment[];
+  facilities: InfraHubFacility[];
+};
+
+type InfraHubResponse = {
+  sectionCode: string;
+  hubs: InfraHub[];
+};
+
 type IndustrySelectedEvent = CustomEvent<{
   industry: IndustrySearchItem;
 }>;
+
+type KakaoMapsApi = {
+  LatLng: new (latitude: number, longitude: number) => unknown;
+  LatLngBounds: new () => {
+    extend: (latlng: unknown) => void;
+  };
+  Map: new (
+    container: HTMLElement,
+    options: { center: unknown; level: number },
+  ) => {
+    setBounds: (bounds: unknown) => void;
+  };
+  Marker: new (options: { map: unknown; position: unknown }) => unknown;
+  CustomOverlay: new (options: {
+    content: HTMLElement | string;
+    map: unknown;
+    position: unknown;
+    xAnchor: number;
+    yAnchor: number;
+  }) => unknown;
+  event: {
+    addListener: (target: unknown, type: string, handler: () => void) => void;
+  };
+  load: (handler: () => void) => void;
+};
+
+declare global {
+  interface Window {
+    kakao?: {
+      maps: KakaoMapsApi;
+    };
+  }
+}
 
 const BLUE = "#2f8fea";
 const TEAL = "#62d4ca";
 const BTP_BLUE = "#2478d7";
 const BTP_PURPLE = "#aaa3ea";
+const KAKAO_MAP_SDK_ID = "kakao-map-sdk";
+
+let kakaoMapSdkPromise: Promise<void> | null = null;
 
 const apiUrl = (path: string) => {
   const baseUrl = import.meta.env.API_URL || import.meta.env.VITE_API_URL || "/api";
   return `${baseUrl.replace(/\/$/, "")}${path}`;
+};
+
+const getKakaoMapKey = () =>
+  import.meta.env.VITE_KAKAO_MAP_APP_KEY ||
+  import.meta.env.VITE_KAKAO_JAVASCRIPT_KEY ||
+  import.meta.env.VITE_KAKAO_MAP_KEY ||
+  "";
+
+const loadKakaoMapSdk = () => {
+  if (window.kakao?.maps) {
+    return Promise.resolve();
+  }
+
+  if (kakaoMapSdkPromise) {
+    return kakaoMapSdkPromise;
+  }
+
+  const appKey = getKakaoMapKey();
+
+  if (!appKey) {
+    return Promise.reject(new Error("카카오맵 JavaScript 키가 설정되지 않았습니다."));
+  }
+
+  kakaoMapSdkPromise = new Promise((resolve, reject) => {
+    const existingScript = document.getElementById(KAKAO_MAP_SDK_ID) as HTMLScriptElement | null;
+
+    const handleLoad = () => {
+      window.kakao?.maps.load(resolve);
+    };
+
+    if (existingScript) {
+      existingScript.addEventListener("load", handleLoad, { once: true });
+      existingScript.addEventListener("error", () => reject(new Error("카카오맵을 불러오지 못했습니다.")), {
+        once: true,
+      });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = KAKAO_MAP_SDK_ID;
+    script.async = true;
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(appKey)}&autoload=false`;
+    script.addEventListener("load", handleLoad, { once: true });
+    script.addEventListener("error", () => reject(new Error("카카오맵을 불러오지 못했습니다.")), {
+      once: true,
+    });
+    document.head.appendChild(script);
+  });
+
+  return kakaoMapSdkPromise;
 };
 
 const formatCount = (value: number | null) => {
@@ -108,6 +241,31 @@ const percentLabel = (value: unknown) => {
   return `${value.toFixed(1)}%`;
 };
 
+const getHubMarkerClass = (equipmentCount: number) => {
+  if (equipmentCount >= 30) {
+    return "hub-marker hub-marker-strong";
+  }
+
+  if (equipmentCount >= 10) {
+    return "hub-marker hub-marker-medium";
+  }
+
+  return "hub-marker hub-marker-light";
+};
+
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+const selectRepresentativeHubId = (hubs: InfraHub[]) => {
+  const sortedHubs = [...hubs].sort((left, right) => right.equipmentCount - left.equipmentCount);
+  return sortedHubs[0]?.hubId ?? null;
+};
+
 const getSectionCodeFromSearch = (search: string) => {
   const trimmedSearch = search.replace(/^\?/, "").trim();
 
@@ -139,6 +297,10 @@ const BtpSolution = () => {
   const [overview, setOverview] = useState<IndustryOverview | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [infraHubs, setInfraHubs] = useState<InfraHub[]>([]);
+  const [infraStatus, setInfraStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [infraErrorMessage, setInfraErrorMessage] = useState("");
+  const [selectedHubId, setSelectedHubId] = useState<number | null>(null);
 
   const loadOverview = (sectionCode: string) => {
     setOverview(null);
@@ -175,12 +337,40 @@ const BtpSolution = () => {
       });
   };
 
+  const loadInfraHubs = (sectionCode: string) => {
+    setInfraHubs([]);
+    setInfraStatus("loading");
+    setInfraErrorMessage("");
+    setSelectedHubId(null);
+
+    fetch(apiUrl(`/btp-solution/industries/${encodeURIComponent(sectionCode)}/infra-hubs`))
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`공동활용 인프라 정보를 불러오지 못했습니다. (${response.status})`);
+        }
+
+        return response.json() as Promise<ApiDataResponse<InfraHubResponse>>;
+      })
+      .then((response) => {
+        setInfraHubs(response.data.hubs);
+        setSelectedHubId(selectRepresentativeHubId(response.data.hubs));
+        setInfraStatus("idle");
+      })
+      .catch((error: unknown) => {
+        setInfraStatus("error");
+        setInfraErrorMessage(
+          error instanceof Error ? error.message : "공동활용 인프라 정보를 불러오지 못했습니다.",
+        );
+      });
+  };
+
   useEffect(() => {
     const handleIndustrySelected = (event: Event) => {
       const { industry } = (event as IndustrySelectedEvent).detail;
 
       setSelectedIndustry(industry);
       loadOverview(industry.sectionCode);
+      loadInfraHubs(industry.sectionCode);
     };
 
     window.addEventListener("btp-solution-industry-selected", handleIndustrySelected);
@@ -208,10 +398,11 @@ const BtpSolution = () => {
       subclassName: "",
     });
     loadOverview(sectionCode);
+    loadInfraHubs(sectionCode);
   }, [search]);
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
       {!selectedIndustry && (
         <section className="bg-white px-6 py-7 sm:px-8">
           <div className="flex min-h-[220px] items-center justify-center text-center">
@@ -221,7 +412,7 @@ const BtpSolution = () => {
       )}
 
       {selectedIndustry && (
-        <section>
+        <section className="space-y-6">
           {status === "error" && (
             <p className="rounded-[6px] bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
               {errorMessage}
@@ -235,11 +426,345 @@ const BtpSolution = () => {
           )}
 
           {overview && <IndustryStatus overview={overview} />}
+
+          {(infraStatus !== "idle" || infraHubs.length > 0) && (
+            <InfraHubExplorer
+              errorMessage={infraErrorMessage}
+              hubs={infraHubs}
+              onSelectHub={setSelectedHubId}
+              selectedHubId={selectedHubId}
+              status={infraStatus}
+            />
+          )}
         </section>
       )}
     </main>
   );
 };
+
+type InfraHubExplorerProps = {
+  errorMessage: string;
+  hubs: InfraHub[];
+  onSelectHub: (hubId: number) => void;
+  selectedHubId: number | null;
+  status: "idle" | "loading" | "error";
+};
+
+const InfraHubExplorer = ({
+  errorMessage,
+  hubs,
+  onSelectHub,
+  selectedHubId,
+  status,
+}: InfraHubExplorerProps) => {
+  const selectedHub = hubs.find((hub) => hub.hubId === selectedHubId) ?? hubs[0] ?? null;
+  const totalEquipmentCount = hubs.reduce((sum, hub) => sum + hub.equipmentCount, 0);
+
+  return (
+    <div className="btp-infra-explorer">
+      <style>
+        {`
+          .btp-infra-explorer .infra-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+            gap: 18px;
+          }
+
+          .btp-infra-explorer .hub-map {
+            height: 520px;
+            min-height: 520px;
+          }
+
+          .btp-infra-explorer .hub-marker {
+            border: 2px solid #ffffff;
+            border-radius: 999px;
+            box-shadow: 0 8px 18px rgba(19, 57, 112, 0.28);
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 900;
+            height: 42px;
+            line-height: 38px;
+            text-align: center;
+            width: 42px;
+          }
+
+          .btp-infra-explorer .hub-marker-strong {
+            background: #064595;
+          }
+
+          .btp-infra-explorer .hub-marker-medium {
+            background: #167ad8;
+          }
+
+          .btp-infra-explorer .hub-marker-light {
+            background: #8dbbea;
+            color: #103560;
+          }
+
+          .btp-infra-explorer .hub-label {
+            background: #ffffff;
+            border: 1px solid #d9e4f1;
+            border-radius: 6px;
+            box-shadow: 0 8px 18px rgba(19, 57, 112, 0.14);
+            color: #143f76;
+            font-size: 12px;
+            font-weight: 900;
+            padding: 6px 9px;
+            white-space: nowrap;
+          }
+
+          @media (max-width: 900px) {
+            .btp-infra-explorer .infra-layout {
+              grid-template-columns: 1fr;
+            }
+
+            .btp-infra-explorer .hub-map {
+              height: 420px;
+              min-height: 420px;
+            }
+          }
+        `}
+      </style>
+
+      <div
+        className="overflow-hidden rounded-lg bg-white px-4 py-4 shadow-sm"
+        style={{ border: "1px solid #dce4ef" }}
+      >
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-center gap-3" style={{ color: "#123b7a" }}>
+            <span className="font-extrabold leading-none" style={{ fontSize: 26 }}>
+              2.
+            </span>
+            <div>
+              <h2 className="font-extrabold leading-none" style={{ fontSize: 26 }}>
+                공동활용 인프라 연결 탐색
+              </h2>
+              <p className="mt-2 text-sm font-semibold text-[#64748b]">
+                선택한 산업 범위 안에서 장비 위치와 가까운 BTP 거점을 연결합니다.
+              </p>
+            </div>
+          </div>
+
+          <div className="text-right">
+            <p className="text-xs font-extrabold text-[#64748b]">매핑 장비 수</p>
+            <p className="text-3xl font-black text-[#123b7a]">
+              {formatCount(totalEquipmentCount)}
+              <span className="ml-1 text-sm font-bold text-[#24528d]">건</span>
+            </p>
+          </div>
+        </div>
+
+        {status === "loading" && (
+          <div className="rounded-[8px] bg-[#f4f8fd] px-6 py-8 text-center text-sm font-semibold text-[#2b7fff]">
+            인프라 정보를 불러오는 중
+          </div>
+        )}
+
+        {status === "error" && (
+          <p className="rounded-[6px] bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+            {errorMessage}
+          </p>
+        )}
+
+        {status === "idle" && hubs.length > 0 && (
+          <div className="infra-layout">
+            <div>
+              <KakaoHubMap hubs={hubs} onSelectHub={onSelectHub} selectedHubId={selectedHub?.hubId ?? null} />
+            </div>
+
+            {selectedHub && <InfraHubDetail hub={selectedHub} />}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+type KakaoHubMapProps = {
+  hubs: InfraHub[];
+  onSelectHub: (hubId: number) => void;
+  selectedHubId: number | null;
+};
+
+const KakaoHubMap = ({ hubs, onSelectHub, selectedHubId }: KakaoHubMapProps) => {
+  const mapRef = useRef<HTMLDivElement | null>(null);
+  const [mapErrorMessage, setMapErrorMessage] = useState("");
+  const hubsWithCoordinates = useMemo(
+    () => hubs.filter((hub) => hub.latitude !== null && hub.longitude !== null),
+    [hubs],
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+    const container = mapRef.current;
+
+    if (!container || hubsWithCoordinates.length === 0) {
+      return;
+    }
+
+    loadKakaoMapSdk()
+      .then(() => {
+        if (!isMounted || !window.kakao?.maps) {
+          return;
+        }
+
+        const maps = window.kakao.maps;
+        const selectedHub =
+          hubsWithCoordinates.find((hub) => hub.hubId === selectedHubId) ?? hubsWithCoordinates[0];
+        const center = new maps.LatLng(selectedHub.latitude ?? 35.1796, selectedHub.longitude ?? 129.0756);
+        const map = new maps.Map(container, { center, level: 9 });
+        const bounds = new maps.LatLngBounds();
+
+        hubsWithCoordinates.forEach((hub) => {
+          const position = new maps.LatLng(hub.latitude ?? 0, hub.longitude ?? 0);
+          bounds.extend(position);
+
+          const marker = new maps.Marker({ map, position });
+          maps.event.addListener(marker, "click", () => onSelectHub(hub.hubId));
+
+          const label = document.createElement("div");
+          label.addEventListener("click", () => onSelectHub(hub.hubId));
+          label.innerHTML = `
+            <button class="${getHubMarkerClass(hub.equipmentCount)}" type="button">
+              ${formatCount(hub.equipmentCount)}
+            </button>
+            <div class="hub-label">${escapeHtml(hub.hubName)}</div>
+          `;
+
+          new maps.CustomOverlay({
+            content: label,
+            map,
+            position,
+            xAnchor: 0.5,
+            yAnchor: 1.05,
+          });
+        });
+
+        map.setBounds(bounds);
+        setMapErrorMessage("");
+      })
+      .catch((error: unknown) => {
+        if (!isMounted) {
+          return;
+        }
+
+        setMapErrorMessage(
+          error instanceof Error ? error.message : "카카오맵을 불러오지 못했습니다.",
+        );
+      });
+
+    return () => {
+      isMounted = false;
+      container.replaceChildren();
+    };
+  }, [hubsWithCoordinates, onSelectHub, selectedHubId]);
+
+  if (hubsWithCoordinates.length === 0) {
+    return (
+      <div className="hub-map flex items-center justify-center rounded-[8px] bg-[#eef5fb] text-sm font-bold text-[#4b6380]">
+        표시할 좌표가 없습니다.
+      </div>
+    );
+  }
+
+  if (mapErrorMessage) {
+    return (
+      <div className="hub-map flex items-center justify-center rounded-[8px] bg-[#eef5fb] px-5 text-center text-sm font-bold text-[#4b6380]">
+        {mapErrorMessage}
+      </div>
+    );
+  }
+
+  return <div className="hub-map overflow-hidden rounded-[8px] bg-[#eef5fb]" ref={mapRef} />;
+};
+
+type InfraHubDetailProps = {
+  hub: InfraHub;
+};
+
+const InfraHubDetail = ({ hub }: InfraHubDetailProps) => (
+  <aside className="rounded-[8px] border border-[#dce4ef] bg-[#fbfdff] p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <p className="mb-2 inline-flex rounded-[6px] border border-[#d9e4f1] bg-white px-2 py-1 text-xs font-extrabold text-[#517094]">
+          {hub.hubKind}
+        </p>
+        <h3 className="text-2xl font-black leading-tight text-[#123b7a]">{hub.hubName}</h3>
+        {hub.centerName && <p className="mt-1 text-sm font-bold text-[#64748b]">{hub.centerName}</p>}
+      </div>
+      <div className="text-right">
+        <p className="text-xs font-extrabold text-[#64748b]">보유 장비</p>
+        <p className="text-3xl font-black text-[#123b7a]">
+          {formatCount(hub.equipmentCount)}
+          <span className="ml-1 text-sm font-bold text-[#24528d]">건</span>
+        </p>
+      </div>
+    </div>
+
+    {hub.summary && <p className="mt-4 text-sm font-semibold leading-6 text-[#43546d]">{hub.summary}</p>}
+
+    <dl className="mt-5 space-y-3 text-sm">
+      {hub.address && (
+        <div>
+          <dt className="font-extrabold text-[#123b7a]">주소</dt>
+          <dd className="mt-1 font-semibold text-[#44566e]">{hub.address}</dd>
+        </div>
+      )}
+      {hub.tel && (
+        <div>
+          <dt className="font-extrabold text-[#123b7a]">문의</dt>
+          <dd className="mt-1 font-semibold text-[#44566e]">{hub.tel}</dd>
+        </div>
+      )}
+    </dl>
+
+    {hub.topEquipmentCategories.length > 0 && (
+      <div className="mt-6 border-t border-[#e2eaf4] pt-5">
+        <h4 className="font-extrabold text-[#123b7a]">주요 연결 장비 분류</h4>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {hub.topEquipmentCategories.map((category) => (
+            <span
+              className="rounded-[6px] border border-[#d9e4f1] bg-white px-3 py-2 text-sm font-extrabold text-[#284563]"
+              key={`${hub.hubId}-${category.name}`}
+            >
+              {category.name} ({formatCount(category.count)}건)
+            </span>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {hub.sampleEquipments.length > 0 && (
+      <div className="mt-6 border-t border-[#e2eaf4] pt-5">
+        <h4 className="font-extrabold text-[#123b7a]">관련 장비 예시</h4>
+        <ul className="mt-3 divide-y divide-[#e2eaf4] text-sm font-semibold text-[#44566e]">
+          {hub.sampleEquipments.map((equipment) => (
+            <li className="flex items-center justify-between gap-4 py-2" key={equipment.equipmentId}>
+              <span>{equipment.equipmentName}</span>
+              {equipment.categoryLarge && (
+                <span className="shrink-0 text-xs font-bold text-[#6b7f99]">{equipment.categoryLarge}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    {hub.facilities.length > 0 && (
+      <div className="mt-6 border-t border-[#e2eaf4] pt-5">
+        <h4 className="font-extrabold text-[#123b7a]">거점 시설</h4>
+        <ul className="mt-3 space-y-2 text-sm font-semibold text-[#44566e]">
+          {hub.facilities.slice(0, 4).map((facility) => (
+            <li className="rounded-[6px] bg-white px-3 py-2" key={facility.facilityId}>
+              {facility.buildingName}
+              {facility.purpose && <span className="ml-2 text-xs font-bold text-[#6b7f99]">{facility.purpose}</span>}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+  </aside>
+);
 
 type IndustryStatusProps = {
   overview: IndustryOverview;
