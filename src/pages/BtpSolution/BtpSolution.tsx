@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { showAppAlert } from "@/components/AppAlert";
 import {
@@ -910,7 +910,6 @@ const BtpSolution = () => {
           {(connectionEvidenceStatus !== "idle" || connectionEvidence) && (
             <ConnectionEvidenceCompanies
               errorMessage={connectionEvidenceErrorMessage}
-              isSample={isSampleIndustry}
               keyword={connectionEvidenceSearchText}
               onKeywordChange={setConnectionEvidenceSearchText}
               onPageChange={(page) => updateConnectionEvidenceSearchParams({ page })}
@@ -1390,7 +1389,6 @@ const InfraHubDetail = ({ hub }: InfraHubDetailProps) => {
 
 type ConnectionEvidenceCompaniesProps = {
   errorMessage: string;
-  isSample: boolean;
   keyword: string;
   onKeywordChange: (keyword: string) => void;
   onPageChange: (page: number) => void;
@@ -1403,7 +1401,6 @@ type ConnectionEvidenceCompaniesProps = {
 
 const ConnectionEvidenceCompanies = ({
   errorMessage,
-  isSample,
   keyword,
   onKeywordChange,
   onPageChange,
@@ -1417,6 +1414,7 @@ const ConnectionEvidenceCompanies = ({
   const size = response?.size ?? 10;
   const totalPages = response?.totalPages ?? 0;
   const pages = paginationPages(page, totalPages);
+  const [selectedEvidence, setSelectedEvidence] = useState<ConnectionEvidenceCompany | null>(null);
 
   return (
     <div className="btp-connection-evidence">
@@ -1424,6 +1422,10 @@ const ConnectionEvidenceCompanies = ({
         {`
           .btp-connection-evidence .evidence-table {
             min-width: 1120px;
+          }
+
+          .btp-connection-evidence .evidence-table td {
+            white-space: nowrap;
           }
 
           .btp-connection-evidence .evidence-table th,
@@ -1533,7 +1535,7 @@ const ConnectionEvidenceCompanies = ({
                   </thead>
                   <tbody className="divide-y divide-[#e2eaf4] text-sm text-[#334766]">
                     {response.items.map((item) => (
-                      <ConnectionEvidenceRow isSample={isSample} item={item} key={item.companyId} />
+                      <ConnectionEvidenceRow item={item} key={item.companyId} onOpenDetail={setSelectedEvidence} />
                     ))}
                   </tbody>
                 </table>
@@ -1591,6 +1593,13 @@ const ConnectionEvidenceCompanies = ({
           </>
         )}
       </div>
+
+      {selectedEvidence && (
+        <ConnectionEvidenceDetailModal
+          item={selectedEvidence}
+          onClose={() => setSelectedEvidence(null)}
+        />
+      )}
     </div>
   );
 };
@@ -1612,64 +1621,203 @@ const EvidenceSummaryMetric = ({ label, unit, value }: EvidenceSummaryMetricProp
 );
 
 type ConnectionEvidenceRowProps = {
-  isSample: boolean;
   item: ConnectionEvidenceCompany;
+  onOpenDetail: (item: ConnectionEvidenceCompany) => void;
 };
 
-const ConnectionEvidenceRow = ({ isSample, item }: ConnectionEvidenceRowProps) => (
+const ConnectionEvidenceRow = ({ item, onOpenDetail }: ConnectionEvidenceRowProps) => (
   <tr className="align-top">
-    <td className="px-4 py-5 font-black text-[#123b7a]">{item.companyName}</td>
-    <td className="px-4 py-5">
-      <TextStack items={item.mainProducts} />
+    <td className="px-4 py-5 font-black text-[#123b7a]">
+      <SingleLineText value={item.companyName} />
     </td>
     <td className="px-4 py-5">
-      <TextStack items={item.connectedFunctions} />
+      <SingleLineText title={joinSummary(item.mainProducts)} value={firstSentence(joinSummary(item.mainProducts))} />
     </td>
     <td className="px-4 py-5">
-      <ul className="space-y-2">
-        {item.connectedEquipments.map((equipment) => (
-          <li key={`${item.companyId}-${equipment.equipmentId}`}>
-            <span className="font-extrabold text-[#284563]">{equipment.equipmentName}</span>
-            <span className="ml-1 font-bold text-[#64748b]">({equipment.hubName})</span>
-          </li>
-        ))}
-      </ul>
+      <SingleLineText
+        title={joinSummary(item.connectedFunctions)}
+        value={firstSentence(joinSummary(item.connectedFunctions))}
+      />
     </td>
-    <td className="px-4 py-5 font-semibold leading-6 text-[#44566e]">{item.evidenceText ?? "-"}</td>
+    <td className="px-4 py-5">
+      <SingleLineText
+        title={joinEquipmentSummary(item.connectedEquipments)}
+        value={singleEquipmentSummary(item.connectedEquipments)}
+      />
+    </td>
+    <td className="px-4 py-5 font-semibold text-[#44566e]">
+      <SingleLineText title={item.evidenceText ?? "-"} value={firstSentence(item.evidenceText ?? "-")} />
+    </td>
     <td className="px-4 py-5 text-center">
-      {isSample ? (
-        <button
-          className="inline-flex h-10 cursor-not-allowed items-center justify-center rounded-[8px] border border-[#d7e2f0] px-4 text-sm font-black text-[#8aa0ba] opacity-70"
-          disabled
-          type="button"
-        >
-          보기
-        </button>
-      ) : (
-        <a
-          className="inline-flex h-10 items-center justify-center rounded-[8px] border border-[#d7e2f0] px-4 text-sm font-black text-[#123b7a]"
-          href={`/?companyId=${encodeURIComponent(String(item.companyId))}`}
-        >
-          보기
-        </a>
-      )}
+      <button
+        className="inline-flex h-10 items-center justify-center rounded-[8px] border border-[#d7e2f0] px-4 text-sm font-black text-[#123b7a] hover:bg-[#f4f8fd]"
+        onClick={() => onOpenDetail(item)}
+        type="button"
+      >
+        보기
+      </button>
     </td>
   </tr>
 );
 
-type TextStackProps = {
+type SingleLineTextProps = {
+  title?: string;
+  value: string;
+};
+
+const SingleLineText = ({ title, value }: SingleLineTextProps) => (
+  <span className="block overflow-hidden text-ellipsis whitespace-nowrap" title={title ?? value}>
+    {value}
+  </span>
+);
+
+const joinSummary = (items: string[]) => (items.length > 0 ? items.join(" · ") : "-");
+
+const joinEquipmentSummary = (items: ConnectionEvidenceEquipment[]) => {
+  if (items.length === 0) {
+    return "-";
+  }
+
+  return items.map((equipment) => `${equipment.equipmentName} (${equipment.hubName})`).join(" · ");
+};
+
+const singleEquipmentSummary = (items: ConnectionEvidenceEquipment[]) => {
+  if (items.length === 0) {
+    return "-";
+  }
+
+  const [firstEquipment] = items;
+  const suffix = items.length > 1 ? ` 외 ${formatCount(items.length - 1)}개` : "";
+
+  return `${firstEquipment.equipmentName} (${firstEquipment.hubName})${suffix}`;
+};
+
+const firstSentence = (value: string) => {
+  const trimmedValue = value.trim();
+  const delimiters = [
+    { includeDelimiter: true, value: "." },
+    { includeDelimiter: false, value: "," },
+    { includeDelimiter: false, value: "，" },
+    { includeDelimiter: false, value: "·" },
+  ];
+  const firstDelimiter = delimiters
+    .map((delimiter) => ({
+      ...delimiter,
+      index: trimmedValue.indexOf(delimiter.value),
+    }))
+    .filter((delimiter) => delimiter.index >= 0)
+    .sort((a, b) => a.index - b.index)[0];
+
+  if (!firstDelimiter) {
+    return trimmedValue;
+  }
+
+  return trimmedValue.slice(
+    0,
+    firstDelimiter.index + (firstDelimiter.includeDelimiter ? firstDelimiter.value.length : 0),
+  );
+};
+
+type ConnectionEvidenceDetailModalProps = {
+  item: ConnectionEvidenceCompany;
+  onClose: () => void;
+};
+
+const ConnectionEvidenceDetailModal = ({ item, onClose }: ConnectionEvidenceDetailModalProps) => (
+  <div
+    aria-modal="true"
+    className="fixed inset-0 z-[90] flex items-center justify-center bg-[#0f172a]/35 px-4 py-6"
+    role="dialog"
+  >
+    <div className="max-h-[88vh] w-full max-w-3xl overflow-hidden rounded-[10px] bg-white shadow-xl">
+      <div className="flex items-start justify-between gap-4 border-b border-[#e2eaf4] px-6 py-5">
+        <div>
+          <p className="text-sm font-extrabold text-[#64748b]">연결 근거 상세</p>
+          <h3 className="mt-1 text-2xl font-black text-[#123b7a]">{item.companyName}</h3>
+        </div>
+        <button
+          aria-label="닫기"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#d7e2f0] text-xl font-black text-[#64748b] hover:bg-[#f4f8fd]"
+          onClick={onClose}
+          type="button"
+        >
+          ×
+        </button>
+      </div>
+
+      <div className="max-h-[calc(88vh-88px)] overflow-y-auto px-6 py-5">
+        <DetailSection title="주요제품 / 지원품목">
+          <DetailList items={item.mainProducts} />
+        </DetailSection>
+
+        <DetailSection title="연결 기능">
+          <DetailList items={item.connectedFunctions} />
+        </DetailSection>
+
+        <DetailSection title="연결 장비 및 설치 거점">
+          {item.connectedEquipments.length === 0 ? (
+            <p className="text-sm font-semibold text-[#9aa9ba]">-</p>
+          ) : (
+            <div className="overflow-x-auto rounded-[8px] border border-[#dce4ef]">
+              <table className="w-full min-w-[560px] table-fixed border-collapse text-left text-sm">
+                <thead className="bg-[#f7faff] text-[#123b7a]">
+                  <tr>
+                    <th className="px-4 py-3 font-black">장비명</th>
+                    <th className="w-[180px] px-4 py-3 font-black">설치 거점</th>
+                    <th className="w-[160px] px-4 py-3 font-black">장비 분류</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#e2eaf4] text-[#334766]">
+                  {item.connectedEquipments.map((equipment) => (
+                    <tr key={`${item.companyId}-${equipment.equipmentId}`}>
+                      <td className="px-4 py-3 font-extrabold">{equipment.equipmentName}</td>
+                      <td className="px-4 py-3 font-semibold">{equipment.hubName}</td>
+                      <td className="px-4 py-3 font-semibold">{equipment.categoryLarge ?? "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </DetailSection>
+
+        <DetailSection title="연결 근거">
+          <p className="rounded-[8px] bg-[#f4f8fd] px-4 py-3 text-sm font-semibold leading-6 text-[#44566e]">
+            {item.evidenceText ?? "-"}
+          </p>
+        </DetailSection>
+      </div>
+    </div>
+  </div>
+);
+
+type DetailSectionProps = {
+  children: ReactNode;
+  title: string;
+};
+
+const DetailSection = ({ children, title }: DetailSectionProps) => (
+  <section className="mb-6 last:mb-0">
+    <h4 className="mb-3 text-base font-black text-[#123b7a]">{title}</h4>
+    {children}
+  </section>
+);
+
+type DetailListProps = {
   items: string[];
 };
 
-const TextStack = ({ items }: TextStackProps) => {
+const DetailList = ({ items }: DetailListProps) => {
   if (items.length === 0) {
-    return <span className="font-semibold text-[#9aa9ba]">-</span>;
+    return <p className="text-sm font-semibold text-[#9aa9ba]">-</p>;
   }
 
   return (
-    <ul className="space-y-2 font-semibold leading-6 text-[#44566e]">
-      {items.slice(0, 4).map((item, index) => (
-        <li key={`${item}-${index}`}>{item}</li>
+    <ul className="grid gap-2 text-sm font-semibold text-[#44566e]">
+      {items.map((item, index) => (
+        <li className="rounded-[8px] border border-[#e2eaf4] bg-white px-4 py-3" key={`${item}-${index}`}>
+          {item}
+        </li>
       ))}
     </ul>
   );
