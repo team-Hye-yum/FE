@@ -1,6 +1,6 @@
 import type { ChangeEvent } from "react";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import AnnouncementAnalysisLoadingModal from "./components/AnnouncementAnalysisLoadingModal";
 import SupportProgramRegisterModal from "./components/SupportProgramRegisterModal";
 import type { SupportProgramPeriod, SupportProgramSaveRequest } from "./types";
@@ -675,6 +675,7 @@ const UploadPanel = () => {
 };
 
 const BusinessList = () => {
+  const { search } = useLocation();
   const [activeTab, setActiveTab] = useState<TabKey>("companies");
   const [companies, setCompanies] = useState<CompanyRow[]>(fallbackCompanies);
   const [supportProgramCode, setSupportProgramCode] = useState("");
@@ -698,6 +699,53 @@ const BusinessList = () => {
       window.removeEventListener("support-program-companies-loaded", handleCompaniesLoaded);
     };
   }, []);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(search);
+    const programCode = searchParams.get("programCode")?.trim() ?? "";
+    const programKeyword = searchParams.get("programKeyword")?.trim() ?? "";
+
+    if (!programCode) {
+      setCompanies(fallbackCompanies);
+      setSupportProgramCode("");
+      setTitle("샘플 지원사업 기업 목록");
+      return;
+    }
+
+    if (programCode === supportProgramCode) {
+      return;
+    }
+
+    let ignore = false;
+
+    requestJson<{ items: SupportProgramCompanyItem[] }>(
+      apiUrl(`/support-programs/${encodeURIComponent(programCode)}/companies`),
+    )
+      .then((response) => {
+        if (ignore) {
+          return;
+        }
+
+        setCompanies(response.data.items.map(mapCompanyItem));
+        setSupportProgramCode(programCode);
+        setTitle(programKeyword ? `${programKeyword} · ${programCode}` : `지원사업 ${programCode}`);
+        setActiveTab("companies");
+      })
+      .catch((error: unknown) => {
+        if (ignore) {
+          return;
+        }
+
+        setCompanies([]);
+        setSupportProgramCode(programCode);
+        setTitle(error instanceof Error ? error.message : `지원사업 ${programCode}`);
+        setActiveTab("companies");
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [search, supportProgramCode]);
 
   return (
     <main className="flex flex-col gap-6 px-4 py-8 lg:flex-row lg:px-6 lg:py-12">

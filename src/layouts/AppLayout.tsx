@@ -96,9 +96,24 @@ const AppLayout = ({ children }: AppLayoutProps) => {
     : supportProgramResults.length;
 
   useEffect(() => {
-    const companyId = new URLSearchParams(search).get("companyId");
+    const searchParams = new URLSearchParams(search);
+    const companyId = searchParams.get("companyId");
+    const programKeyword = searchParams.get("programKeyword");
+    const industryKeyword = searchParams.get("industryKeyword");
 
-    setSearchKeyword(pathname === "/" && companyId ? companyId : "");
+    const nextSearchKeyword =
+      pathname === "/" && companyId
+        ? companyId
+        : pathname === "/business-list" && programKeyword
+          ? programKeyword
+          : pathname === "/btp-solution" && industryKeyword
+            ? industryKeyword
+            : "";
+
+    selectedSupportProgramLabelRef.current =
+      pathname === "/business-list" ? nextSearchKeyword : "";
+    selectedIndustryLabelRef.current = pathname === "/btp-solution" ? nextSearchKeyword : "";
+    setSearchKeyword(nextSearchKeyword);
     setSupportProgramResults([]);
     setIndustryResults([]);
     setActiveResultIndex(-1);
@@ -109,7 +124,11 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   useEffect(() => {
     const trimmedKeyword = searchKeyword.trim();
 
-    if (!canSearchSupportPrograms || trimmedKeyword.length === 0) {
+    if (!canSearchSupportPrograms) {
+      return undefined;
+    }
+
+    if (trimmedKeyword.length === 0) {
       searchAbortControllerRef.current?.abort();
       setSupportProgramResults([]);
       setIndustryResults([]);
@@ -169,7 +188,11 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   useEffect(() => {
     const trimmedKeyword = searchKeyword.trim();
 
-    if (!canSearchIndustries || trimmedKeyword.length === 0) {
+    if (!canSearchIndustries) {
+      return undefined;
+    }
+
+    if (trimmedKeyword.length === 0) {
       searchAbortControllerRef.current?.abort();
       setIndustryResults([]);
       setActiveResultIndex(-1);
@@ -290,6 +313,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
 
   const handleSupportProgramSelect = async (item: SupportProgramSearchItem) => {
     const label = `${item.programYear} ${item.budgetProgramName}`;
+    const nextSearchParams = new URLSearchParams(search);
 
     selectedSupportProgramLabelRef.current = label;
     setSearchKeyword(label);
@@ -298,6 +322,9 @@ const AppLayout = ({ children }: AppLayoutProps) => {
     setActiveResultIndex(-1);
     setSearchStatus({ type: "idle", message: "" });
     searchAbortControllerRef.current?.abort();
+    nextSearchParams.set("programCode", item.code);
+    nextSearchParams.set("programKeyword", label);
+    navigate({ pathname: "/business-list", search: nextSearchParams.toString() });
 
     try {
       const response = await fetch(apiUrl(`/support-programs/${item.code}/companies`));
@@ -326,6 +353,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
 
   const handleIndustrySelect = (item: IndustrySearchItem) => {
     const label = item.divisionName || item.displayName || item.divisionCode;
+    const nextSearchParams = new URLSearchParams(search);
 
     selectedIndustryLabelRef.current = label;
     setSearchKeyword(label);
@@ -334,14 +362,15 @@ const AppLayout = ({ children }: AppLayoutProps) => {
     setActiveResultIndex(-1);
     setSearchStatus({ type: "idle", message: "" });
     searchAbortControllerRef.current?.abort();
-
-    window.dispatchEvent(
-      new CustomEvent("btp-solution-industry-selected", {
-        detail: {
-          industry: item,
-        },
-      }),
-    );
+    nextSearchParams.set("divisionCode", item.divisionCode);
+    nextSearchParams.set("industryKeyword", label);
+    nextSearchParams.delete("sectionCode");
+    nextSearchParams.delete("industryCode");
+    nextSearchParams.delete("code");
+    nextSearchParams.delete("companyKeyword");
+    nextSearchParams.delete("page");
+    nextSearchParams.delete("size");
+    navigate({ pathname: "/btp-solution", search: nextSearchParams.toString() });
   };
 
   const handleSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {

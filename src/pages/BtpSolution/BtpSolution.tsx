@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Bar,
   BarChart,
@@ -362,8 +362,28 @@ const getDivisionCodeFromSearch = (search: string) => {
   return "";
 };
 
+const getSearchParam = (search: string, key: string) =>
+  new URLSearchParams(search).get(key)?.trim() ?? "";
+
+const getPositiveIntegerSearchParam = (search: string, key: string, fallback: number) => {
+  const value = Number(new URLSearchParams(search).get(key));
+
+  return Number.isInteger(value) && value > 0 ? value : fallback;
+};
+
+const getNonNegativeIntegerSearchParam = (search: string, key: string, fallback: number) => {
+  const value = Number(new URLSearchParams(search).get(key));
+
+  return Number.isInteger(value) && value >= 0 ? value : fallback;
+};
+
 const BtpSolution = () => {
   const { search } = useLocation();
+  const navigate = useNavigate();
+  const divisionCodeFromUrl = getDivisionCodeFromSearch(search);
+  const companyKeywordFromUrl = getSearchParam(search, "companyKeyword");
+  const companyPageFromUrl = getNonNegativeIntegerSearchParam(search, "page", 0);
+  const companySizeFromUrl = getPositiveIntegerSearchParam(search, "size", 10);
   const [selectedIndustry, setSelectedIndustry] = useState<IndustrySearchItem | null>(null);
   const [overview, setOverview] = useState<IndustryOverview | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
@@ -428,10 +448,6 @@ const BtpSolution = () => {
     setConnectionEvidence(null);
     setConnectionEvidenceStatus("idle");
     setConnectionEvidenceErrorMessage("");
-    setConnectionEvidenceSearchText("");
-    setConnectionEvidenceKeyword("");
-    setConnectionEvidencePage(0);
-    setConnectionEvidenceSize(10);
   };
 
   const loadInfraHubs = (divisionCode: string) => {
@@ -480,9 +496,7 @@ const BtpSolution = () => {
   }, []);
 
   useEffect(() => {
-    const divisionCode = getDivisionCodeFromSearch(search);
-
-    if (!divisionCode) {
+    if (!divisionCodeFromUrl) {
       setSelectedIndustry(SAMPLE_INDUSTRY);
       setIsSampleIndustry(true);
       resetConnectionEvidence();
@@ -493,20 +507,57 @@ const BtpSolution = () => {
 
     setSelectedIndustry({
       className: "",
-      displayName: divisionCode,
-      divisionCode,
+      displayName: divisionCodeFromUrl,
+      divisionCode: divisionCodeFromUrl,
       divisionName: "",
       groupName: "",
-      ksicCode: divisionCode,
+      ksicCode: divisionCodeFromUrl,
       sectionCode: "",
       sectionName: "",
       subclassName: "",
     });
     setIsSampleIndustry(false);
     resetConnectionEvidence();
-    loadOverview(divisionCode);
-    loadInfraHubs(divisionCode);
-  }, [search]);
+    loadOverview(divisionCodeFromUrl);
+    loadInfraHubs(divisionCodeFromUrl);
+  }, [divisionCodeFromUrl]);
+
+  useEffect(() => {
+    setConnectionEvidenceSearchText(companyKeywordFromUrl);
+    setConnectionEvidenceKeyword(companyKeywordFromUrl);
+    setConnectionEvidencePage(companyPageFromUrl);
+    setConnectionEvidenceSize(companySizeFromUrl);
+  }, [companyKeywordFromUrl, companyPageFromUrl, companySizeFromUrl]);
+
+  const updateConnectionEvidenceSearchParams = (
+    nextValues: Partial<{ companyKeyword: string; page: number; size: number }>,
+  ) => {
+    const searchParams = new URLSearchParams(search);
+    const nextKeyword =
+      nextValues.companyKeyword ?? searchParams.get("companyKeyword")?.trim() ?? "";
+    const nextPage = nextValues.page ?? getNonNegativeIntegerSearchParam(search, "page", 0);
+    const nextSize = nextValues.size ?? getPositiveIntegerSearchParam(search, "size", 10);
+
+    if (nextKeyword) {
+      searchParams.set("companyKeyword", nextKeyword);
+    } else {
+      searchParams.delete("companyKeyword");
+    }
+
+    if (nextPage > 0) {
+      searchParams.set("page", String(nextPage));
+    } else {
+      searchParams.delete("page");
+    }
+
+    if (nextSize !== 10) {
+      searchParams.set("size", String(nextSize));
+    } else {
+      searchParams.delete("size");
+    }
+
+    navigate({ pathname: "/btp-solution", search: searchParams.toString() }, { replace: true });
+  };
 
   useEffect(() => {
     const divisionCode = selectedIndustry?.divisionCode;
@@ -586,14 +637,15 @@ const BtpSolution = () => {
               errorMessage={connectionEvidenceErrorMessage}
               keyword={connectionEvidenceSearchText}
               onKeywordChange={setConnectionEvidenceSearchText}
-              onPageChange={setConnectionEvidencePage}
+              onPageChange={(page) => updateConnectionEvidenceSearchParams({ page })}
               onSearch={() => {
-                setConnectionEvidencePage(0);
-                setConnectionEvidenceKeyword(connectionEvidenceSearchText.trim());
+                updateConnectionEvidenceSearchParams({
+                  companyKeyword: connectionEvidenceSearchText.trim(),
+                  page: 0,
+                });
               }}
               onSizeChange={(size) => {
-                setConnectionEvidencePage(0);
-                setConnectionEvidenceSize(size);
+                updateConnectionEvidenceSearchParams({ page: 0, size });
               }}
               response={connectionEvidence}
               sectionName={overview?.divisionName ?? selectedIndustry.divisionName}
