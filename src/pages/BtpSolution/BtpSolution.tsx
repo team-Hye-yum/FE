@@ -20,6 +20,7 @@ type ApiDataResponse<T> = {
 type IndustrySearchItem = {
   ksicCode: string;
   sectionCode: string;
+  divisionCode: string;
   sectionName: string;
   divisionName: string;
   groupName: string;
@@ -45,8 +46,8 @@ type EmployeeSizeRatio = {
 };
 
 type IndustryOverview = {
-  sectionCode: string;
-  sectionName: string;
+  divisionCode: string;
+  divisionName: string;
   busanBaseYear: number | null;
   btpBaseYear: number | null;
   industryScale: {
@@ -103,7 +104,7 @@ type InfraHub = {
 };
 
 type InfraHubResponse = {
-  sectionCode: string;
+  divisionCode: string;
   hubs: InfraHub[];
 };
 
@@ -125,7 +126,7 @@ type ConnectionEvidenceCompany = {
 };
 
 type ConnectionEvidenceResponse = {
-  sectionCode: string;
+  divisionCode: string;
   summary: {
     companyCount: number;
     equipmentCount: number;
@@ -151,18 +152,26 @@ type KakaoMapsApi = {
     container: HTMLElement,
     options: { center: unknown; level: number },
   ) => {
+    getLevel: () => number;
     setBounds: (bounds: unknown) => void;
+    setLevel: (level: number, options?: { anchor?: unknown }) => void;
   };
-  Marker: new (options: { map: unknown; position: unknown }) => unknown;
-  CustomOverlay: new (options: {
-    content: HTMLElement | string;
+  Marker: new (options: { image?: unknown; map?: unknown; position: unknown; title?: string }) => unknown;
+  MarkerClusterer: new (options: {
+    averageCenter?: boolean;
+    disableClickZoom?: boolean;
+    gridSize?: number;
     map: unknown;
-    position: unknown;
-    xAnchor: number;
-    yAnchor: number;
-  }) => unknown;
+    minLevel?: number;
+    styles?: Array<Record<string, string>>;
+  }) => {
+    addMarkers: (markers: unknown[]) => void;
+  };
+  MarkerImage: new (src: string, size: unknown, options?: { offset?: unknown }) => unknown;
+  Point: new (x: number, y: number) => unknown;
+  Size: new (width: number, height: number) => unknown;
   event: {
-    addListener: (target: unknown, type: string, handler: () => void) => void;
+    addListener: (target: unknown, type: string, handler: (event?: unknown) => void) => void;
   };
   load: (handler: () => void) => void;
 };
@@ -180,6 +189,18 @@ const TEAL = "#62d4ca";
 const BTP_BLUE = "#2478d7";
 const BTP_PURPLE = "#aaa3ea";
 const KAKAO_MAP_SDK_ID = "kakao-map-sdk";
+const SAMPLE_DIVISION_CODE = "29";
+const SAMPLE_INDUSTRY: IndustrySearchItem = {
+  className: "",
+  displayName: "SAMPLE 기타 기계 및 장비 제조업",
+  divisionCode: SAMPLE_DIVISION_CODE,
+  divisionName: "기타 기계 및 장비 제조업",
+  groupName: "",
+  ksicCode: `C${SAMPLE_DIVISION_CODE}`,
+  sectionCode: "C",
+  sectionName: "제조업",
+  subclassName: "",
+};
 
 let kakaoMapSdkPromise: Promise<void> | null = null;
 
@@ -195,7 +216,7 @@ const getKakaoMapKey = () =>
   "";
 
 const loadKakaoMapSdk = () => {
-  if (window.kakao?.maps) {
+  if (window.kakao?.maps.MarkerClusterer) {
     return Promise.resolve();
   }
 
@@ -213,10 +234,22 @@ const loadKakaoMapSdk = () => {
     const existingScript = document.getElementById(KAKAO_MAP_SDK_ID) as HTMLScriptElement | null;
 
     const handleLoad = () => {
-      window.kakao?.maps.load(resolve);
+      window.kakao?.maps.load(() => {
+        if (window.kakao?.maps.MarkerClusterer) {
+          resolve();
+          return;
+        }
+
+        reject(new Error("카카오맵 클러스터러를 불러오지 못했습니다. 페이지를 새로고침해주세요."));
+      });
     };
 
     if (existingScript) {
+      if (window.kakao?.maps) {
+        handleLoad();
+        return;
+      }
+
       existingScript.addEventListener("load", handleLoad, { once: true });
       existingScript.addEventListener("error", () => reject(new Error("카카오맵을 불러오지 못했습니다.")), {
         once: true,
@@ -227,7 +260,7 @@ const loadKakaoMapSdk = () => {
     const script = document.createElement("script");
     script.id = KAKAO_MAP_SDK_ID;
     script.async = true;
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(appKey)}&autoload=false`;
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(appKey)}&autoload=false&libraries=clusterer`;
     script.addEventListener("load", handleLoad, { once: true });
     script.addEventListener("error", () => reject(new Error("카카오맵을 불러오지 못했습니다.")), {
       once: true,
@@ -272,18 +305,6 @@ const percentLabel = (value: unknown) => {
   return `${value.toFixed(1)}%`;
 };
 
-const getHubMarkerClass = (equipmentCount: number) => {
-  if (equipmentCount >= 30) {
-    return "hub-marker hub-marker-strong";
-  }
-
-  if (equipmentCount >= 10) {
-    return "hub-marker hub-marker-medium";
-  }
-
-  return "hub-marker hub-marker-light";
-};
-
 const escapeHtml = (value: string) =>
   value
     .replace(/&/g, "&amp;")
@@ -292,12 +313,30 @@ const escapeHtml = (value: string) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 
+const hubMarkerImageUrl = (hub: InfraHub, selected: boolean) => {
+  const fill = selected ? "#f59e0b" : hub.equipmentCount >= 30 ? "#064595" : hub.equipmentCount >= 10 ? "#167ad8" : "#8dbbea";
+  const textColor = hub.equipmentCount >= 10 || selected ? "#ffffff" : "#103560";
+  const label = formatCount(hub.equipmentCount);
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="50" height="58" viewBox="0 0 50 58">
+      <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+        <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#133970" flood-opacity="0.28"/>
+      </filter>
+      <path d="M25 55c-2.8-5.8-17-14.3-17-31C8 14.6 15.6 7 25 7s17 7.6 17 17c0 16.7-14.2 25.2-17 31Z" fill="${fill}" filter="url(#shadow)"/>
+      <circle cx="25" cy="24" r="18" fill="${fill}" stroke="#ffffff" stroke-width="3"/>
+      <text x="25" y="29" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="900" fill="${textColor}">${escapeHtml(label)}</text>
+    </svg>
+  `;
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+};
+
 const selectRepresentativeHubId = (hubs: InfraHub[]) => {
   const sortedHubs = [...hubs].sort((left, right) => right.equipmentCount - left.equipmentCount);
   return sortedHubs[0]?.hubId ?? null;
 };
 
-const getSectionCodeFromSearch = (search: string) => {
+const getDivisionCodeFromSearch = (search: string) => {
   const trimmedSearch = search.replace(/^\?/, "").trim();
 
   if (!trimmedSearch) {
@@ -306,6 +345,7 @@ const getSectionCodeFromSearch = (search: string) => {
 
   const searchParams = new URLSearchParams(search);
   const namedCode =
+    searchParams.get("divisionCode") ??
     searchParams.get("sectionCode") ??
     searchParams.get("industryCode") ??
     searchParams.get("code") ??
@@ -339,13 +379,14 @@ const BtpSolution = () => {
   const [connectionEvidenceKeyword, setConnectionEvidenceKeyword] = useState("");
   const [connectionEvidencePage, setConnectionEvidencePage] = useState(0);
   const [connectionEvidenceSize, setConnectionEvidenceSize] = useState(10);
+  const [isSampleIndustry, setIsSampleIndustry] = useState(false);
 
-  const loadOverview = (sectionCode: string) => {
+  const loadOverview = (divisionCode: string) => {
     setOverview(null);
     setStatus("loading");
     setErrorMessage("");
 
-    fetch(apiUrl(`/btp-solution/industries/${encodeURIComponent(sectionCode)}/overview`))
+    fetch(apiUrl(`/btp-solution/industries/${encodeURIComponent(divisionCode)}/overview`))
       .then((response) => {
         if (!response.ok) {
           throw new Error(`산업 분석 정보를 불러오지 못했습니다. (${response.status})`);
@@ -355,16 +396,24 @@ const BtpSolution = () => {
       })
       .then((response) => {
         setOverview(response.data);
-        setSelectedIndustry((currentIndustry) => ({
-          className: currentIndustry?.className ?? "",
-          displayName: currentIndustry?.displayName || response.data.sectionName,
-          divisionName: currentIndustry?.divisionName ?? "",
-          groupName: currentIndustry?.groupName ?? "",
-          ksicCode: currentIndustry?.ksicCode || response.data.sectionCode,
-          sectionCode: response.data.sectionCode,
-          sectionName: response.data.sectionName,
-          subclassName: currentIndustry?.subclassName ?? "",
-        }));
+        setSelectedIndustry((currentIndustry) => {
+          const isCodeOnlyLabel = currentIndustry?.displayName === response.data.divisionCode;
+
+          return {
+            className: currentIndustry?.className ?? "",
+            displayName:
+              currentIndustry?.displayName && !isCodeOnlyLabel
+                ? currentIndustry.displayName
+                : response.data.divisionName,
+            divisionName: currentIndustry?.divisionName || response.data.divisionName,
+            divisionCode: response.data.divisionCode,
+            groupName: currentIndustry?.groupName ?? "",
+            ksicCode: currentIndustry?.ksicCode || response.data.divisionCode,
+            sectionCode: currentIndustry?.sectionCode ?? "",
+            sectionName: currentIndustry?.sectionName ?? "",
+            subclassName: currentIndustry?.subclassName ?? "",
+          };
+        });
         setStatus("idle");
       })
       .catch((error: unknown) => {
@@ -385,13 +434,13 @@ const BtpSolution = () => {
     setConnectionEvidenceSize(10);
   };
 
-  const loadInfraHubs = (sectionCode: string) => {
+  const loadInfraHubs = (divisionCode: string) => {
     setInfraHubs([]);
     setInfraStatus("loading");
     setInfraErrorMessage("");
     setSelectedHubId(null);
 
-    fetch(apiUrl(`/btp-solution/industries/${encodeURIComponent(sectionCode)}/infra-hubs`))
+    fetch(apiUrl(`/btp-solution/industries/${encodeURIComponent(divisionCode)}/infra-hubs`))
       .then((response) => {
         if (!response.ok) {
           throw new Error(`공동활용 인프라 정보를 불러오지 못했습니다. (${response.status})`);
@@ -417,9 +466,10 @@ const BtpSolution = () => {
       const { industry } = (event as IndustrySelectedEvent).detail;
 
       setSelectedIndustry(industry);
+      setIsSampleIndustry(false);
       resetConnectionEvidence();
-      loadOverview(industry.sectionCode);
-      loadInfraHubs(industry.sectionCode);
+      loadOverview(industry.divisionCode);
+      loadInfraHubs(industry.divisionCode);
     };
 
     window.addEventListener("btp-solution-industry-selected", handleIndustrySelected);
@@ -430,31 +480,38 @@ const BtpSolution = () => {
   }, []);
 
   useEffect(() => {
-    const sectionCode = getSectionCodeFromSearch(search);
+    const divisionCode = getDivisionCodeFromSearch(search);
 
-    if (!sectionCode) {
+    if (!divisionCode) {
+      setSelectedIndustry(SAMPLE_INDUSTRY);
+      setIsSampleIndustry(true);
+      resetConnectionEvidence();
+      loadOverview(SAMPLE_DIVISION_CODE);
+      loadInfraHubs(SAMPLE_DIVISION_CODE);
       return;
     }
 
     setSelectedIndustry({
       className: "",
-      displayName: sectionCode,
+      displayName: divisionCode,
+      divisionCode,
       divisionName: "",
       groupName: "",
-      ksicCode: sectionCode,
-      sectionCode,
-      sectionName: sectionCode,
+      ksicCode: divisionCode,
+      sectionCode: "",
+      sectionName: "",
       subclassName: "",
     });
+    setIsSampleIndustry(false);
     resetConnectionEvidence();
-    loadOverview(sectionCode);
-    loadInfraHubs(sectionCode);
+    loadOverview(divisionCode);
+    loadInfraHubs(divisionCode);
   }, [search]);
 
   useEffect(() => {
-    const sectionCode = selectedIndustry?.sectionCode;
+    const divisionCode = selectedIndustry?.divisionCode;
 
-    if (!sectionCode) {
+    if (!divisionCode) {
       return;
     }
 
@@ -469,7 +526,7 @@ const BtpSolution = () => {
 
     fetch(
       apiUrl(
-        `/btp-solution/industries/${encodeURIComponent(sectionCode)}/connection-evidence/companies?${params.toString()}`,
+        `/btp-solution/industries/${encodeURIComponent(divisionCode)}/connection-evidence/companies?${params.toString()}`,
       ),
     )
       .then((response) => {
@@ -490,7 +547,7 @@ const BtpSolution = () => {
         );
       });
   }, [
-    selectedIndustry?.sectionCode,
+    selectedIndustry?.divisionCode,
     connectionEvidenceKeyword,
     connectionEvidencePage,
     connectionEvidenceSize,
@@ -498,16 +555,10 @@ const BtpSolution = () => {
 
   return (
     <main className="mx-auto w-full max-w-[1600px] px-2 py-6 sm:px-3 lg:px-4">
-      {!selectedIndustry && (
-        <section className="bg-white px-6 py-7 sm:px-8">
-          <div className="flex min-h-[220px] items-center justify-center text-center">
-            <p className="text-base font-medium text-[#777]">산업을 검색해서 선택해주세요.</p>
-          </div>
-        </section>
-      )}
-
       {selectedIndustry && (
         <section className="space-y-6">
+          {isSampleIndustry && <SampleNotice />}
+
           {status === "error" && (
             <p className="rounded-[6px] bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
               {errorMessage}
@@ -547,7 +598,8 @@ const BtpSolution = () => {
                 setConnectionEvidenceSize(size);
               }}
               response={connectionEvidence}
-              sectionName={overview?.sectionName ?? selectedIndustry.sectionName}
+              sectionName={overview?.divisionName ?? selectedIndustry.divisionName}
+              showSampleBadge={isSampleIndustry}
               status={connectionEvidenceStatus}
             />
           )}
@@ -564,6 +616,16 @@ type InfraHubExplorerProps = {
   selectedHubId: number | null;
   status: "idle" | "loading" | "error";
 };
+
+const SampleNotice = () => (
+  <div
+    className="flex flex-wrap items-center gap-3 rounded-[8px] bg-white px-4 py-3 text-sm font-bold shadow-sm"
+    style={{ border: "1px solid #dce4ef", color: "#334766" }}
+  >
+    <span className="rounded-[6px] bg-[#0b4d99] px-3 py-1 text-xs font-black text-white">SAMPLE</span>
+    <span>산업명을 입력하지 않아 기타 기계 및 장비 제조업 기준 샘플 데이터를 표시하고 있습니다.</span>
+  </div>
+);
 
 const InfraHubExplorer = ({
   errorMessage,
@@ -729,29 +791,50 @@ const KakaoHubMap = ({ hubs, onSelectHub, selectedHubId }: KakaoHubMapProps) => 
         const center = new maps.LatLng(selectedHub.latitude ?? 35.1796, selectedHub.longitude ?? 129.0756);
         const map = new maps.Map(container, { center, level: 9 });
         const bounds = new maps.LatLngBounds();
-
-        hubsWithCoordinates.forEach((hub) => {
+        const markers = hubsWithCoordinates.map((hub) => {
           const position = new maps.LatLng(hub.latitude ?? 0, hub.longitude ?? 0);
           bounds.extend(position);
 
-          const marker = new maps.Marker({ map, position });
+          const marker = new maps.Marker({
+            image: new maps.MarkerImage(hubMarkerImageUrl(hub, hub.hubId === selectedHubId), new maps.Size(50, 58), {
+              offset: new maps.Point(25, 55),
+            }),
+            position,
+            title: `${hub.hubName} ${formatCount(hub.equipmentCount)}건`,
+          });
           maps.event.addListener(marker, "click", () => onSelectHub(hub.hubId));
 
-          const label = document.createElement("div");
-          label.addEventListener("click", () => onSelectHub(hub.hubId));
-          label.innerHTML = `
-            <button class="${getHubMarkerClass(hub.equipmentCount)}" type="button">
-              ${formatCount(hub.equipmentCount)}
-            </button>
-            <div class="hub-label">${escapeHtml(hub.hubName)}</div>
-          `;
+          return marker;
+        });
 
-          new maps.CustomOverlay({
-            content: label,
-            map,
-            position,
-            xAnchor: 0.5,
-            yAnchor: 1.05,
+        const clusterer = new maps.MarkerClusterer({
+          averageCenter: true,
+          disableClickZoom: true,
+          gridSize: 72,
+          map,
+          minLevel: 7,
+          styles: [
+            {
+              background: "rgba(6, 69, 149, 0.92)",
+              border: "3px solid #ffffff",
+              borderRadius: "999px",
+              boxShadow: "0 10px 22px rgba(19, 57, 112, 0.28)",
+              color: "#ffffff",
+              fontSize: "16px",
+              fontWeight: "900",
+              height: "54px",
+              lineHeight: "49px",
+              textAlign: "center",
+              width: "54px",
+            },
+          ],
+        });
+
+        clusterer.addMarkers(markers);
+        maps.event.addListener(clusterer, "clusterclick", (cluster) => {
+          const targetCluster = cluster as { getCenter?: () => unknown };
+          map.setLevel(Math.max(map.getLevel() - 2, 1), {
+            anchor: targetCluster.getCenter?.(),
           });
         });
 
@@ -890,6 +973,7 @@ type ConnectionEvidenceCompaniesProps = {
   onSizeChange: (size: number) => void;
   response: ConnectionEvidenceResponse | null;
   sectionName: string;
+  showSampleBadge: boolean;
   status: "idle" | "loading" | "error";
 };
 
@@ -902,6 +986,7 @@ const ConnectionEvidenceCompanies = ({
   onSizeChange,
   response,
   sectionName,
+  showSampleBadge,
   status,
 }: ConnectionEvidenceCompaniesProps) => {
   const page = response?.page ?? 0;
@@ -952,6 +1037,11 @@ const ConnectionEvidenceCompanies = ({
                 탐색한 연결은 데이터 기반 근거를 가지며, 기업별 연결 장비와 거점을 함께 제공합니다.
               </p>
             </div>
+            {showSampleBadge && (
+              <span className="mt-1 rounded-[6px] bg-[#0b4d99] px-3 py-1 text-xs font-black text-white">
+                SAMPLE
+              </span>
+            )}
           </div>
 
           <form

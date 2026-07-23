@@ -325,7 +325,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   };
 
   const handleIndustrySelect = (item: IndustrySearchItem) => {
-    const label = item.sectionName || item.displayName || item.sectionCode;
+    const label = item.divisionName || item.displayName || item.divisionCode;
 
     selectedIndustryLabelRef.current = label;
     setSearchKeyword(label);
@@ -476,14 +476,14 @@ const AppLayout = ({ children }: AppLayoutProps) => {
                     >
                       <span className="min-w-0">
                         <span className="block truncate text-[15px] font-semibold text-[#222]">
-                          {item.sectionName}
+                          {item.divisionName || item.displayName}
                         </span>
                         <span className="mt-0.5 block truncate text-xs font-medium text-[#777]">
-                          {item.displayName}
+                          {item.sectionName}
                         </span>
                       </span>
                       <span className="shrink-0 text-sm font-semibold text-[#2b7fff]">
-                        {item.sectionCode}
+                        {item.divisionCode}
                       </span>
                     </button>
                   ))
