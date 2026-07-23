@@ -25,6 +25,25 @@ type SupportProgramSearchResponse = {
   items: SupportProgramSearchItem[];
 };
 
+type IndustrySearchItem = {
+  ksicCode: string;
+  sectionCode: string;
+  sectionName: string;
+  divisionCode: string;
+  divisionName: string;
+  groupCode: string;
+  groupName: string;
+  classCode: string;
+  className: string;
+  subclassCode: string;
+  subclassName: string;
+  displayName: string;
+};
+
+type IndustrySearchResponse = {
+  items: IndustrySearchItem[];
+};
+
 type SupportProgramCompanyListResponse = {
   items: unknown[];
 };
@@ -52,24 +71,36 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   const [supportProgramResults, setSupportProgramResults] = useState<SupportProgramSearchItem[]>(
     [],
   );
+  const [industryResults, setIndustryResults] = useState<IndustrySearchItem[]>([]);
   const [activeResultIndex, setActiveResultIndex] = useState(-1);
   const [searchStatus, setSearchStatus] = useState<SearchStatus>({ type: "idle", message: "" });
   const [isCompanySearchChecking, setIsCompanySearchChecking] = useState(false);
   const searchAbortControllerRef = useRef<AbortController | null>(null);
   const selectedSupportProgramLabelRef = useRef("");
+  const selectedIndustryLabelRef = useRef("");
   const canSearchSupportPrograms = pathname === "/business-list";
-  const shouldShowSearch = pathname !== "/btp-solution";
-  const searchPlaceholder = pathname === "/" ? "기업 일련번호" : "사업명";
+  const canSearchIndustries = pathname === "/btp-solution";
+  const searchPlaceholder =
+    pathname === "/" ? "기업 일련번호" : canSearchIndustries ? "산업명" : "사업명";
   const shouldShowSupportProgramResults =
     canSearchSupportPrograms &&
     searchKeyword.trim().length > 0 &&
     (supportProgramResults.length > 0 || searchStatus.type === "error");
+  const shouldShowIndustryResults =
+    canSearchIndustries &&
+    searchKeyword.trim().length > 0 &&
+    (industryResults.length > 0 || searchStatus.type === "error");
+  const shouldShowSearchResults = shouldShowSupportProgramResults || shouldShowIndustryResults;
+  const visibleResultCount = canSearchIndustries
+    ? industryResults.length
+    : supportProgramResults.length;
 
   useEffect(() => {
     const companyId = new URLSearchParams(search).get("companyId");
 
     setSearchKeyword(pathname === "/" && companyId ? companyId : "");
     setSupportProgramResults([]);
+    setIndustryResults([]);
     setActiveResultIndex(-1);
     setSearchStatus({ type: "idle", message: "" });
     searchAbortControllerRef.current?.abort();
@@ -81,6 +112,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
     if (!canSearchSupportPrograms || trimmedKeyword.length === 0) {
       searchAbortControllerRef.current?.abort();
       setSupportProgramResults([]);
+      setIndustryResults([]);
       setActiveResultIndex(-1);
       setSearchStatus({ type: "idle", message: "" });
       return undefined;
@@ -134,8 +166,68 @@ const AppLayout = ({ children }: AppLayoutProps) => {
     };
   }, [canSearchSupportPrograms, searchKeyword]);
 
+  useEffect(() => {
+    const trimmedKeyword = searchKeyword.trim();
+
+    if (!canSearchIndustries || trimmedKeyword.length === 0) {
+      searchAbortControllerRef.current?.abort();
+      setIndustryResults([]);
+      setActiveResultIndex(-1);
+      setSearchStatus({ type: "idle", message: "" });
+      return undefined;
+    }
+
+    if (selectedIndustryLabelRef.current === trimmedKeyword) {
+      return undefined;
+    }
+
+    const searchUrl = apiUrl("/btp-solution/industries/search");
+    const abortController = new AbortController();
+
+    searchAbortControllerRef.current?.abort();
+    searchAbortControllerRef.current = abortController;
+    setSearchStatus({ type: "loading", message: "" });
+
+    fetch(`${searchUrl}?${new URLSearchParams({ keyword: trimmedKeyword })}`, {
+      signal: abortController.signal,
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`산업 검색 요청에 실패했습니다. (${response.status})`);
+        }
+
+        return response.json() as Promise<ApiDataResponse<IndustrySearchResponse>>;
+      })
+      .then((response) => {
+        setIndustryResults(response.data.items);
+        setActiveResultIndex(response.data.items.length > 0 ? 0 : -1);
+        setSearchStatus({
+          type: response.data.items.length > 0 ? "success" : "error",
+          message: response.data.items.length > 0 ? "" : "검색 결과가 없습니다.",
+        });
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setIndustryResults([]);
+        setActiveResultIndex(-1);
+        setSearchStatus({
+          type: "error",
+          message: error instanceof Error ? error.message : "산업 검색 요청에 실패했습니다.",
+        });
+        console.error("Failed to search BTP solution industries.", error);
+      });
+
+    return () => {
+      searchAbortControllerRef.current?.abort();
+    };
+  }, [canSearchIndustries, searchKeyword]);
+
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
     selectedSupportProgramLabelRef.current = "";
+    selectedIndustryLabelRef.current = "";
     setSearchKeyword(event.currentTarget.value);
   };
 
@@ -202,6 +294,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
     selectedSupportProgramLabelRef.current = label;
     setSearchKeyword(label);
     setSupportProgramResults([]);
+    setIndustryResults([]);
     setActiveResultIndex(-1);
     setSearchStatus({ type: "idle", message: "" });
     searchAbortControllerRef.current?.abort();
@@ -231,6 +324,26 @@ const AppLayout = ({ children }: AppLayoutProps) => {
     }
   };
 
+  const handleIndustrySelect = (item: IndustrySearchItem) => {
+    const label = item.sectionName || item.displayName || item.sectionCode;
+
+    selectedIndustryLabelRef.current = label;
+    setSearchKeyword(label);
+    setIndustryResults([]);
+    setSupportProgramResults([]);
+    setActiveResultIndex(-1);
+    setSearchStatus({ type: "idle", message: "" });
+    searchAbortControllerRef.current?.abort();
+
+    window.dispatchEvent(
+      new CustomEvent("btp-solution-industry-selected", {
+        detail: {
+          industry: item,
+        },
+      }),
+    );
+  };
+
   const handleSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (pathname === "/" && event.key === "Enter") {
       event.preventDefault();
@@ -238,14 +351,14 @@ const AppLayout = ({ children }: AppLayoutProps) => {
       return;
     }
 
-    if (!shouldShowSupportProgramResults || supportProgramResults.length === 0) {
+    if (!shouldShowSearchResults || visibleResultCount === 0) {
       return;
     }
 
     if (event.key === "ArrowDown") {
       event.preventDefault();
       setActiveResultIndex((currentIndex) =>
-        currentIndex >= supportProgramResults.length - 1 ? 0 : currentIndex + 1,
+        currentIndex >= visibleResultCount - 1 ? 0 : currentIndex + 1,
       );
       return;
     }
@@ -253,13 +366,18 @@ const AppLayout = ({ children }: AppLayoutProps) => {
     if (event.key === "ArrowUp") {
       event.preventDefault();
       setActiveResultIndex((currentIndex) =>
-        currentIndex <= 0 ? supportProgramResults.length - 1 : currentIndex - 1,
+        currentIndex <= 0 ? visibleResultCount - 1 : currentIndex - 1,
       );
       return;
     }
 
     if (event.key === "Enter" && activeResultIndex >= 0) {
       event.preventDefault();
+      if (canSearchIndustries) {
+        handleIndustrySelect(industryResults[activeResultIndex]);
+        return;
+      }
+
       void handleSupportProgramSelect(supportProgramResults[activeResultIndex]);
     }
   };
@@ -274,41 +392,39 @@ const AppLayout = ({ children }: AppLayoutProps) => {
             <img alt="Data On" className="h-8 w-[108px] sm:h-9 sm:w-[123px]" src="/logo.svg" />
           </NavLink>
 
-          {shouldShowSearch && (
-            <div className="relative min-w-0 flex-1 lg:w-[464px] lg:flex-none">
-              <label className="flex h-11 items-center gap-3 rounded-[35px] border-2 border-[#51a2ff] bg-white px-4 sm:h-12 sm:gap-5 sm:px-5">
-                <svg
-                  aria-hidden="true"
-                  className="h-5 w-5 shrink-0 sm:h-6 sm:w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="m22.3 23.7-6-6a10 10 0 1 1 1.4-1.4l6 6a1 1 0 0 1-1.4 1.4ZM10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"
-                    fill="#51A2FF"
-                  />
-                </svg>
-                <input
-                  className="h-full min-w-0 flex-1 bg-transparent text-base font-medium text-[#333] outline-none placeholder:text-[#999] sm:text-lg"
-                  disabled={pathname === "/" && isCompanySearchChecking}
-                  onChange={handleSearchChange}
-                  onKeyDown={handleSearchKeyDown}
-                  placeholder={searchPlaceholder}
-                  type="search"
-                  value={searchKeyword}
+          <div className="relative min-w-0 flex-1 lg:w-[464px] lg:flex-none">
+            <label className="flex h-11 items-center gap-3 rounded-[35px] border-2 border-[#51a2ff] bg-white px-4 sm:h-12 sm:gap-5 sm:px-5">
+              <svg
+                aria-hidden="true"
+                className="h-5 w-5 shrink-0 sm:h-6 sm:w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="m22.3 23.7-6-6a10 10 0 1 1 1.4-1.4l6 6a1 1 0 0 1-1.4 1.4ZM10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"
+                  fill="#51A2FF"
                 />
-              </label>
-              {(searchStatus.type === "error" || searchStatus.type === "loading") &&
-                searchStatus.message &&
-                !shouldShowSupportProgramResults && (
-                  <p
-                    className={`absolute left-5 top-[52px] text-xs font-medium ${searchStatusClassName}`}
-                  >
-                    {searchStatus.message}
-                  </p>
-                )}
-            </div>
-          )}
+              </svg>
+              <input
+                className="h-full min-w-0 flex-1 bg-transparent text-base font-medium text-[#333] outline-none placeholder:text-[#999] sm:text-lg"
+                disabled={pathname === "/" && isCompanySearchChecking}
+                onChange={handleSearchChange}
+                onKeyDown={handleSearchKeyDown}
+                placeholder={searchPlaceholder}
+                type="search"
+                value={searchKeyword}
+              />
+            </label>
+            {(searchStatus.type === "error" || searchStatus.type === "loading") &&
+              searchStatus.message &&
+              !shouldShowSearchResults && (
+                <p
+                  className={`absolute left-5 top-[52px] text-xs font-medium ${searchStatusClassName}`}
+                >
+                  {searchStatus.message}
+                </p>
+              )}
+          </div>
 
           <nav className="hidden shrink-0 items-center gap-6 text-lg text-[#333] md:flex">
             {navItems.map((item) => (
@@ -326,44 +442,69 @@ const AppLayout = ({ children }: AppLayoutProps) => {
           </nav>
         </div>
       </header>
-      {shouldShowSupportProgramResults && (
+      {shouldShowSearchResults && (
         <div
-          className="fixed inset-x-0 bottom-0 top-[70px] z-30 bg-black/30"
+          className="fixed inset-x-0 top-[70px] z-30"
           data-dashboard-print-exclude
           onMouseDown={() => {
             setSupportProgramResults([]);
+            setIndustryResults([]);
             setActiveResultIndex(-1);
             setSearchStatus({ type: "idle", message: "" });
           }}
         >
           <div
-            className="mx-auto mt-2.5 w-[min(708px,calc(100vw-48px))] rounded-[10px] bg-white px-[22px] py-[30px] shadow-[0_18px_44px_rgba(15,23,42,0.16)]"
+            className="mx-auto mt-2.5 max-h-[420px] w-[min(640px,calc(100vw-48px))] overflow-y-auto rounded-[8px] border border-[#e5e7eb] bg-white p-2 shadow-[0_14px_32px_rgba(15,23,42,0.12)]"
             onMouseDown={(event) => event.stopPropagation()}
           >
-            {searchStatus.type === "error" && supportProgramResults.length === 0 && (
+            {searchStatus.type === "error" && visibleResultCount === 0 && (
               <p className="px-3 py-2 text-sm font-medium text-red-600">
                 {searchStatus.message}
               </p>
             )}
             <div className="space-y-1">
-              {supportProgramResults.map((item, index) => (
-                <button
-                  className={`flex h-10 w-full items-center justify-between gap-5 rounded-[5px] px-4 text-left text-[16px] font-medium text-[#333] transition hover:bg-[#eef6ff] ${
-                    activeResultIndex === index ? "bg-[#eef6ff]" : "bg-white"
-                  }`}
-                  key={`${item.code}-${item.programYear}-${index}`}
-                  onClick={() => void handleSupportProgramSelect(item)}
-                  onMouseEnter={() => setActiveResultIndex(index)}
-                  type="button"
-                >
-                  <span className="min-w-0 truncate">
-                    {item.programYear} {item.budgetProgramName}
-                  </span>
-                  <span className="inline-flex h-[30px] min-w-[85px] shrink-0 items-center justify-center rounded-full bg-[#50a2ff] px-4 text-[16px] font-semibold text-white">
-                    {item.code}
-                  </span>
-                </button>
-              ))}
+              {canSearchIndustries
+                ? industryResults.map((item, index) => (
+                    <button
+                      className={`flex w-full items-center justify-between gap-4 rounded-[6px] px-3 py-2.5 text-left transition ${
+                        activeResultIndex === index ? "bg-[#f1f7ff]" : "bg-white hover:bg-[#f8fafc]"
+                      }`}
+                      key={`${item.ksicCode}-${item.sectionCode}-${index}`}
+                      onClick={() => handleIndustrySelect(item)}
+                      onMouseEnter={() => setActiveResultIndex(index)}
+                      type="button"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-[15px] font-semibold text-[#222]">
+                          {item.sectionName}
+                        </span>
+                        <span className="mt-0.5 block truncate text-xs font-medium text-[#777]">
+                          {item.displayName}
+                        </span>
+                      </span>
+                      <span className="shrink-0 text-sm font-semibold text-[#2b7fff]">
+                        {item.sectionCode}
+                      </span>
+                    </button>
+                  ))
+                : supportProgramResults.map((item, index) => (
+                    <button
+                      className={`flex w-full items-center justify-between gap-4 rounded-[6px] px-3 py-2.5 text-left transition ${
+                        activeResultIndex === index ? "bg-[#f1f7ff]" : "bg-white hover:bg-[#f8fafc]"
+                      }`}
+                      key={`${item.code}-${item.programYear}-${index}`}
+                      onClick={() => void handleSupportProgramSelect(item)}
+                      onMouseEnter={() => setActiveResultIndex(index)}
+                      type="button"
+                    >
+                      <span className="min-w-0 truncate text-[15px] font-semibold text-[#222]">
+                        {item.programYear} {item.budgetProgramName}
+                      </span>
+                      <span className="shrink-0 text-sm font-semibold text-[#2b7fff]">
+                        {item.code}
+                      </span>
+                    </button>
+                  ))}
             </div>
           </div>
         </div>
