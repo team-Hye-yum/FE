@@ -557,8 +557,6 @@ const BtpSolution = () => {
     <main className="mx-auto w-full max-w-[1600px] px-2 py-6 sm:px-3 lg:px-4">
       {selectedIndustry && (
         <section className="space-y-6">
-          {isSampleIndustry && <SampleNotice />}
-
           {status === "error" && (
             <p className="rounded-[6px] bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
               {errorMessage}
@@ -571,7 +569,7 @@ const BtpSolution = () => {
             </div>
           )}
 
-          {overview && <IndustryStatus overview={overview} />}
+          {overview && <IndustryStatus isSample={isSampleIndustry} overview={overview} />}
 
           {(infraStatus !== "idle" || infraHubs.length > 0) && (
             <InfraHubExplorer
@@ -599,7 +597,6 @@ const BtpSolution = () => {
               }}
               response={connectionEvidence}
               sectionName={overview?.divisionName ?? selectedIndustry.divisionName}
-              showSampleBadge={isSampleIndustry}
               status={connectionEvidenceStatus}
             />
           )}
@@ -617,14 +614,10 @@ type InfraHubExplorerProps = {
   status: "idle" | "loading" | "error";
 };
 
-const SampleNotice = () => (
-  <div
-    className="flex flex-wrap items-center gap-3 rounded-[8px] bg-white px-4 py-3 text-sm font-bold shadow-sm"
-    style={{ border: "1px solid #dce4ef", color: "#334766" }}
-  >
-    <span className="rounded-[6px] bg-[#0b4d99] px-3 py-1 text-xs font-black text-white">SAMPLE</span>
-    <span>산업명을 입력하지 않아 기타 기계 및 장비 제조업 기준 샘플 데이터를 표시하고 있습니다.</span>
-  </div>
+const SampleBadge = () => (
+  <span className="inline-flex h-8 min-w-[92px] items-center justify-center rounded-full bg-[#d10000] px-5 text-base font-bold text-white">
+    SAMPLE
+  </span>
 );
 
 const InfraHubExplorer = ({
@@ -973,7 +966,6 @@ type ConnectionEvidenceCompaniesProps = {
   onSizeChange: (size: number) => void;
   response: ConnectionEvidenceResponse | null;
   sectionName: string;
-  showSampleBadge: boolean;
   status: "idle" | "loading" | "error";
 };
 
@@ -986,7 +978,6 @@ const ConnectionEvidenceCompanies = ({
   onSizeChange,
   response,
   sectionName,
-  showSampleBadge,
   status,
 }: ConnectionEvidenceCompaniesProps) => {
   const page = response?.page ?? 0;
@@ -1037,11 +1028,6 @@ const ConnectionEvidenceCompanies = ({
                 탐색한 연결은 데이터 기반 근거를 가지며, 기업별 연결 장비와 거점을 함께 제공합니다.
               </p>
             </div>
-            {showSampleBadge && (
-              <span className="mt-1 rounded-[6px] bg-[#0b4d99] px-3 py-1 text-xs font-black text-white">
-                SAMPLE
-              </span>
-            )}
           </div>
 
           <form
@@ -1255,10 +1241,11 @@ const paginationPages = (currentPage: number, totalPages: number) => {
 };
 
 type IndustryStatusProps = {
+  isSample: boolean;
   overview: IndustryOverview;
 };
 
-const IndustryStatus = ({ overview }: IndustryStatusProps) => {
+const IndustryStatus = ({ isSample, overview }: IndustryStatusProps) => {
   const busanRatio = overview.businessTypeRatio.busan;
   const btpRatio = overview.businessTypeRatio.btp;
 
@@ -1350,7 +1337,8 @@ const IndustryStatus = ({ overview }: IndustryStatusProps) => {
         className="status-card overflow-hidden rounded-lg bg-white px-4 py-4 shadow-sm"
         style={{ border: "1px solid #dce4ef" }}
       >
-        <div className="mb-5 flex items-center gap-3" style={{ color: "#123b7a" }}>
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3" style={{ color: "#123b7a" }}>
           <span className="section-title font-extrabold leading-none" style={{ fontSize: 26 }}>
             1.
           </span>
@@ -1363,6 +1351,8 @@ const IndustryStatus = ({ overview }: IndustryStatusProps) => {
           >
             i
           </span>
+          </div>
+          {isSample && <SampleBadge />}
         </div>
 
         <h3 className="font-extrabold" style={{ color: "#123b7a", fontSize: 17 }}>
