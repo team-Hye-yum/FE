@@ -480,8 +480,8 @@ const escapeHtml = (value: string) =>
     .replace(/'/g, "&#039;");
 
 const hubMarkerImageUrl = (hub: InfraHub, selected: boolean) => {
-  const fill = selected ? "#f59e0b" : hub.equipmentCount >= 30 ? "#064595" : hub.equipmentCount >= 10 ? "#167ad8" : "#8dbbea";
-  const textColor = hub.equipmentCount >= 10 || selected ? "#ffffff" : "#103560";
+  const fill = selected ? "#f59e0b" : hub.equipmentCount >= 40 ? "#064595" : hub.equipmentCount >= 10 ? "#167ad8" : "#f59e0b";
+  const textColor = "#ffffff";
   const label = formatCount(hub.equipmentCount);
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="50" height="58" viewBox="0 0 50 58">
@@ -918,6 +918,7 @@ const InfraHubExplorer = ({
             display: grid;
             grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
             gap: 18px;
+            align-items: stretch;
           }
 
           .btp-infra-explorer .hub-map {
@@ -977,10 +978,10 @@ const InfraHubExplorer = ({
       </style>
 
       <div
-        className="overflow-hidden rounded-lg bg-white px-4 py-4 shadow-sm"
+        className="overflow-hidden rounded-lg bg-white px-6 py-6 shadow-sm"
         style={{ border: "1px solid #dce4ef" }}
       >
-        <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-6">
           <div className="flex items-center gap-3" style={{ color: "#123b7a" }}>
             <span className="font-extrabold leading-none" style={{ fontSize: 26 }}>
               2.
@@ -995,12 +996,17 @@ const InfraHubExplorer = ({
             </div>
           </div>
 
-          <div className="text-right">
-            <p className="text-xs font-extrabold text-[#64748b]">매핑 장비 수</p>
-            <p className="text-3xl font-black text-[#123b7a]">
-              {formatCount(totalEquipmentCount)}
-              <span className="ml-1 text-sm font-bold text-[#24528d]">건</span>
-            </p>
+          <div className="grid min-w-[360px] grid-cols-2 divide-x divide-[#e2eaf4] text-center max-sm:min-w-0 max-sm:w-full">
+            <InfraSummaryMetric
+              description="선택 산업에서 연결 근거가 확인된 장비 수"
+              label="연결 장비 수"
+              value={totalEquipmentCount}
+            />
+            <InfraSummaryMetric
+              description="현재 선택한 거점의 확인 장비 수"
+              label="선택 거점 장비"
+              value={selectedHub?.equipmentCount ?? 0}
+            />
           </div>
         </div>
 
@@ -1020,6 +1026,7 @@ const InfraHubExplorer = ({
           <div className="infra-layout">
             <div>
               <KakaoHubMap hubs={hubs} onSelectHub={onSelectHub} selectedHubId={selectedHub?.hubId ?? null} />
+              <MapLegend />
             </div>
 
             {selectedHub && <InfraHubDetail hub={selectedHub} />}
@@ -1029,6 +1036,69 @@ const InfraHubExplorer = ({
     </div>
   );
 };
+
+type InfraSummaryMetricProps = {
+  description: string;
+  label: string;
+  value: number;
+};
+
+const InfoDot = () => (
+  <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#dbe8f8] text-[11px] font-black text-[#24528d]">
+    i
+  </span>
+);
+
+const InfraSummaryMetric = ({ description, label, value }: InfraSummaryMetricProps) => (
+  <div className="px-6 max-sm:px-3">
+    <p className="inline-flex items-center gap-1 text-sm font-extrabold text-[#334766]">
+      {label}
+      <InfoDot />
+    </p>
+    <p className="mt-2 text-4xl font-black leading-none text-[#0b4d99]">
+      {formatCount(value)}
+      <span className="ml-1 text-xl font-black text-[#123b7a]">개</span>
+    </p>
+    <p className="mt-2 break-keep text-xs font-bold leading-5 text-[#64748b]">{description}</p>
+  </div>
+);
+
+const MapLegend = () => (
+  <div className="mt-5 flex flex-wrap justify-center gap-10 text-sm font-bold text-[#44566e]">
+    <span className="inline-flex items-center gap-2">
+      <span className="h-3.5 w-3.5 rounded-full bg-[#064595]" />
+      40개 이상
+    </span>
+    <span className="inline-flex items-center gap-2">
+      <span className="h-3.5 w-3.5 rounded-full bg-[#167ad8]" />
+      10 ~ 39개
+    </span>
+    <span className="inline-flex items-center gap-2">
+      <span className="h-3.5 w-3.5 rounded-full bg-[#f59e0b]" />
+      1 ~ 9개
+    </span>
+  </div>
+);
+
+const LocationIcon = () => (
+  <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24">
+    <path
+      d="M12 21s7-5.6 7-12A7 7 0 1 0 5 9c0 6.4 7 12 7 12Z"
+      fill="currentColor"
+      opacity="0.95"
+    />
+    <circle cx="12" cy="9" fill="white" r="2.4" />
+  </svg>
+);
+
+const PhoneIcon = () => (
+  <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 24 24">
+    <path
+      d="M7.5 3.8c.5-.2 1.1 0 1.4.5l1.7 3c.3.5.2 1.1-.2 1.5l-1.2 1.1c.9 1.8 2.3 3.2 4.1 4.1l1.1-1.2c.4-.4 1-.5 1.5-.2l3 1.7c.5.3.7.9.5 1.4l-1.2 3.2c-.2.5-.6.8-1.1.8C10 19.7 4.3 14 4.3 6.9c0-.5.3-1 .8-1.1l2.4-2Z"
+      fill="currentColor"
+    />
+  </svg>
+);
 
 type KakaoHubMapProps = {
   hubs: InfraHub[];
@@ -1073,7 +1143,7 @@ const KakaoHubMap = ({ hubs, onSelectHub, selectedHubId }: KakaoHubMapProps) => 
               offset: new maps.Point(25, 55),
             }),
             position,
-            title: `${hub.hubName} ${formatCount(hub.equipmentCount)}건`,
+            title: `${hub.hubName} ${formatCount(hub.equipmentCount)}개`,
           });
           maps.event.addListener(marker, "click", () => onSelectHub(hub.hubId));
 
@@ -1153,89 +1223,122 @@ type InfraHubDetailProps = {
   hub: InfraHub;
 };
 
-const InfraHubDetail = ({ hub }: InfraHubDetailProps) => (
-  <aside className="rounded-[8px] border border-[#dce4ef] bg-[#fbfdff] p-5">
-    <div className="flex items-start justify-between gap-4">
-      <div>
-        <p className="mb-2 inline-flex rounded-[6px] border border-[#d9e4f1] bg-white px-2 py-1 text-xs font-extrabold text-[#517094]">
-          {hub.hubKind}
-        </p>
-        <h3 className="text-2xl font-black leading-tight text-[#123b7a]">{hub.hubName}</h3>
-        {hub.centerName && <p className="mt-1 text-sm font-bold text-[#64748b]">{hub.centerName}</p>}
+const InfraHubDetail = ({ hub }: InfraHubDetailProps) => {
+  const [showAllCategories, setShowAllCategories] = useState(false);
+  const categoryItems = showAllCategories ? hub.topEquipmentCategories : hub.topEquipmentCategories.slice(0, 3);
+
+  return (
+    <aside className="rounded-[8px] border border-[#dce4ef] bg-[#fbfdff] p-6">
+    <div>
+      <p className="mb-3 inline-flex rounded-[6px] border border-[#d9e4f1] bg-white px-2.5 py-1 text-xs font-extrabold text-[#517094]">
+        {hub.hubKind}
+      </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <h3 className="text-3xl font-black leading-tight text-[#123b7a]">{hub.hubName}</h3>
+        <span className="rounded-[6px] border border-[#c9ddf4] bg-[#eef6ff] px-3 py-1.5 text-base font-black text-[#0b4d99]">
+          확인 장비 {formatCount(hub.equipmentCount)}개
+        </span>
       </div>
-      <div className="text-right">
-        <p className="text-xs font-extrabold text-[#64748b]">보유 장비</p>
-        <p className="text-3xl font-black text-[#123b7a]">
-          {formatCount(hub.equipmentCount)}
-          <span className="ml-1 text-sm font-bold text-[#24528d]">건</span>
-        </p>
-      </div>
+      {hub.centerName && <p className="mt-2 text-lg font-bold text-[#64748b]">{hub.centerName}</p>}
     </div>
 
-    {hub.summary && <p className="mt-4 text-sm font-semibold leading-6 text-[#43546d]">{hub.summary}</p>}
+    {hub.summary && <p className="mt-4 text-base font-semibold leading-7 text-[#43546d]">{hub.summary}</p>}
 
-    <dl className="mt-5 space-y-3 text-sm">
-      {hub.address && (
-        <div>
-          <dt className="font-extrabold text-[#123b7a]">주소</dt>
-          <dd className="mt-1 font-semibold text-[#44566e]">{hub.address}</dd>
-        </div>
-      )}
-      {hub.tel && (
-        <div>
-          <dt className="font-extrabold text-[#123b7a]">문의</dt>
-          <dd className="mt-1 font-semibold text-[#44566e]">{hub.tel}</dd>
-        </div>
-      )}
-    </dl>
+    {(hub.address || hub.tel) && (
+      <dl className="mt-6 grid grid-cols-2 overflow-hidden rounded-[8px] border border-[#dce4ef] bg-white max-md:grid-cols-1">
+        {hub.address && (
+          <div className="flex items-center gap-4 border-r border-[#e2eaf4] px-5 py-4 max-md:border-r-0 max-md:border-b">
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#eef6ff] text-[#0b4d99]">
+              <LocationIcon />
+            </span>
+            <div className="min-w-0">
+              <dt className="text-xs font-extrabold text-[#64748b]">주소</dt>
+              <dd className="mt-1 break-keep text-base font-bold leading-6 text-[#334766]">{hub.address}</dd>
+            </div>
+          </div>
+        )}
+        {hub.tel && (
+          <div className="flex items-center gap-4 px-5 py-4">
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#eef6ff] text-[#0b4d99]">
+              <PhoneIcon />
+            </span>
+            <div className="min-w-0">
+              <dt className="text-xs font-extrabold text-[#64748b]">전화번호</dt>
+              <dd className="mt-1 break-keep text-base font-bold leading-6 text-[#334766]">{hub.tel}</dd>
+            </div>
+          </div>
+        )}
+      </dl>
+    )}
 
     {hub.topEquipmentCategories.length > 0 && (
-      <div className="mt-6 border-t border-[#e2eaf4] pt-5">
-        <h4 className="font-extrabold text-[#123b7a]">주요 연결 장비 분류</h4>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {hub.topEquipmentCategories.map((category) => (
-            <span
-              className="rounded-[6px] border border-[#d9e4f1] bg-white px-3 py-2 text-sm font-extrabold text-[#284563]"
+      <div className="mt-7 border-t border-[#e2eaf4] pt-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h4 className="inline-flex items-center gap-2 text-xl font-black text-[#123b7a]">
+            주요 연결 장비 분류
+            <span className="text-sm font-bold text-[#64748b]">(연결 장비 수 기준)</span>
+            <InfoDot />
+          </h4>
+          {hub.topEquipmentCategories.length > 3 && (
+            <button
+              className="rounded-[8px] border border-[#d7e2f0] bg-[#f4f8fd] px-4 py-2 text-sm font-extrabold text-[#123b7a]"
+              onClick={() => setShowAllCategories((current) => !current)}
+              type="button"
+            >
+              {showAllCategories ? "접기" : "전체보기 >"}
+            </button>
+          )}
+        </div>
+        <div className="mt-4 grid grid-cols-3 gap-3 max-md:grid-cols-1">
+          {categoryItems.map((category) => (
+            <div
+              className="flex items-center justify-between rounded-[8px] border border-[#d9e4f1] bg-white px-4 py-3 text-base font-extrabold text-[#284563]"
               key={`${hub.hubId}-${category.name}`}
             >
-              {category.name} ({formatCount(category.count)}건)
-            </span>
+              <span>{category.name}</span>
+              <span className="text-xl font-black text-[#0b4d99]">{formatCount(category.count)}개</span>
+            </div>
           ))}
         </div>
       </div>
     )}
 
     {hub.sampleEquipments.length > 0 && (
-      <div className="mt-6 border-t border-[#e2eaf4] pt-5">
-        <h4 className="font-extrabold text-[#123b7a]">관련 장비 예시</h4>
-        <ul className="mt-3 divide-y divide-[#e2eaf4] text-sm font-semibold text-[#44566e]">
-          {hub.sampleEquipments.map((equipment) => (
-            <li className="flex items-center justify-between gap-4 py-2" key={equipment.equipmentId}>
-              <span>{equipment.equipmentName}</span>
-              {equipment.categoryLarge && (
-                <span className="shrink-0 text-xs font-bold text-[#6b7f99]">{equipment.categoryLarge}</span>
-              )}
-            </li>
-          ))}
-        </ul>
+      <div className="mt-7">
+        <h4 className="inline-flex items-center gap-2 text-xl font-black text-[#123b7a]">
+          연결 장비 예시
+          <InfoDot />
+        </h4>
+        <div className="mt-4 overflow-hidden rounded-[8px] border border-[#dce4ef] bg-white">
+          <table className="w-full table-fixed border-collapse text-left text-sm">
+            <thead className="bg-[#f7faff] text-[#64748b]">
+              <tr>
+                <th className="w-[54%] px-4 py-3 font-extrabold">장비명</th>
+                <th className="px-4 py-3 text-right font-extrabold">주요 활용 기능</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#e2eaf4] text-[#334766]">
+              {hub.sampleEquipments.slice(0, 3).map((equipment) => (
+                <tr key={equipment.equipmentId}>
+                  <td className="px-4 py-3 font-bold">
+                    <span>{equipment.equipmentName}</span>
+                    <span className="ml-2 rounded-[5px] bg-[#eef6ff] px-2 py-1 text-xs font-black text-[#0b4d99]">
+                      확인
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right font-semibold text-[#44566e]">
+                    {equipment.categoryLarge || "-"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     )}
-
-    {hub.facilities.length > 0 && (
-      <div className="mt-6 border-t border-[#e2eaf4] pt-5">
-        <h4 className="font-extrabold text-[#123b7a]">거점 시설</h4>
-        <ul className="mt-3 space-y-2 text-sm font-semibold text-[#44566e]">
-          {hub.facilities.slice(0, 4).map((facility) => (
-            <li className="rounded-[6px] bg-white px-3 py-2" key={facility.facilityId}>
-              {facility.buildingName}
-              {facility.purpose && <span className="ml-2 text-xs font-bold text-[#6b7f99]">{facility.purpose}</span>}
-            </li>
-          ))}
-        </ul>
-      </div>
-    )}
-  </aside>
-);
+    </aside>
+  );
+};
 
 type ConnectionEvidenceCompaniesProps = {
   errorMessage: string;
@@ -1338,14 +1441,14 @@ const ConnectionEvidenceCompanies = ({
           <span>현재 탐색 경로</span>
           <span className="rounded-[6px] bg-[#f4f8fd] px-3 py-2 text-[#123b7a]">{sectionName}</span>
           <span className="text-[#9aa9ba]">&gt;</span>
-          <span className="rounded-[6px] bg-[#f4f8fd] px-3 py-2 text-[#123b7a]">관련 기업</span>
+          <span className="rounded-[6px] bg-[#f4f8fd] px-3 py-2 text-[#123b7a]">확인 기업</span>
         </div>
 
         {response && (
           <div className="summary-strip mb-4 grid grid-cols-3 overflow-hidden rounded-[8px] border border-[#dce4ef]">
-            <EvidenceSummaryMetric label="관련 기업" value={response.summary.companyCount} />
-            <EvidenceSummaryMetric label="관련 장비" value={response.summary.equipmentCount} />
-            <EvidenceSummaryMetric label="관련 거점" value={response.summary.hubCount} />
+            <EvidenceSummaryMetric label="확인 기업" unit="건" value={response.summary.companyCount} />
+            <EvidenceSummaryMetric label="확인 장비" unit="개" value={response.summary.equipmentCount} />
+            <EvidenceSummaryMetric label="확인 거점" unit="개" value={response.summary.hubCount} />
           </div>
         )}
 
@@ -1446,15 +1549,16 @@ const ConnectionEvidenceCompanies = ({
 
 type EvidenceSummaryMetricProps = {
   label: string;
+  unit: string;
   value: number;
 };
 
-const EvidenceSummaryMetric = ({ label, value }: EvidenceSummaryMetricProps) => (
+const EvidenceSummaryMetric = ({ label, unit, value }: EvidenceSummaryMetricProps) => (
   <div className="border-r border-[#dce4ef] px-5 py-4 last:border-r-0">
     <p className="text-sm font-extrabold text-[#64748b]">{label}</p>
     <p className="mt-1 text-2xl font-black text-[#123b7a]">
       {formatCount(value)}
-      <span className="ml-1 text-sm font-bold text-[#24528d]">건</span>
+      <span className="ml-1 text-sm font-bold text-[#24528d]">{unit}</span>
     </p>
   </div>
 );
