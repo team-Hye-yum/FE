@@ -107,6 +107,37 @@ type InfraHubResponse = {
   hubs: InfraHub[];
 };
 
+type ConnectionEvidenceEquipment = {
+  equipmentId: number;
+  equipmentName: string;
+  categoryLarge: string | null;
+  hubId: number;
+  hubName: string;
+};
+
+type ConnectionEvidenceCompany = {
+  companyId: number;
+  companyName: string;
+  mainProducts: string[];
+  connectedFunctions: string[];
+  connectedEquipments: ConnectionEvidenceEquipment[];
+  evidenceText: string | null;
+};
+
+type ConnectionEvidenceResponse = {
+  sectionCode: string;
+  summary: {
+    companyCount: number;
+    equipmentCount: number;
+    hubCount: number;
+  };
+  items: ConnectionEvidenceCompany[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+};
+
 type IndustrySelectedEvent = CustomEvent<{
   industry: IndustrySearchItem;
 }>;
@@ -301,6 +332,13 @@ const BtpSolution = () => {
   const [infraStatus, setInfraStatus] = useState<"idle" | "loading" | "error">("idle");
   const [infraErrorMessage, setInfraErrorMessage] = useState("");
   const [selectedHubId, setSelectedHubId] = useState<number | null>(null);
+  const [connectionEvidence, setConnectionEvidence] = useState<ConnectionEvidenceResponse | null>(null);
+  const [connectionEvidenceStatus, setConnectionEvidenceStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [connectionEvidenceErrorMessage, setConnectionEvidenceErrorMessage] = useState("");
+  const [connectionEvidenceSearchText, setConnectionEvidenceSearchText] = useState("");
+  const [connectionEvidenceKeyword, setConnectionEvidenceKeyword] = useState("");
+  const [connectionEvidencePage, setConnectionEvidencePage] = useState(0);
+  const [connectionEvidenceSize, setConnectionEvidenceSize] = useState(10);
 
   const loadOverview = (sectionCode: string) => {
     setOverview(null);
@@ -337,6 +375,16 @@ const BtpSolution = () => {
       });
   };
 
+  const resetConnectionEvidence = () => {
+    setConnectionEvidence(null);
+    setConnectionEvidenceStatus("idle");
+    setConnectionEvidenceErrorMessage("");
+    setConnectionEvidenceSearchText("");
+    setConnectionEvidenceKeyword("");
+    setConnectionEvidencePage(0);
+    setConnectionEvidenceSize(10);
+  };
+
   const loadInfraHubs = (sectionCode: string) => {
     setInfraHubs([]);
     setInfraStatus("loading");
@@ -369,6 +417,7 @@ const BtpSolution = () => {
       const { industry } = (event as IndustrySelectedEvent).detail;
 
       setSelectedIndustry(industry);
+      resetConnectionEvidence();
       loadOverview(industry.sectionCode);
       loadInfraHubs(industry.sectionCode);
     };
@@ -397,12 +446,58 @@ const BtpSolution = () => {
       sectionName: sectionCode,
       subclassName: "",
     });
+    resetConnectionEvidence();
     loadOverview(sectionCode);
     loadInfraHubs(sectionCode);
   }, [search]);
 
+  useEffect(() => {
+    const sectionCode = selectedIndustry?.sectionCode;
+
+    if (!sectionCode) {
+      return;
+    }
+
+    setConnectionEvidenceStatus("loading");
+    setConnectionEvidenceErrorMessage("");
+
+    const params = new URLSearchParams({
+      keyword: connectionEvidenceKeyword,
+      page: String(connectionEvidencePage),
+      size: String(connectionEvidenceSize),
+    });
+
+    fetch(
+      apiUrl(
+        `/btp-solution/industries/${encodeURIComponent(sectionCode)}/connection-evidence/companies?${params.toString()}`,
+      ),
+    )
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`연결 근거 정보를 불러오지 못했습니다. (${response.status})`);
+        }
+
+        return response.json() as Promise<ApiDataResponse<ConnectionEvidenceResponse>>;
+      })
+      .then((response) => {
+        setConnectionEvidence(response.data);
+        setConnectionEvidenceStatus("idle");
+      })
+      .catch((error: unknown) => {
+        setConnectionEvidenceStatus("error");
+        setConnectionEvidenceErrorMessage(
+          error instanceof Error ? error.message : "연결 근거 정보를 불러오지 못했습니다.",
+        );
+      });
+  }, [
+    selectedIndustry?.sectionCode,
+    connectionEvidenceKeyword,
+    connectionEvidencePage,
+    connectionEvidenceSize,
+  ]);
+
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full max-w-[1600px] px-2 py-6 sm:px-3 lg:px-4">
       {!selectedIndustry && (
         <section className="bg-white px-6 py-7 sm:px-8">
           <div className="flex min-h-[220px] items-center justify-center text-center">
@@ -434,6 +529,26 @@ const BtpSolution = () => {
               onSelectHub={setSelectedHubId}
               selectedHubId={selectedHubId}
               status={infraStatus}
+            />
+          )}
+
+          {(connectionEvidenceStatus !== "idle" || connectionEvidence) && (
+            <ConnectionEvidenceCompanies
+              errorMessage={connectionEvidenceErrorMessage}
+              keyword={connectionEvidenceSearchText}
+              onKeywordChange={setConnectionEvidenceSearchText}
+              onPageChange={setConnectionEvidencePage}
+              onSearch={() => {
+                setConnectionEvidencePage(0);
+                setConnectionEvidenceKeyword(connectionEvidenceSearchText.trim());
+              }}
+              onSizeChange={(size) => {
+                setConnectionEvidencePage(0);
+                setConnectionEvidenceSize(size);
+              }}
+              response={connectionEvidence}
+              sectionName={overview?.sectionName ?? selectedIndustry.sectionName}
+              status={connectionEvidenceStatus}
             />
           )}
         </section>
@@ -765,6 +880,289 @@ const InfraHubDetail = ({ hub }: InfraHubDetailProps) => (
     )}
   </aside>
 );
+
+type ConnectionEvidenceCompaniesProps = {
+  errorMessage: string;
+  keyword: string;
+  onKeywordChange: (keyword: string) => void;
+  onPageChange: (page: number) => void;
+  onSearch: () => void;
+  onSizeChange: (size: number) => void;
+  response: ConnectionEvidenceResponse | null;
+  sectionName: string;
+  status: "idle" | "loading" | "error";
+};
+
+const ConnectionEvidenceCompanies = ({
+  errorMessage,
+  keyword,
+  onKeywordChange,
+  onPageChange,
+  onSearch,
+  onSizeChange,
+  response,
+  sectionName,
+  status,
+}: ConnectionEvidenceCompaniesProps) => {
+  const page = response?.page ?? 0;
+  const size = response?.size ?? 10;
+  const totalPages = response?.totalPages ?? 0;
+  const pages = paginationPages(page, totalPages);
+
+  return (
+    <div className="btp-connection-evidence">
+      <style>
+        {`
+          .btp-connection-evidence .evidence-table {
+            min-width: 1120px;
+          }
+
+          .btp-connection-evidence .evidence-table th,
+          .btp-connection-evidence .evidence-table td {
+            border-right: 1px solid #e2eaf4;
+          }
+
+          .btp-connection-evidence .evidence-table th:last-child,
+          .btp-connection-evidence .evidence-table td:last-child {
+            border-right: 0;
+          }
+
+          @media (max-width: 900px) {
+            .btp-connection-evidence .summary-strip {
+              grid-template-columns: 1fr;
+            }
+          }
+        `}
+      </style>
+
+      <div
+        className="overflow-hidden rounded-lg bg-white px-4 py-4 shadow-sm"
+        style={{ border: "1px solid #dce4ef" }}
+      >
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-start gap-3" style={{ color: "#123b7a" }}>
+            <span className="font-extrabold leading-none" style={{ fontSize: 26 }}>
+              3.
+            </span>
+            <div>
+              <h2 className="font-extrabold leading-none" style={{ fontSize: 26 }}>
+                연결 근거 확인
+              </h2>
+              <p className="mt-2 text-sm font-semibold text-[#64748b]">
+                탐색한 연결은 데이터 기반 근거를 가지며, 기업별 연결 장비와 거점을 함께 제공합니다.
+              </p>
+            </div>
+          </div>
+
+          <form
+            className="flex w-full max-w-md overflow-hidden rounded-[8px] border border-[#d7e2f0] bg-white"
+            onSubmit={(event) => {
+              event.preventDefault();
+              onSearch();
+            }}
+          >
+            <input
+              className="min-w-0 flex-1 px-4 py-3 text-sm font-semibold text-[#284563] outline-none"
+              onChange={(event) => onKeywordChange(event.target.value)}
+              placeholder="기업명 검색"
+              value={keyword}
+            />
+            <button
+              className="border-l border-[#d7e2f0] px-5 text-sm font-extrabold text-[#123b7a]"
+              type="submit"
+            >
+              검색
+            </button>
+          </form>
+        </div>
+
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-sm font-extrabold text-[#517094]">
+          <span>현재 탐색 경로</span>
+          <span className="rounded-[6px] bg-[#f4f8fd] px-3 py-2 text-[#123b7a]">{sectionName}</span>
+          <span className="text-[#9aa9ba]">&gt;</span>
+          <span className="rounded-[6px] bg-[#f4f8fd] px-3 py-2 text-[#123b7a]">관련 기업</span>
+        </div>
+
+        {response && (
+          <div className="summary-strip mb-4 grid grid-cols-3 overflow-hidden rounded-[8px] border border-[#dce4ef]">
+            <EvidenceSummaryMetric label="관련 기업" value={response.summary.companyCount} />
+            <EvidenceSummaryMetric label="관련 장비" value={response.summary.equipmentCount} />
+            <EvidenceSummaryMetric label="관련 거점" value={response.summary.hubCount} />
+          </div>
+        )}
+
+        {status === "loading" && (
+          <div className="rounded-[8px] bg-[#f4f8fd] px-6 py-8 text-center text-sm font-semibold text-[#2b7fff]">
+            연결 근거를 불러오는 중
+          </div>
+        )}
+
+        {status === "error" && (
+          <p className="rounded-[6px] bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+            {errorMessage}
+          </p>
+        )}
+
+        {status === "idle" && response && (
+          <>
+            {response.items.length === 0 ? (
+              <div className="rounded-[8px] bg-[#f4f8fd] px-6 py-8 text-center text-sm font-semibold text-[#64748b]">
+                조건에 맞는 연결 근거가 없습니다.
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-[8px] border border-[#dce4ef]">
+                <table className="evidence-table w-full border-collapse text-left">
+                  <thead>
+                    <tr className="bg-[#f7faff] text-sm font-black text-[#123b7a]">
+                      <th className="w-[160px] px-4 py-4">기업명</th>
+                      <th className="w-[260px] px-4 py-4">주요제품 / 지원품목</th>
+                      <th className="w-[190px] px-4 py-4">연결 기능</th>
+                      <th className="w-[280px] px-4 py-4">연결 장비 (설치 거점)</th>
+                      <th className="px-4 py-4">연결 근거</th>
+                      <th className="w-[100px] px-4 py-4 text-center">상세</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#e2eaf4] text-sm text-[#334766]">
+                    {response.items.map((item) => (
+                      <ConnectionEvidenceRow item={item} key={item.companyId} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+              <div className="text-sm font-bold text-[#64748b]">
+                총 {formatCount(response.totalElements)}건
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  className="h-10 w-10 rounded-[8px] border border-[#d7e2f0] text-lg font-black text-[#123b7a] disabled:opacity-35"
+                  disabled={page <= 0}
+                  onClick={() => onPageChange(page - 1)}
+                  type="button"
+                >
+                  &lt;
+                </button>
+                {pages.map((pageNumber) => (
+                  <button
+                    className={`h-10 min-w-10 rounded-[8px] border px-3 text-sm font-black ${
+                      pageNumber === page
+                        ? "border-[#0b4d99] bg-[#0b4d99] text-white"
+                        : "border-[#d7e2f0] bg-white text-[#123b7a]"
+                    }`}
+                    key={pageNumber}
+                    onClick={() => onPageChange(pageNumber)}
+                    type="button"
+                  >
+                    {pageNumber + 1}
+                  </button>
+                ))}
+                <button
+                  className="h-10 w-10 rounded-[8px] border border-[#d7e2f0] text-lg font-black text-[#123b7a] disabled:opacity-35"
+                  disabled={totalPages === 0 || page >= totalPages - 1}
+                  onClick={() => onPageChange(page + 1)}
+                  type="button"
+                >
+                  &gt;
+                </button>
+              </div>
+
+              <select
+                className="h-10 rounded-[8px] border border-[#d7e2f0] bg-white px-3 text-sm font-extrabold text-[#123b7a]"
+                onChange={(event) => onSizeChange(Number(event.target.value))}
+                value={size}
+              >
+                <option value={10}>10개씩 보기</option>
+                <option value={20}>20개씩 보기</option>
+                <option value={50}>50개씩 보기</option>
+              </select>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+type EvidenceSummaryMetricProps = {
+  label: string;
+  value: number;
+};
+
+const EvidenceSummaryMetric = ({ label, value }: EvidenceSummaryMetricProps) => (
+  <div className="border-r border-[#dce4ef] px-5 py-4 last:border-r-0">
+    <p className="text-sm font-extrabold text-[#64748b]">{label}</p>
+    <p className="mt-1 text-2xl font-black text-[#123b7a]">
+      {formatCount(value)}
+      <span className="ml-1 text-sm font-bold text-[#24528d]">건</span>
+    </p>
+  </div>
+);
+
+type ConnectionEvidenceRowProps = {
+  item: ConnectionEvidenceCompany;
+};
+
+const ConnectionEvidenceRow = ({ item }: ConnectionEvidenceRowProps) => (
+  <tr className="align-top">
+    <td className="px-4 py-5 font-black text-[#123b7a]">{item.companyName}</td>
+    <td className="px-4 py-5">
+      <TextStack items={item.mainProducts} />
+    </td>
+    <td className="px-4 py-5">
+      <TextStack items={item.connectedFunctions} />
+    </td>
+    <td className="px-4 py-5">
+      <ul className="space-y-2">
+        {item.connectedEquipments.map((equipment) => (
+          <li key={`${item.companyId}-${equipment.equipmentId}`}>
+            <span className="font-extrabold text-[#284563]">{equipment.equipmentName}</span>
+            <span className="ml-1 font-bold text-[#64748b]">({equipment.hubName})</span>
+          </li>
+        ))}
+      </ul>
+    </td>
+    <td className="px-4 py-5 font-semibold leading-6 text-[#44566e]">{item.evidenceText ?? "-"}</td>
+    <td className="px-4 py-5 text-center">
+      <a
+        className="inline-flex h-10 items-center justify-center rounded-[8px] border border-[#d7e2f0] px-4 text-sm font-black text-[#123b7a]"
+        href={`/?companyId=${encodeURIComponent(String(item.companyId))}`}
+      >
+        보기
+      </a>
+    </td>
+  </tr>
+);
+
+type TextStackProps = {
+  items: string[];
+};
+
+const TextStack = ({ items }: TextStackProps) => {
+  if (items.length === 0) {
+    return <span className="font-semibold text-[#9aa9ba]">-</span>;
+  }
+
+  return (
+    <ul className="space-y-2 font-semibold leading-6 text-[#44566e]">
+      {items.slice(0, 4).map((item, index) => (
+        <li key={`${item}-${index}`}>{item}</li>
+      ))}
+    </ul>
+  );
+};
+
+const paginationPages = (currentPage: number, totalPages: number) => {
+  if (totalPages <= 0) {
+    return [];
+  }
+
+  const start = Math.max(0, Math.min(currentPage - 2, totalPages - 5));
+  const end = Math.min(totalPages, start + 5);
+  return Array.from({ length: end - start }, (_, index) => start + index);
+};
 
 type IndustryStatusProps = {
   overview: IndustryOverview;
