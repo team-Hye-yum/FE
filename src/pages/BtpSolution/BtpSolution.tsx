@@ -202,6 +202,168 @@ const SAMPLE_INDUSTRY: IndustrySearchItem = {
   subclassName: "",
 };
 
+const SAMPLE_OVERVIEW: IndustryOverview = {
+  divisionCode: SAMPLE_DIVISION_CODE,
+  divisionName: "기타 기계 및 장비 제조업",
+  busanBaseYear: 2024,
+  btpBaseYear: 2024,
+  industryScale: {
+    busan: {
+      establishmentCount: 12684,
+      employeeCount: 74210,
+    },
+    btp: {
+      establishmentCount: 9,
+      employeeCount: 259,
+    },
+  },
+  businessTypeRatio: {
+    busan: {
+      corporationRatio: 0.282,
+      individualRatio: 0.718,
+    },
+    btp: {
+      corporationRatio: 1,
+      individualRatio: 0,
+    },
+  },
+  employeeSizeRatio: [
+    { name: "1~4인", busanRatio: 0.624, btpRatio: 0 },
+    { name: "5~9인", busanRatio: 0.166, btpRatio: 0.25 },
+    { name: "10~49인", busanRatio: 0.178, btpRatio: 0.5 },
+    { name: "50~299인", busanRatio: 0.03, btpRatio: 0.25 },
+    { name: "300인 이상", busanRatio: 0.002, btpRatio: 0 },
+  ],
+};
+
+const SAMPLE_INFRA_HUBS: InfraHub[] = [
+  {
+    hubId: -101,
+    hubName: "지사단지",
+    hubKind: "거점",
+    centerName: "스마트제조 지원센터",
+    summary: "정밀 가공, 환경 시험, 신뢰성 검증 장비를 함께 배치한 샘플 거점입니다.",
+    address: "부산광역시 강서구 과학산단로 샘플",
+    districtName: "강서구",
+    tel: "051-000-0000",
+    latitude: 35.1502,
+    longitude: 128.8308,
+    imageUrl: null,
+    spaceUrl: null,
+    directionsUrl: null,
+    equipmentCount: 43,
+    topEquipmentCategories: [
+      { name: "환경시험", count: 18 },
+      { name: "전자파시험(EMC)", count: 12 },
+      { name: "진동/소음시험", count: 8 },
+    ],
+    sampleEquipments: [
+      { equipmentId: -1001, equipmentName: "온습도 시험기", categoryLarge: "환경시험", locationName: "지사단지" },
+      { equipmentId: -1002, equipmentName: "전자파 내성시험기", categoryLarge: "전자파시험(EMC)", locationName: "지사단지" },
+      { equipmentId: -1003, equipmentName: "진동시험기", categoryLarge: "진동/소음시험", locationName: "지사단지" },
+    ],
+    facilities: [
+      {
+        facilityId: -1001,
+        siteName: "샘플 지사단지",
+        buildingNo: "A",
+        buildingName: "공동활용 시험동",
+        grossFloorArea: "4,200㎡",
+        floors: "지상 3층",
+        purpose: "시험·검증",
+      },
+    ],
+  },
+  {
+    hubId: -102,
+    hubName: "엄궁단지",
+    hubKind: "거점",
+    centerName: "기계부품 실증센터",
+    summary: "부품 성능 평가와 재료 분석을 연결하는 샘플 거점입니다.",
+    address: "부산광역시 사상구 낙동대로 샘플",
+    districtName: "사상구",
+    tel: "051-000-0001",
+    latitude: 35.1262,
+    longitude: 128.9714,
+    imageUrl: null,
+    spaceUrl: null,
+    directionsUrl: null,
+    equipmentCount: 27,
+    topEquipmentCategories: [
+      { name: "재료시험", count: 10 },
+      { name: "정밀측정", count: 9 },
+      { name: "성능평가", count: 8 },
+    ],
+    sampleEquipments: [
+      { equipmentId: -1004, equipmentName: "만능재료시험기", categoryLarge: "재료시험", locationName: "엄궁단지" },
+      { equipmentId: -1005, equipmentName: "3차원 측정기", categoryLarge: "정밀측정", locationName: "엄궁단지" },
+    ],
+    facilities: [],
+  },
+  {
+    hubId: -103,
+    hubName: "미음단지",
+    hubKind: "거점",
+    centerName: "첨단장비 공동활용실",
+    summary: "시제품 제작과 공정 검증을 지원하는 샘플 거점입니다.",
+    address: "부산광역시 강서구 미음산단로 샘플",
+    districtName: "강서구",
+    tel: "051-000-0002",
+    latitude: 35.1037,
+    longitude: 128.8786,
+    imageUrl: null,
+    spaceUrl: null,
+    directionsUrl: null,
+    equipmentCount: 18,
+    topEquipmentCategories: [
+      { name: "시제품제작", count: 7 },
+      { name: "공정검증", count: 6 },
+      { name: "정밀가공", count: 5 },
+    ],
+    sampleEquipments: [
+      { equipmentId: -1006, equipmentName: "CNC 머시닝센터", categoryLarge: "정밀가공", locationName: "미음단지" },
+      { equipmentId: -1007, equipmentName: "레이저 가공기", categoryLarge: "시제품제작", locationName: "미음단지" },
+    ],
+    facilities: [],
+  },
+];
+
+const SAMPLE_CONNECTION_ITEMS: ConnectionEvidenceCompany[] = [
+  {
+    companyId: -201,
+    companyName: "샘플정밀기계(주)",
+    mainProducts: ["자동화 이송장치", "정밀 감속기"],
+    connectedFunctions: ["환경시험", "진동/소음시험"],
+    connectedEquipments: [
+      { equipmentId: -1001, equipmentName: "온습도 시험기", categoryLarge: "환경시험", hubId: -101, hubName: "지사단지" },
+      { equipmentId: -1003, equipmentName: "진동시험기", categoryLarge: "진동/소음시험", hubId: -101, hubName: "지사단지" },
+    ],
+    evidenceText: "주요제품의 구동부 내구성과 사용 환경 검증이 필요해 환경·진동 시험 장비와 연결됩니다.",
+  },
+  {
+    companyId: -202,
+    companyName: "부산스마트부품",
+    mainProducts: ["센서 하우징", "제어 모듈"],
+    connectedFunctions: ["전자파시험(EMC)", "정밀측정"],
+    connectedEquipments: [
+      { equipmentId: -1002, equipmentName: "전자파 내성시험기", categoryLarge: "전자파시험(EMC)", hubId: -101, hubName: "지사단지" },
+      { equipmentId: -1005, equipmentName: "3차원 측정기", categoryLarge: "정밀측정", hubId: -102, hubName: "엄궁단지" },
+    ],
+    evidenceText: "제어 모듈은 전자파 내성 확인이 필요하고, 하우징은 치수 정밀도 검증 근거가 있습니다.",
+  },
+  {
+    companyId: -203,
+    companyName: "동남제조솔루션",
+    mainProducts: ["시제품 지그", "가공 부품"],
+    connectedFunctions: ["시제품제작", "정밀가공"],
+    connectedEquipments: [
+      { equipmentId: -1006, equipmentName: "CNC 머시닝센터", categoryLarge: "정밀가공", hubId: -103, hubName: "미음단지" },
+      { equipmentId: -1007, equipmentName: "레이저 가공기", categoryLarge: "시제품제작", hubId: -103, hubName: "미음단지" },
+    ],
+    evidenceText: "시제품 제작과 소량 가공 수요가 있어 미음단지의 제작·가공 장비와 연결됩니다.",
+  },
+];
+
 let kakaoMapSdkPromise: Promise<void> | null = null;
 
 const apiUrl = (path: string) => {
@@ -334,6 +496,43 @@ const hubMarkerImageUrl = (hub: InfraHub, selected: boolean) => {
 const selectRepresentativeHubId = (hubs: InfraHub[]) => {
   const sortedHubs = [...hubs].sort((left, right) => right.equipmentCount - left.equipmentCount);
   return sortedHubs[0]?.hubId ?? null;
+};
+
+const sampleConnectionEvidence = (keyword: string, page: number, size: number): ConnectionEvidenceResponse => {
+  const normalizedKeyword = keyword.trim().toLowerCase();
+  const filteredItems = normalizedKeyword
+    ? SAMPLE_CONNECTION_ITEMS.filter((item) =>
+        [
+          item.companyName,
+          item.evidenceText ?? "",
+          ...item.mainProducts,
+          ...item.connectedFunctions,
+          ...item.connectedEquipments.map((equipment) => equipment.equipmentName),
+          ...item.connectedEquipments.map((equipment) => equipment.hubName),
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedKeyword),
+      )
+    : SAMPLE_CONNECTION_ITEMS;
+  const safeSize = Math.max(1, size);
+  const totalPages = Math.ceil(filteredItems.length / safeSize);
+  const safePage = totalPages === 0 ? 0 : Math.min(Math.max(0, page), totalPages - 1);
+  const pageItems = filteredItems.slice(safePage * safeSize, safePage * safeSize + safeSize);
+
+  return {
+    divisionCode: SAMPLE_DIVISION_CODE,
+    summary: {
+      companyCount: filteredItems.length,
+      equipmentCount: new Set(filteredItems.flatMap((item) => item.connectedEquipments.map((equipment) => equipment.equipmentId))).size,
+      hubCount: new Set(filteredItems.flatMap((item) => item.connectedEquipments.map((equipment) => equipment.hubId))).size,
+    },
+    items: pageItems,
+    page: safePage,
+    size: safeSize,
+    totalElements: filteredItems.length,
+    totalPages,
+  };
 };
 
 const getDivisionCodeFromSearch = (search: string) => {
@@ -500,8 +699,13 @@ const BtpSolution = () => {
       setSelectedIndustry(SAMPLE_INDUSTRY);
       setIsSampleIndustry(true);
       resetConnectionEvidence();
-      loadOverview(SAMPLE_DIVISION_CODE);
-      loadInfraHubs(SAMPLE_DIVISION_CODE);
+      setOverview(SAMPLE_OVERVIEW);
+      setStatus("idle");
+      setErrorMessage("");
+      setInfraHubs(SAMPLE_INFRA_HUBS);
+      setInfraStatus("idle");
+      setInfraErrorMessage("");
+      setSelectedHubId(selectRepresentativeHubId(SAMPLE_INFRA_HUBS));
       return;
     }
 
@@ -560,9 +764,14 @@ const BtpSolution = () => {
   };
 
   useEffect(() => {
-    const divisionCode = selectedIndustry?.divisionCode;
-
-    if (!divisionCode) {
+    if (!divisionCodeFromUrl) {
+      setConnectionEvidence(sampleConnectionEvidence(
+        connectionEvidenceKeyword,
+        connectionEvidencePage,
+        connectionEvidenceSize,
+      ));
+      setConnectionEvidenceStatus("idle");
+      setConnectionEvidenceErrorMessage("");
       return;
     }
 
@@ -577,7 +786,7 @@ const BtpSolution = () => {
 
     fetch(
       apiUrl(
-        `/btp-solution/industries/${encodeURIComponent(divisionCode)}/connection-evidence/companies?${params.toString()}`,
+        `/btp-solution/industries/${encodeURIComponent(divisionCodeFromUrl)}/connection-evidence/companies?${params.toString()}`,
       ),
     )
       .then((response) => {
@@ -598,7 +807,7 @@ const BtpSolution = () => {
         );
       });
   }, [
-    selectedIndustry?.divisionCode,
+    divisionCodeFromUrl,
     connectionEvidenceKeyword,
     connectionEvidencePage,
     connectionEvidenceSize,
