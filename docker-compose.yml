@@ -3,6 +3,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api}
+        VITE_AI_URL: ${VITE_AI_URL:-/ai}
+        VITE_KAKAO_MAP_APP_KEY: ${VITE_KAKAO_MAP_APP_KEY:-}
+        VITE_KAKAO_JAVASCRIPT_KEY: ${VITE_KAKAO_JAVASCRIPT_KEY:-}
+        VITE_KAKAO_MAP_KEY: ${VITE_KAKAO_MAP_KEY:-}
     container_name: hyeyum-fe
     mem_limit: ${FE_MEM_LIMIT:-128m}
     ports:
