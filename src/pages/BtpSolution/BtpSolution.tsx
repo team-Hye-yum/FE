@@ -3022,11 +3022,9 @@ const FunctionInfraCoveragePanel = ({ coverage }: FunctionInfraCoveragePanelProp
       </div>
 
       <p className="mt-6 border-t border-[#e2eaf4] pt-5 text-sm font-semibold leading-6 text-[#44566e]">
-        기능 수는 기업의 주요제품·지원품목·NTIS 과제 등에서 확인된 원문을 정규화하고 중복을
-        제거한 고유 기능 기준입니다.
+        기능 수는 기업 데이터에서 확인된 내용을 정리하여중복을 제거한 고유 기능 기준입니다.
         <br />
-        장비 확인 비율은 현재 보유한 BTP 장비 데이터에서 확인되는 연결 근거를 의미하며, 실제
-        장비 수요나 지원 필요성을 의미하지 않습니다.
+        장비 연결은 BTP 보유 장비와 확인된 연결 근거를 의미하며, 장비 수요나 지원 필요성을 판단하지 않습니다.
       </p>
     </aside>
   );
