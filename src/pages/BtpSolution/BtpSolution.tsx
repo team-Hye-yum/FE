@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { showAppAlert } from "@/components/AppAlert";
 import {
@@ -165,16 +165,16 @@ type IndustryInfraMatrixResponse = {
   items: Array<{
     divisionCode: string;
     divisionName: string;
-    employeeGrowthRate: number;
-    connectionRate: number;
+    employeeGrowthRate: number | null;
+    connectionRate: number | null;
   }>;
 };
 
 type IndustryInfraPosition = {
   divisionCode: string;
   divisionName: string;
-  employeeGrowthRate: number;
-  connectionRate: number;
+  employeeGrowthRate: number | null;
+  connectionRate: number | null;
   baseYear: number;
 };
 
@@ -186,7 +186,7 @@ type RelatedSupportNotice = {
   supportField: string;
   supportContent?: string;
   connectionBasis?: string;
-  linkedEquipment?: string;
+  equipmentCount: number;
   announceUrl: string | null;
 };
 
@@ -199,9 +199,26 @@ type RelatedSupportProgramsResponse = {
     supportField: string;
     supportContent?: string;
     connectionBasis?: string;
-    linkedEquipment?: string;
+    equipmentCount: number;
     announceUrl: string | null;
   }>;
+};
+
+type RelatedSupportProgramEquipment = {
+  equipmentId: number;
+  equipmentName: string;
+  hubName: string;
+  categoryLarge: string;
+  categoryMiddle: string;
+};
+
+type RelatedSupportProgramEquipmentsResponse = {
+  programId: number;
+  items: RelatedSupportProgramEquipment[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
 };
 
 type IndustrySelectedEvent = CustomEvent<{
@@ -458,7 +475,7 @@ const SAMPLE_RELATED_NOTICES: RelatedSupportNotice[] = [
     supportField: "반도체",
     supportContent: "기술개발, 시제품 제작, 시험분석, 인증 지원",
     connectionBasis: "지원분야에 반도체 명시",
-    linkedEquipment: "반도체 상용화센터 · 반도체 공정 평가 장비",
+    equipmentCount: 18,
     announceUrl: "#",
   },
   {
@@ -469,7 +486,7 @@ const SAMPLE_RELATED_NOTICES: RelatedSupportNotice[] = [
     supportField: "소재·부품",
     supportContent: "소재 개발, 성능평가, 분석·시험 지원",
     connectionBasis: "지원내용의 소재·부품 항목 일치",
-    linkedEquipment: "유기소재분석센터 · 재료분석 장비",
+    equipmentCount: 12,
     announceUrl: "#",
   },
   {
@@ -480,10 +497,83 @@ const SAMPLE_RELATED_NOTICES: RelatedSupportNotice[] = [
     supportField: "데이터·AI",
     supportContent: "데이터 처리·활용 관련 법·제도, 기술 컨설팅",
     connectionBasis: "디지털 전환/데이터 활용 관련",
-    linkedEquipment: "AI·데이터 분석 인프라 · 고성능 연산 장비",
+    equipmentCount: 7,
     announceUrl: null,
   },
 ];
+
+const SAMPLE_RELATED_EQUIPMENTS: RelatedSupportProgramEquipment[] = [
+  {
+    equipmentId: 1,
+    equipmentName: "반도체 공정 평가 장비",
+    hubName: "반도체 상용화센터",
+    categoryLarge: "전기/전자장비",
+    categoryMiddle: "측정시험장비",
+  },
+  {
+    equipmentId: 2,
+    equipmentName: "신뢰성 시험 장비",
+    hubName: "반도체 상용화센터",
+    categoryLarge: "기계가공/시험장비",
+    categoryMiddle: "재료물성시험장비",
+  },
+  {
+    equipmentId: 3,
+    equipmentName: "재료분석 장비",
+    hubName: "유기소재분석센터",
+    categoryLarge: "화합물전처리/분석장비",
+    categoryMiddle: "재료분석장비",
+  },
+  {
+    equipmentId: 4,
+    equipmentName: "데이터 분석 인프라",
+    hubName: "AI 데이터 분석 인프라",
+    categoryLarge: "데이터처리장비",
+    categoryMiddle: "하드웨어",
+  },
+  {
+    equipmentId: 5,
+    equipmentName: "고성능 연산 장비",
+    hubName: "AI 데이터 분석 인프라",
+    categoryLarge: "데이터처리장비",
+    categoryMiddle: "서버",
+  },
+  {
+    equipmentId: 6,
+    equipmentName: "전자파 측정 시험장비",
+    hubName: "자동차부품기술지원센터",
+    categoryLarge: "전기/전자장비",
+    categoryMiddle: "측정시험장비",
+  },
+];
+
+const sampleRelatedProgramEquipments = (
+  programId: string,
+  page: number,
+  size: number,
+): RelatedSupportProgramEquipmentsResponse => {
+  const notice = SAMPLE_RELATED_NOTICES.find((item) => item.id === programId);
+  const totalElements = notice?.equipmentCount ?? SAMPLE_RELATED_EQUIPMENTS.length;
+  const repeatedItems = Array.from({ length: totalElements }, (_, index) => {
+    const sample = SAMPLE_RELATED_EQUIPMENTS[index % SAMPLE_RELATED_EQUIPMENTS.length];
+    return {
+      ...sample,
+      equipmentId: index + 1,
+    };
+  });
+  const safeSize = Math.max(1, size);
+  const totalPages = Math.ceil(totalElements / safeSize);
+  const safePage = totalPages === 0 ? 0 : Math.min(Math.max(0, page), totalPages - 1);
+
+  return {
+    items: repeatedItems.slice(safePage * safeSize, safePage * safeSize + safeSize),
+    page: safePage,
+    programId: Number(programId.replace(/\D/g, "")) || 0,
+    size: safeSize,
+    totalElements,
+    totalPages,
+  };
+};
 
 let kakaoMapSdkPromise: Promise<void> | null = null;
 
@@ -793,7 +883,7 @@ const BtpSolution = () => {
     fetch(apiUrl(`/btp-solution/industries/${encodeURIComponent(divisionCode)}/function-infra-coverage`))
       .then((response) => {
         if (!response.ok) {
-          throw new Error(`기능-인프라 연결 범위를 불러오지 못했습니다. (${response.status})`);
+          throw new Error(`기장비 확인 비율 범위를 불러오지 못했습니다. (${response.status})`);
         }
 
         return response.json() as Promise<ApiDataResponse<FunctionInfraCoverage>>;
@@ -1055,6 +1145,7 @@ const MATRIX_Y_MIN = 0;
 const MATRIX_Y_MAX = 100;
 const OBSERVATION_X_THRESHOLD = 0;
 const OBSERVATION_Y_THRESHOLD = 40;
+const RELATED_EQUIPMENT_PAGE_SIZE = 5;
 
 const formatGrowthPercent = (value: number) => `${value > 0 ? "+" : ""}${value.toFixed(1)}%`;
 
@@ -1078,6 +1169,14 @@ const IndustryPositionComparison = ({
   const [relatedNotices, setRelatedNotices] = useState<RelatedSupportNotice[]>(
     SAMPLE_RELATED_NOTICES,
   );
+  const [expandedNoticeId, setExpandedNoticeId] = useState<string | null>(null);
+  const [relatedEquipmentPages, setRelatedEquipmentPages] = useState<
+    Record<string, RelatedSupportProgramEquipmentsResponse>
+  >({});
+  const [relatedEquipmentPageByNotice, setRelatedEquipmentPageByNotice] = useState<Record<string, number>>({});
+  const [relatedEquipmentStatusByNotice, setRelatedEquipmentStatusByNotice] = useState<
+    Record<string, "loading" | "idle" | "error">
+  >({});
   const [matrixStatus, setMatrixStatus] = useState<"loading" | "idle" | "error">(
     isSample ? "idle" : "loading",
   );
@@ -1115,9 +1214,9 @@ const IndustryPositionComparison = ({
       .then((response) => {
         setMatrixItems(
           response.data.items.map((item) => ({
-            connectionRate: item.connectionRate,
+            connectionRate: item.connectionRate ?? 0,
             divisionCode: item.divisionCode,
-            employeeGrowthRate: item.employeeGrowthRate,
+            employeeGrowthRate: item.employeeGrowthRate ?? 0,
             industryName: item.divisionName,
           })),
         );
@@ -1141,6 +1240,10 @@ const IndustryPositionComparison = ({
     if (isSample) {
       setPosition(fallbackPosition);
       setRelatedNotices(SAMPLE_RELATED_NOTICES);
+      setExpandedNoticeId(null);
+      setRelatedEquipmentPages({});
+      setRelatedEquipmentPageByNotice({});
+      setRelatedEquipmentStatusByNotice({});
       setPositionStatus("idle");
       setRelatedNoticesStatus("idle");
       return undefined;
@@ -1161,7 +1264,11 @@ const IndustryPositionComparison = ({
         return response.json() as Promise<ApiDataResponse<IndustryInfraPosition>>;
       })
       .then((response) => {
-        setPosition(response.data);
+        setPosition({
+          ...response.data,
+          connectionRate: response.data.connectionRate ?? 0,
+          employeeGrowthRate: response.data.employeeGrowthRate ?? 0,
+        });
         setPositionStatus("idle");
       })
       .catch((error: unknown) => {
@@ -1193,7 +1300,7 @@ const IndustryPositionComparison = ({
             supportContent: item.supportContent,
             supportField: item.supportField,
             connectionBasis: item.connectionBasis,
-            linkedEquipment: item.linkedEquipment,
+            equipmentCount: item.equipmentCount,
             title: item.title,
             year: item.year,
           })),
@@ -1214,10 +1321,81 @@ const IndustryPositionComparison = ({
     };
   }, [fallbackPosition, isSample, overview.divisionCode]);
 
-  const selectedConnectionRate = position.connectionRate;
+  useEffect(() => {
+    if (!expandedNoticeId) {
+      return undefined;
+    }
+
+    const page = relatedEquipmentPageByNotice[expandedNoticeId] ?? 0;
+
+    if (isSample) {
+      setRelatedEquipmentPages((currentPages) => ({
+        ...currentPages,
+        [expandedNoticeId]: sampleRelatedProgramEquipments(
+          expandedNoticeId,
+          page,
+          RELATED_EQUIPMENT_PAGE_SIZE,
+        ),
+      }));
+      setRelatedEquipmentStatusByNotice((currentStatuses) => ({
+        ...currentStatuses,
+        [expandedNoticeId]: "idle",
+      }));
+      return undefined;
+    }
+
+    const abortController = new AbortController();
+    const divisionCode = encodeURIComponent(overview.divisionCode);
+    const programId = encodeURIComponent(expandedNoticeId);
+
+    setRelatedEquipmentStatusByNotice((currentStatuses) => ({
+      ...currentStatuses,
+      [expandedNoticeId]: "loading",
+    }));
+    fetch(
+      apiUrl(
+        `/btp-solution/industries/${divisionCode}/related-support-programs/${programId}/equipments?page=${page}&size=${RELATED_EQUIPMENT_PAGE_SIZE}`,
+      ),
+      { signal: abortController.signal },
+    )
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`관련 장비를 불러오지 못했습니다. (${response.status})`);
+        }
+
+        return response.json() as Promise<ApiDataResponse<RelatedSupportProgramEquipmentsResponse>>;
+      })
+      .then((response) => {
+        setRelatedEquipmentPages((currentPages) => ({
+          ...currentPages,
+          [expandedNoticeId]: response.data,
+        }));
+        setRelatedEquipmentStatusByNotice((currentStatuses) => ({
+          ...currentStatuses,
+          [expandedNoticeId]: "idle",
+        }));
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setRelatedEquipmentStatusByNotice((currentStatuses) => ({
+          ...currentStatuses,
+          [expandedNoticeId]: "error",
+        }));
+        console.error("Failed to load BTP solution related support program equipments.", error);
+      });
+
+    return () => {
+      abortController.abort();
+    };
+  }, [expandedNoticeId, isSample, overview.divisionCode, relatedEquipmentPageByNotice]);
+
+  const selectedConnectionRate = position.connectionRate ?? 0;
   const selectedPoint: IndustryInfraMatrixPoint = {
     divisionCode: position.divisionCode,
-    employeeGrowthRate: position.employeeGrowthRate,
+    employeeGrowthRate: position.employeeGrowthRate ?? 0,
     connectionRate: selectedConnectionRate,
     industryName: position.divisionName,
     isSelected: true,
@@ -1229,11 +1407,25 @@ const IndustryPositionComparison = ({
   const baseYear = position.baseYear;
   const openAnnounceUrl = (announceUrl: string | null) => {
     if (!announceUrl) {
-      window.alert("삭제되었거나 찾을 수 없습니다.");
+      showAppAlert("삭제되었거나 찾을 수 없습니다.", "공고 원문");
       return;
     }
 
     window.open(announceUrl, "_blank", "noopener,noreferrer");
+  };
+  const toggleRelatedEquipments = (noticeId: string) => {
+    setExpandedNoticeId((currentId) => (currentId === noticeId ? null : noticeId));
+    setRelatedEquipmentPageByNotice((currentPages) => ({
+      ...currentPages,
+      [noticeId]: currentPages[noticeId] ?? 0,
+    }));
+  };
+  const changeRelatedEquipmentPage = (noticeId: string, page: number) => {
+    setRelatedEquipmentPageByNotice((currentPages) => ({
+      ...currentPages,
+      [noticeId]: Math.max(0, page),
+    }));
+    setExpandedNoticeId(noticeId);
   };
 
   return (
@@ -1435,43 +1627,69 @@ const IndustryPositionComparison = ({
                 <th className="w-[160px] px-4 py-3">지원분야</th>
                 <th className="w-[200px] px-4 py-3">지원내용</th>
                 <th className="w-[150px] px-4 py-3">연결 기준</th>
-                <th className="w-[220px] px-4 py-3">연계 장비</th>
+                <th className="w-[120px] px-4 py-3">연계 장비 수</th>
                 <th className="w-[76px] px-4 py-3">원문</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#eef2f7] text-sm text-[#334155]">
-              {relatedNotices.map((notice) => (
-                <tr className="transition hover:bg-[#fafafa]" key={notice.id}>
-                  <td className="px-4 py-4 align-top">
-                    <p className="font-semibold leading-6 text-[#111827]">{notice.title}</p>
-                  </td>
-                  <td className="px-4 py-4 align-top font-medium text-[#475569]">
-                    {notice.year} · {notice.status}
-                  </td>
-                  <td className="px-4 py-4 align-top font-medium text-[#475569]">
-                    <p>{notice.supportField}</p>
-                  </td>
-                  <td className="px-4 py-4 align-top font-medium leading-6 text-[#334155]">
-                    {notice.supportContent ?? "-"}
-                  </td>
-                  <td className="px-4 py-4 align-top font-medium leading-6 text-[#475569]">
-                    {notice.connectionBasis ?? "-"}
-                  </td>
-                  <td className="px-4 py-4 align-top font-medium leading-6 text-[#334155]">
-                    {notice.linkedEquipment ?? "-"}
-                  </td>
-                  <td className="px-4 py-4 align-top">
-                    <button
-                      aria-label={`${notice.title} 원문 보기`}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-[8px] text-[#64748b] transition hover:bg-[#f1f5f9] hover:text-[#111827]"
-                      onClick={() => openAnnounceUrl(notice.announceUrl)}
-                      type="button"
-                    >
-                      ↗
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {relatedNotices.map((notice) => {
+                const equipmentPage = relatedEquipmentPages[notice.id];
+                const equipmentStatus = relatedEquipmentStatusByNotice[notice.id] ?? "idle";
+                const isExpanded = expandedNoticeId === notice.id;
+
+                return (
+                  <Fragment key={notice.id}>
+                    <tr className="transition hover:bg-[#fafafa]">
+                      <td className="px-4 py-4 align-top">
+                        <p className="font-semibold leading-6 text-[#111827]">{notice.title}</p>
+                      </td>
+                      <td className="px-4 py-4 align-top font-medium text-[#475569]">
+                        {notice.year} · {notice.status}
+                      </td>
+                      <td className="px-4 py-4 align-top font-medium text-[#475569]">
+                        <p>{notice.supportField}</p>
+                      </td>
+                      <td className="px-4 py-4 align-top font-medium leading-6 text-[#334155]">
+                        {notice.supportContent ?? "-"}
+                      </td>
+                      <td className="px-4 py-4 align-top font-medium leading-6 text-[#475569]">
+                        {notice.connectionBasis ?? "-"}
+                      </td>
+                      <td className="px-4 py-4 align-top font-medium leading-6 text-[#334155]">
+                        <button
+                          className="inline-flex h-8 items-center justify-center rounded-[8px] border border-[#d8dee8] px-3 text-sm font-semibold text-[#2563eb] transition hover:bg-[#eff6ff] disabled:cursor-not-allowed disabled:text-[#94a3b8] disabled:hover:bg-white"
+                          disabled={notice.equipmentCount <= 0}
+                          onClick={() => toggleRelatedEquipments(notice.id)}
+                          type="button"
+                        >
+                          {formatCount(notice.equipmentCount)}개 {isExpanded ? "접기" : "보기"}
+                        </button>
+                      </td>
+                      <td className="px-4 py-4 align-top">
+                        <button
+                          aria-label={`${notice.title} 원문 보기`}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-[8px] text-[#64748b] transition hover:bg-[#f1f5f9] hover:text-[#111827]"
+                          onClick={() => openAnnounceUrl(notice.announceUrl)}
+                          type="button"
+                        >
+                          ↗
+                        </button>
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr className="bg-[#fbfdff]">
+                        <td className="px-4 py-4" colSpan={7}>
+                          <RelatedProgramEquipmentPanel
+                            onPageChange={(page) => changeRelatedEquipmentPage(notice.id, page)}
+                            response={equipmentPage}
+                            status={equipmentStatus}
+                          />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -1492,6 +1710,100 @@ const MatrixLegendItem = ({ color, label }: MatrixLegendItemProps) => (
     <span>{label}</span>
   </span>
 );
+
+type RelatedProgramEquipmentPanelProps = {
+  onPageChange: (page: number) => void;
+  response?: RelatedSupportProgramEquipmentsResponse;
+  status: "loading" | "idle" | "error";
+};
+
+const RelatedProgramEquipmentPanel = ({
+  onPageChange,
+  response,
+  status,
+}: RelatedProgramEquipmentPanelProps) => {
+  const page = response?.page ?? 0;
+  const totalElements = response?.totalElements ?? 0;
+  const totalPages = response?.totalPages ?? 0;
+  const pages = paginationPages(page, totalPages);
+
+  if (status === "loading") {
+    return <StatusPanel message="관련 장비를 불러오는 중" />;
+  }
+
+  if (status === "error") {
+    return <StatusPanel isError message="관련 장비 분석 실패" />;
+  }
+
+  if (!response || response.items.length === 0) {
+    return <StatusPanel message="표시할 관련 장비가 없습니다." />;
+  }
+
+  return (
+    <div className="rounded-[8px] border border-[#e5e7eb] bg-white">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#eef2f7] px-4 py-3">
+        <p className="text-sm font-semibold text-[#111827]">
+          관련 장비 {formatCount(totalElements)}개
+        </p>
+        <p className="text-xs font-medium text-[#64748b]">5개씩 표시</p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[720px] border-collapse text-left">
+          <thead>
+            <tr className="border-b border-[#eef2f7] bg-[#fafafa] text-xs font-semibold text-[#64748b]">
+              <th className="px-4 py-3">장비명</th>
+              <th className="w-[180px] px-4 py-3">센터</th>
+              <th className="w-[170px] px-4 py-3">대분류</th>
+              <th className="w-[170px] px-4 py-3">중분류</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#eef2f7] text-sm text-[#334155]">
+            {response.items.map((equipment) => (
+              <tr key={equipment.equipmentId}>
+                <td className="px-4 py-3 font-semibold text-[#111827]">{equipment.equipmentName}</td>
+                <td className="px-4 py-3 font-medium">{equipment.hubName}</td>
+                <td className="px-4 py-3 font-medium">{equipment.categoryLarge}</td>
+                <td className="px-4 py-3 font-medium">{equipment.categoryMiddle}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-[#eef2f7] px-4 py-3">
+        <button
+          className="h-8 rounded-[8px] border border-[#d8dee8] px-3 text-sm font-semibold text-[#475569] disabled:cursor-not-allowed disabled:text-[#cbd5e1]"
+          disabled={page <= 0}
+          onClick={() => onPageChange(page - 1)}
+          type="button"
+        >
+          이전
+        </button>
+        {pages.map((pageNumber) => (
+          <button
+            className={`h-8 min-w-8 rounded-[8px] px-3 text-sm font-semibold ${
+              pageNumber === page
+                ? "bg-[#2563eb] text-white"
+                : "border border-[#d8dee8] text-[#475569] hover:bg-[#f8fafc]"
+            }`}
+            key={pageNumber}
+            onClick={() => onPageChange(pageNumber)}
+            type="button"
+          >
+            {pageNumber + 1}
+          </button>
+        ))}
+        <button
+          className="h-8 rounded-[8px] border border-[#d8dee8] px-3 text-sm font-semibold text-[#475569] disabled:cursor-not-allowed disabled:text-[#cbd5e1]"
+          disabled={totalPages === 0 || page >= totalPages - 1}
+          onClick={() => onPageChange(page + 1)}
+          type="button"
+        >
+          다음
+        </button>
+      </div>
+    </div>
+  );
+};
 
 type StatusPanelProps = {
   isError?: boolean;
@@ -2665,7 +2977,7 @@ const FunctionInfraCoveragePanel = ({ coverage }: FunctionInfraCoveragePanelProp
   return (
     <aside className="rounded-[8px] border border-[#5ec9c0] bg-white p-4">
       <h3 className="inline-flex items-center gap-1 font-extrabold text-[#123b7a]" style={{ fontSize: 19 }}>
-        기능-인프라 연결 범위
+        BTP 장비 확인 결과
         <span
           className="inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white"
           style={{ backgroundColor: "#9bb5d8" }}
@@ -2675,10 +2987,10 @@ const FunctionInfraCoveragePanel = ({ coverage }: FunctionInfraCoveragePanelProp
       </h3>
 
       <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <CoverageMetricCard label="확인된 고유 기능" tone="teal" value={detectedCount} />
-        <CoverageMetricCard label="장비 연결 근거 확인" tone="blue" value={connectedCount} />
+        <CoverageMetricCard label="확인된 기술 요소" tone="teal" value={detectedCount} />
+        <CoverageMetricCard label="확인 가능한 장비" tone="blue" value={connectedCount} />
         <CoverageMetricCard
-          label="기능-인프라 연결률"
+          label="장비 확인 비율"
           ratioText={`(${formatCount(connectedCount)}/${formatCount(detectedCount)})`}
           tone="purple"
           value={displayRate}
@@ -2705,7 +3017,7 @@ const FunctionInfraCoveragePanel = ({ coverage }: FunctionInfraCoveragePanelProp
       </div>
 
       <div className="mt-4 flex flex-wrap justify-center gap-5 text-sm font-bold text-[#334766]">
-        <LegendItem color="#1f67d2" label="장비 연결 근거 확인" />
+        <LegendItem color="#1f67d2" label="확인 가능한 장비" />
         <LegendItem color="#b7bfcc" label="연결 근거 미확인" />
       </div>
 
@@ -2713,7 +3025,7 @@ const FunctionInfraCoveragePanel = ({ coverage }: FunctionInfraCoveragePanelProp
         기능 수는 기업의 주요제품·지원품목·NTIS 과제 등에서 확인된 원문을 정규화하고 중복을
         제거한 고유 기능 기준입니다.
         <br />
-        기능-인프라 연결은 현재 보유한 BTP 장비 데이터에서 확인되는 연결 근거를 의미하며, 실제
+        장비 확인 비율은 현재 보유한 BTP 장비 데이터에서 확인되는 연결 근거를 의미하며, 실제
         장비 수요나 지원 필요성을 의미하지 않습니다.
       </p>
     </aside>
