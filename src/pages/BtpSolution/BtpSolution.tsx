@@ -1960,7 +1960,7 @@ const InfraHubExplorer = ({
             </span>
             <div>
               <h2 className="font-extrabold leading-none" style={{ fontSize: 26 }}>
-                공동활용 인프라 연결 탐색
+                산업별 공동활용 장비 탐색
               </h2>
               <p className="mt-2 text-sm font-semibold text-[#64748b]">
                 선택한 산업 범위 안에서 장비 위치와 가까운 BTP 거점을 연결합니다.
@@ -1968,18 +1968,6 @@ const InfraHubExplorer = ({
             </div>
           </div>
 
-          <div className="grid min-w-[360px] grid-cols-2 divide-x divide-[#e2eaf4] text-center max-sm:min-w-0 max-sm:w-full">
-            <InfraSummaryMetric
-              description="선택 산업에서 연결 근거가 확인된 장비 수"
-              label="연결 장비 수"
-              value={totalEquipmentCount}
-            />
-            <InfraSummaryMetric
-              description="현재 선택한 거점의 확인 장비 수"
-              label="선택 거점 장비"
-              value={selectedHub?.equipmentCount ?? 0}
-            />
-          </div>
         </div>
 
         {status === "loading" && (
@@ -2247,7 +2235,7 @@ const InfraHubDetail = ({ hub }: InfraHubDetailProps) => {
       <div className="mt-7 border-t border-[#e2eaf4] pt-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h4 className="inline-flex items-center gap-2 text-xl font-black text-[#123b7a]">
-            주요 연결 장비 분류
+            주요 장비 분야
             <span className="text-sm font-bold text-[#64748b]">(연결 장비 수 기준)</span>
             <InfoDot />
           </h4>
@@ -2278,7 +2266,7 @@ const InfraHubDetail = ({ hub }: InfraHubDetailProps) => {
     {hub.sampleEquipments.length > 0 && (
       <div className="mt-7">
         <h4 className="inline-flex items-center gap-2 text-xl font-black text-[#123b7a]">
-          연결 장비 예시
+          대표 장비
           <InfoDot />
         </h4>
         <div className="mt-4 overflow-hidden rounded-[8px] border border-[#dce4ef] bg-white">
