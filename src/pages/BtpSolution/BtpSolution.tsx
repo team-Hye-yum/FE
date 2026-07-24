@@ -1469,8 +1469,8 @@ const IndustryPositionComparison = ({
                 <ScatterChart margin={{ bottom: 34, left: 22, right: 18, top: 14 }}>
                   <CartesianGrid stroke="#eef2f7" strokeDasharray="2 2" />
                   <ReferenceArea
-                    fill="#fff8e8"
-                    fillOpacity={1}
+                    fill="#fff7ed"
+                    fillOpacity={0.9}
                     ifOverflow="extendDomain"
                     stroke="none"
                     x1={OBSERVATION_X_THRESHOLD}
@@ -1482,7 +1482,24 @@ const IndustryPositionComparison = ({
                     fill="transparent"
                     ifOverflow="extendDomain"
                     label={{
-                      fill: "#9a5b00",
+                      fill: "#b45309",
+                      fontSize: 15,
+                      fontWeight: 800,
+                      position: "insideTopRight",
+                      value: "장비 연계 보완 필요",
+                    }}
+                    stroke="none"
+                    x1={OBSERVATION_X_THRESHOLD}
+                    x2={MATRIX_X_MAX}
+                    y1={MATRIX_Y_MIN}
+                    y2={OBSERVATION_Y_THRESHOLD}
+                  />
+                  <ReferenceArea
+                    fill="#eff6ff"
+                    fillOpacity={0.88}
+                    ifOverflow="extendDomain"
+                    label={{
+                      fill: "#1d4ed8",
                       fontSize: 15,
                       fontWeight: 800,
                       position: "insideTopRight",
@@ -1491,8 +1508,8 @@ const IndustryPositionComparison = ({
                     stroke="none"
                     x1={OBSERVATION_X_THRESHOLD}
                     x2={MATRIX_X_MAX}
-                    y1={MATRIX_Y_MIN}
-                    y2={OBSERVATION_Y_THRESHOLD}
+                    y1={OBSERVATION_Y_THRESHOLD}
+                    y2={MATRIX_Y_MAX}
                   />
                   <XAxis
                     axisLine={{ stroke: "#d8dee8" }}
@@ -1532,15 +1549,16 @@ const IndustryPositionComparison = ({
                   <Tooltip content={<MatrixTooltip />} cursor={false} />
                   <Scatter
                     data={matrixPoints.filter((point) => !point.isSelected)}
-                    fill="#8b9199"
+                    fill="#bfdbfe"
                     isAnimationActive={false}
+                    shape={<MatrixBubble />}
                   />
                   <Scatter
                     data={matrixPoints.filter((point) => point.isSelected)}
                     fill="#2478d7"
                     isAnimationActive={false}
+                    shape={<MatrixBubble />}
                   >
-                    <Cell fill="#2563eb" stroke="#dbeafe" strokeWidth={6} />
                     <LabelList
                       dataKey="industryName"
                       fill="#2563eb"
@@ -1825,6 +1843,38 @@ type MatrixTooltipProps = {
   payload?: Array<{
     payload: IndustryInfraMatrixPoint;
   }>;
+};
+
+type MatrixBubbleProps = {
+  cx?: number;
+  cy?: number;
+  payload?: IndustryInfraMatrixPoint;
+};
+
+const MatrixBubble = ({ cx = 0, cy = 0, payload }: MatrixBubbleProps) => {
+  const isSelected = Boolean(payload?.isSelected);
+
+  if (isSelected) {
+    return (
+      <g>
+        <circle cx={cx} cy={cy} fill="#2563eb" opacity={0.16} r={17} />
+        <circle cx={cx} cy={cy} fill="#2563eb" opacity={0.94} r={10.5} stroke="#dbeafe" strokeWidth={4} />
+      </g>
+    );
+  }
+
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      fill="#bfdbfe"
+      opacity={0.66}
+      r={8.5}
+      stroke="#60a5fa"
+      strokeOpacity={0.52}
+      strokeWidth={1.25}
+    />
+  );
 };
 
 const MatrixTooltip = ({ active, payload }: MatrixTooltipProps) => {
