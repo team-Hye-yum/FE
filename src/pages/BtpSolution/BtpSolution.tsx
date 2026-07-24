@@ -1312,7 +1312,7 @@ const IndustryPositionComparison = ({
                       fontWeight: 700,
                       offset: -18,
                       position: "insideBottom",
-                      value: "종사자 증감률 (%) (2020~2024)",
+                      value: "종사자 증감률 (%) (2023~2024)",
                     }}
                     tick={{ fill: "#64748b", fontSize: 12, fontWeight: 600 }}
                     tickLine={false}
@@ -1384,7 +1384,7 @@ const IndustryPositionComparison = ({
                 {position.divisionName} ({position.divisionCode})
               </p>
               <div className="overflow-hidden rounded-[8px] border border-[#e5e7eb] bg-white">
-                <IndustryPositionMetric label="종사자 증감률 (2020~2024)" value={formatGrowthPercent(selectedPoint.employeeGrowthRate)} />
+                <IndustryPositionMetric label="종사자 증감률 (2023~2024)" value={formatGrowthPercent(selectedPoint.employeeGrowthRate)} />
                 <IndustryPositionMetric label="장비 연계 비율" value={`${formatCompactPercent(selectedConnectionRate)}%`} />
                 <IndustryPositionMetric label="연결 근거 확인 기능 수" value={`${formatCount(functionInfraCoverage?.connectedFunctionCount ?? 7)}개`} />
                 <IndustryPositionMetric label="전체 기능 수" value={`${formatCount(functionInfraCoverage?.detectedFunctionCount ?? 23)}개`} />
