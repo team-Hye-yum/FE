@@ -178,6 +178,9 @@ type IndustryInfraPosition = {
   baseYear: number;
 };
 
+let cachedInfraMatrixPoints: IndustryInfraMatrixPoint[] | null = null;
+let pendingInfraMatrixRequest: Promise<IndustryInfraMatrixPoint[]> | null = null;
+
 type RelatedSupportNotice = {
   id: string;
   title: string;
@@ -715,6 +718,31 @@ const groupRelatedNotices = (notices: RelatedSupportNotice[]) => {
   }));
 };
 
+const spreadMatrixConnectionRates = (points: IndustryInfraMatrixPoint[]) => {
+  if (points.length <= 1) {
+    return points.map((point) => ({ ...point, connectionRate: 50 }));
+  }
+
+  const sortedPoints = [...points].sort((left, right) => {
+    const rateDiff = left.connectionRate - right.connectionRate;
+    if (rateDiff !== 0) {
+      return rateDiff;
+    }
+
+    return left.divisionCode.localeCompare(right.divisionCode, "ko-KR", { numeric: true });
+  });
+  const visualRates = new Map<string, number>();
+
+  sortedPoints.forEach((point, index) => {
+    visualRates.set(point.divisionCode, Math.round((5 + (90 * index) / (sortedPoints.length - 1)) * 10) / 10);
+  });
+
+  return points.map((point) => ({
+    ...point,
+    connectionRate: visualRates.get(point.divisionCode) ?? point.connectionRate,
+  }));
+};
+
 const formatPercent = (value: number | null) => {
   if (value === null) {
     return "-";
@@ -1095,6 +1123,9 @@ const BtpSolution = () => {
       page: String(connectionEvidencePage),
       size: String(connectionEvidenceSize),
     });
+    if (selectedHubId !== null) {
+      params.set("hubId", String(selectedHubId));
+    }
 
     fetch(
       apiUrl(
@@ -1123,6 +1154,7 @@ const BtpSolution = () => {
     connectionEvidenceKeyword,
     connectionEvidencePage,
     connectionEvidenceSize,
+    selectedHubId,
   ]);
 
   return (
@@ -1260,41 +1292,57 @@ const IndustryPositionComparison = ({
       return undefined;
     }
 
-    const abortController = new AbortController();
+    if (cachedInfraMatrixPoints) {
+      setMatrixItems(cachedInfraMatrixPoints);
+      setMatrixStatus("idle");
+      return undefined;
+    }
+
+    let cancelled = false;
 
     setMatrixStatus("loading");
-    fetch(apiUrl("/btp-solution/industries/infra-connection-matrix?level=group"), {
-      signal: abortController.signal,
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`산업-인프라 매트릭스를 불러오지 못했습니다. (${response.status})`);
-        }
 
-        return response.json() as Promise<ApiDataResponse<IndustryInfraMatrixResponse>>;
-      })
-      .then((response) => {
-        setMatrixItems(
-          response.data.items.map((item) => ({
-            connectionRate: item.connectionRate ?? 0,
-            divisionCode: item.divisionCode,
-            employeeGrowthRate: item.employeeGrowthRate ?? 0,
-            industryName: item.divisionName,
-          })),
-        );
-        setMatrixStatus("idle");
-      })
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") {
+    pendingInfraMatrixRequest ??= fetch(apiUrl("/btp-solution/industries/infra-connection-matrix?level=group")).then((response) => {
+      if (!response.ok) {
+        throw new Error(`산업-인프라 매트릭스를 불러오지 못했습니다. (${response.status})`);
+      }
+
+      return response.json() as Promise<ApiDataResponse<IndustryInfraMatrixResponse>>;
+    }).then((response) => {
+      const points = response.data.items.map((item) => ({
+        connectionRate: item.connectionRate ?? 0,
+        divisionCode: item.divisionCode,
+        employeeGrowthRate: item.employeeGrowthRate ?? 0,
+        industryName: item.divisionName,
+      }));
+      const spreadPoints = spreadMatrixConnectionRates(points);
+      cachedInfraMatrixPoints = spreadPoints;
+      return spreadPoints;
+    }).finally(() => {
+      pendingInfraMatrixRequest = null;
+    });
+
+    pendingInfraMatrixRequest
+      .then((points) => {
+        if (cancelled) {
           return;
         }
 
+        setMatrixItems(points);
+        setMatrixStatus("idle");
+      })
+      .catch((error: unknown) => {
+        if (cancelled || (error instanceof DOMException && error.name === "AbortError")) {
+          return;
+        }
+
+        cachedInfraMatrixPoints = null;
         setMatrixStatus("error");
         console.error("Failed to load BTP solution infra connection matrix.", error);
       });
 
     return () => {
-      abortController.abort();
+      cancelled = true;
     };
   }, [isSample]);
 
@@ -1457,10 +1505,17 @@ const IndustryPositionComparison = ({
   }, [expandedNoticeId, isSample, overview.divisionCode, relatedEquipmentPageByNotice]);
 
   const selectedConnectionRate = position.connectionRate ?? 0;
+  const selectedMatrixGroupPoints = matrixItems.filter((point) =>
+    point.divisionCode.startsWith(position.divisionCode),
+  );
+  const selectedChartConnectionRate =
+    selectedMatrixGroupPoints.length > 0
+      ? Math.max(...selectedMatrixGroupPoints.map((point) => point.connectionRate))
+      : selectedConnectionRate;
   const selectedPoint: IndustryInfraMatrixPoint = {
     divisionCode: position.divisionCode,
     employeeGrowthRate: position.employeeGrowthRate ?? 0,
-    connectionRate: selectedConnectionRate,
+    connectionRate: selectedChartConnectionRate,
     industryName: position.divisionName,
     isSelected: true,
   };

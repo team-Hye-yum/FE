@@ -1,5 +1,5 @@
 import type { ChangeEvent } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { showAppAlert } from "@/components/AppAlert";
 import AnnouncementAnalysisLoadingModal from "./components/AnnouncementAnalysisLoadingModal";
@@ -58,6 +58,36 @@ type CompanyRow = {
   debtRatio: string;
   salesGrowthRate: string;
 };
+
+type CompanyColumnKey = keyof CompanyRow;
+type SortDirection = "asc" | "desc";
+type SortState = {
+  key: CompanyColumnKey;
+  direction: SortDirection;
+} | null;
+
+type CompanyTableColumn = {
+  key: CompanyColumnKey;
+  label: string;
+  align?: "left" | "center" | "right";
+  sticky?: boolean;
+};
+
+const companyTableColumns: CompanyTableColumn[] = [
+  { key: "companyId", label: "기업일련번호", align: "center", sticky: true },
+  { key: "region", label: "지역" },
+  { key: "foundedAt", label: "설립일자" },
+  { key: "industry", label: "업종" },
+  { key: "products", label: "주요제품" },
+  { key: "sales", label: "최근 매출(천원)", align: "right" },
+  { key: "employees", label: "종업원 수", align: "right" },
+  { key: "ipCount", label: "지적재산권", align: "right" },
+  { key: "ntisCount", label: "NTIS 수행건수", align: "right" },
+  { key: "supportCount", label: "지원 횟수", align: "right" },
+  { key: "supportAmount", label: "누적 지원금(천원)", align: "right" },
+  { key: "debtRatio", label: "부채 비율", align: "right" },
+  { key: "salesGrowthRate", label: "매출 성장성", align: "right" },
+];
 
 type SupportProgramSearchItem = {
   code: string;
@@ -130,6 +160,54 @@ const formatNumber = (value: number | null | undefined) =>
 
 const formatPercent = (value: number | null | undefined) =>
   value === null || value === undefined ? "-" : `${value}%`;
+
+const numericCompanyColumns = new Set<CompanyColumnKey>([
+  "companyId",
+  "foundedAt",
+  "sales",
+  "employees",
+  "ipCount",
+  "ntisCount",
+  "supportCount",
+  "supportAmount",
+  "debtRatio",
+  "salesGrowthRate",
+]);
+
+const parseSortNumber = (value: string) => {
+  const normalized = value.replace(/[,%\s]/g, "");
+
+  if (!normalized || normalized === "-") {
+    return null;
+  }
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const compareCompanyValue = (left: CompanyRow, right: CompanyRow, key: CompanyColumnKey) => {
+  const leftValue = left[key] ?? "";
+  const rightValue = right[key] ?? "";
+
+  if (numericCompanyColumns.has(key)) {
+    const leftNumber = parseSortNumber(leftValue);
+    const rightNumber = parseSortNumber(rightValue);
+
+    if (leftNumber !== null && rightNumber !== null) {
+      return leftNumber - rightNumber;
+    }
+
+    if (leftNumber !== null) {
+      return -1;
+    }
+
+    if (rightNumber !== null) {
+      return 1;
+    }
+  }
+
+  return leftValue.localeCompare(rightValue, "ko", { numeric: true, sensitivity: "base" });
+};
 
 const mapCompanyItem = (item: SupportProgramCompanyItem): CompanyRow => ({
   companyId: formatNullable(item.companyId),
@@ -265,6 +343,44 @@ const CompanyTable = ({
 }) => {
   const navigate = useNavigate();
   const isSample = !supportProgramCode.trim();
+  const [sortState, setSortState] = useState<SortState>(null);
+  const sortedCompanies = useMemo(() => {
+    if (!sortState) {
+      return companies;
+    }
+
+    return [...companies].sort((left, right) => {
+      const comparison = compareCompanyValue(left, right, sortState.key);
+      return sortState.direction === "asc" ? comparison : -comparison;
+    });
+  }, [companies, sortState]);
+
+  const handleSort = (key: CompanyColumnKey) => {
+    setSortState((current) => ({
+      key,
+      direction: current?.key === key && current.direction === "asc" ? "desc" : "asc",
+    }));
+  };
+
+  const columnAlignClassName = (align: CompanyTableColumn["align"]) => {
+    if (align === "right") {
+      return "text-right";
+    }
+
+    if (align === "center") {
+      return "text-center";
+    }
+
+    return "text-left";
+  };
+
+  const columnBackgroundClassName = (key: CompanyColumnKey, index: number) => {
+    if (sortState?.key === key) {
+      return "bg-[#eef6ff]";
+    }
+
+    return index % 2 === 0 ? "bg-gray-50" : "bg-white";
+  };
 
   const handleCompanyClick = (companyId: string) => {
     if (isSample) {
@@ -325,32 +441,39 @@ const CompanyTable = ({
         <table className="min-w-[1540px] border-collapse text-left text-base">
           <thead>
             <tr className="h-11 bg-white">
-              <th className="sticky left-0 z-20 whitespace-nowrap bg-white px-4 font-normal">
-                기업일련번호
-              </th>
-              <th className="whitespace-nowrap px-4 font-normal">지역</th>
-              <th className="whitespace-nowrap px-4 font-normal">설립일자</th>
-              <th className="whitespace-nowrap px-4 font-normal">업종</th>
-              <th className="whitespace-nowrap px-4 font-normal">주요제품</th>
-              <th className="whitespace-nowrap px-4 text-right font-normal">
-                최근 매출(천원)
-              </th>
-              <th className="whitespace-nowrap px-4 text-right font-normal">종업원 수</th>
-              <th className="whitespace-nowrap px-4 text-right font-normal">지적재산권</th>
-              <th className="whitespace-nowrap px-4 text-right font-normal">
-                NTIS 수행건수
-              </th>
-              <th className="whitespace-nowrap px-4 text-right font-normal">지원 횟수</th>
-              <th className="whitespace-nowrap px-4 text-right font-normal">
-                누적 지원금(천원)
-              </th>
-              <th className="whitespace-nowrap px-4 text-right font-normal">부채 비율</th>
-              <th className="whitespace-nowrap px-4 text-right font-normal">매출 성장성</th>
+              {companyTableColumns.map((column) => {
+                const selected = sortState?.key === column.key;
+
+                return (
+                  <th
+                    aria-sort={
+                      selected ? (sortState.direction === "asc" ? "ascending" : "descending") : "none"
+                    }
+                    className={`whitespace-nowrap px-2 font-normal ${
+                      column.sticky ? "sticky left-0 z-20" : ""
+                    } ${selected ? "bg-[#dceeff] text-[#0b4d99]" : "bg-white"}`}
+                    key={column.key}
+                  >
+                    <button
+                      className={`inline-flex h-9 w-full items-center gap-1.5 rounded-[6px] px-2 text-sm font-bold transition hover:bg-[#eef6ff] ${columnAlignClassName(
+                        column.align,
+                      )} ${column.align === "right" ? "justify-end" : column.align === "center" ? "justify-center" : "justify-start"}`}
+                      onClick={() => handleSort(column.key)}
+                      type="button"
+                    >
+                      <span>{column.label}</span>
+                      <span className={`text-xs ${selected ? "text-[#0b4d99]" : "text-[#9aa9ba]"}`}>
+                        {selected ? (sortState.direction === "asc" ? "↑" : "↓") : "↕"}
+                      </span>
+                    </button>
+                  </th>
+                );
+              })}
               <th className="whitespace-nowrap px-4 text-center font-normal">상세</th>
             </tr>
           </thead>
           <tbody>
-            {companies.map((company, index) => (
+            {sortedCompanies.map((company, index) => (
               <tr
                 className={`business-table-row h-11 transition ${
                   isSample ? "cursor-default" : "cursor-pointer hover:bg-blue-50"
@@ -358,25 +481,16 @@ const CompanyTable = ({
                 key={`${company.companyId}-${index}`}
                 onClick={() => handleCompanyClick(company.companyId)}
               >
-                <td
-                  className={`sticky left-0 z-10 whitespace-nowrap px-4 text-center ${
-                    index % 2 === 0 ? "bg-gray-50" : "bg-white"
-                  }`}
-                >
-                  {company.companyId}
-                </td>
-                <td className="whitespace-nowrap px-4">{company.region}</td>
-                <td className="whitespace-nowrap px-4">{company.foundedAt}</td>
-                <td className="whitespace-nowrap px-4">{company.industry}</td>
-                <td className="whitespace-nowrap px-4">{company.products}</td>
-                <td className="whitespace-nowrap px-4 text-right">{company.sales}</td>
-                <td className="whitespace-nowrap px-4 text-right">{company.employees}</td>
-                <td className="whitespace-nowrap px-4 text-right">{company.ipCount}</td>
-                <td className="whitespace-nowrap px-4 text-right">{company.ntisCount}</td>
-                <td className="whitespace-nowrap px-4 text-right">{company.supportCount}</td>
-                <td className="whitespace-nowrap px-4 text-right">{company.supportAmount}</td>
-                <td className="whitespace-nowrap px-4 text-right">{company.debtRatio}</td>
-                <td className="whitespace-nowrap px-4 text-right">{company.salesGrowthRate}</td>
+                {companyTableColumns.map((column) => (
+                  <td
+                    className={`whitespace-nowrap px-4 ${columnAlignClassName(column.align)} ${
+                      column.sticky ? "sticky left-0 z-10" : ""
+                    } ${columnBackgroundClassName(column.key, index)}`}
+                    key={column.key}
+                  >
+                    {company[column.key]}
+                  </td>
+                ))}
                 <td className="whitespace-nowrap px-4 text-center">
                   {!isSample && (
                     <span className="inline-flex h-7 items-center rounded-full bg-[#eaf3ff] px-3 text-sm font-medium text-[#2b7fff]">
