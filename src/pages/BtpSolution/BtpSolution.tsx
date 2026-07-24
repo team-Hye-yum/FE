@@ -186,6 +186,7 @@ type RelatedSupportNotice = {
   supportField: string;
   supportContent?: string;
   connectionBasis?: string;
+  matchedKeyword?: string;
   equipmentCount: number;
   announceUrl: string | null;
 };
@@ -199,6 +200,7 @@ type RelatedSupportProgramsResponse = {
     supportField: string;
     supportContent?: string;
     connectionBasis?: string;
+    matchedKeyword?: string;
     equipmentCount: number;
     announceUrl: string | null;
   }>;
@@ -475,6 +477,7 @@ const SAMPLE_RELATED_NOTICES: RelatedSupportNotice[] = [
     supportField: "반도체",
     supportContent: "기술개발, 시제품 제작, 시험분석, 인증 지원",
     connectionBasis: "지원분야에 반도체 명시",
+    matchedKeyword: "반도체",
     equipmentCount: 18,
     announceUrl: "#",
   },
@@ -486,6 +489,7 @@ const SAMPLE_RELATED_NOTICES: RelatedSupportNotice[] = [
     supportField: "소재·부품",
     supportContent: "소재 개발, 성능평가, 분석·시험 지원",
     connectionBasis: "지원내용의 소재·부품 항목 일치",
+    matchedKeyword: "소재·부품",
     equipmentCount: 12,
     announceUrl: "#",
   },
@@ -497,6 +501,7 @@ const SAMPLE_RELATED_NOTICES: RelatedSupportNotice[] = [
     supportField: "데이터·AI",
     supportContent: "데이터 처리·활용 관련 법·제도, 기술 컨설팅",
     connectionBasis: "디지털 전환/데이터 활용 관련",
+    matchedKeyword: "데이터",
     equipmentCount: 7,
     announceUrl: null,
   },
@@ -653,6 +658,61 @@ const formatCount = (value: number | null | undefined) => {
   }
 
   return value.toLocaleString("ko-KR");
+};
+
+const normalizeRelatedNoticeTitle = (title: string) =>
+  title
+    .replace(/\s*\((?:재공고|추가|수정|연장|최종|공고문|신청서|서식)[^)]+\)\s*/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const compactSupportContent = (content: string | undefined) => {
+  if (!content) {
+    return "공고 요약 정보가 확인되지 않았습니다.";
+  }
+
+  const compacted = content.replace(/\s+/g, " ").trim();
+  return compacted.length > 150 ? `${compacted.slice(0, 150)}...` : compacted;
+};
+
+const statusBadgeClassName = (status: string) => {
+  if (status.includes("접수중") || status.includes("상시")) {
+    return "border-[#bfdbfe] bg-[#eff6ff] text-[#1d4ed8]";
+  }
+
+  if (status.includes("예정")) {
+    return "border-[#fde68a] bg-[#fffbeb] text-[#b45309]";
+  }
+
+  return "border-[#e2e8f0] bg-[#f8fafc] text-[#64748b]";
+};
+
+const connectionBasisBadgeClassName = (basis: string | undefined) => {
+  if (basis?.includes("산업명") || basis?.includes("지원분야")) {
+    return "border-[#bbf7d0] bg-[#f0fdf4] text-[#15803d]";
+  }
+
+  if (basis?.includes("핵심어")) {
+    return "border-[#bfdbfe] bg-[#eff6ff] text-[#1d4ed8]";
+  }
+
+  return "border-[#ddd6fe] bg-[#f5f3ff] text-[#6d28d9]";
+};
+
+const groupRelatedNotices = (notices: RelatedSupportNotice[]) => {
+  const groups = new Map<string, RelatedSupportNotice[]>();
+
+  notices.forEach((notice) => {
+    const normalizedTitle = normalizeRelatedNoticeTitle(notice.title);
+    const key = `${normalizedTitle}|${notice.year}`;
+    groups.set(key, [...(groups.get(key) ?? []), notice]);
+  });
+
+  return Array.from(groups.values()).map((items) => ({
+    duplicateCount: Math.max(items.length - 1, 0),
+    notices: items,
+    primary: items[0],
+  }));
 };
 
 const formatPercent = (value: number | null) => {
@@ -1145,6 +1205,7 @@ const MATRIX_Y_MIN = 0;
 const MATRIX_Y_MAX = 100;
 const OBSERVATION_X_THRESHOLD = 0;
 const OBSERVATION_Y_THRESHOLD = 40;
+const RELATED_NOTICE_PAGE_SIZE = 3;
 const RELATED_EQUIPMENT_PAGE_SIZE = 5;
 
 const formatGrowthPercent = (value: number) => `${value > 0 ? "+" : ""}${value.toFixed(1)}%`;
@@ -1169,6 +1230,7 @@ const IndustryPositionComparison = ({
   const [relatedNotices, setRelatedNotices] = useState<RelatedSupportNotice[]>(
     SAMPLE_RELATED_NOTICES,
   );
+  const [relatedNoticePage, setRelatedNoticePage] = useState(0);
   const [expandedNoticeId, setExpandedNoticeId] = useState<string | null>(null);
   const [relatedEquipmentPages, setRelatedEquipmentPages] = useState<
     Record<string, RelatedSupportProgramEquipmentsResponse>
@@ -1300,11 +1362,13 @@ const IndustryPositionComparison = ({
             supportContent: item.supportContent,
             supportField: item.supportField,
             connectionBasis: item.connectionBasis,
+            matchedKeyword: item.matchedKeyword,
             equipmentCount: item.equipmentCount ?? 0,
             title: item.title,
             year: item.year,
           })),
         );
+        setRelatedNoticePage(0);
         setRelatedNoticesStatus("idle");
       })
       .catch((error: unknown) => {
@@ -1404,6 +1468,14 @@ const IndustryPositionComparison = ({
     ...matrixItems.filter((point) => point.divisionCode !== position.divisionCode),
     selectedPoint,
   ];
+  const relatedNoticeGroups = groupRelatedNotices(relatedNotices);
+  const relatedNoticeTotalPages = Math.ceil(relatedNoticeGroups.length / RELATED_NOTICE_PAGE_SIZE);
+  const relatedNoticeSafePage = Math.min(relatedNoticePage, Math.max(relatedNoticeTotalPages - 1, 0));
+  const relatedNoticeVisibleGroups = relatedNoticeGroups.slice(
+    relatedNoticeSafePage * RELATED_NOTICE_PAGE_SIZE,
+    relatedNoticeSafePage * RELATED_NOTICE_PAGE_SIZE + RELATED_NOTICE_PAGE_SIZE,
+  );
+  const relatedNoticePages = paginationPages(relatedNoticeSafePage, relatedNoticeTotalPages);
   const baseYear = position.baseYear;
   const openAnnounceUrl = (announceUrl: string | null) => {
     if (!announceUrl) {
@@ -1618,16 +1690,6 @@ const IndustryPositionComparison = ({
               공고문 원문에서 해당 산업 또는 장비·인프라 활용이 명시된 경우에만 “연결 확인”으로 표시합니다.
             </p>
           </div>
-          {relatedNotices.length > 0 && (
-            <button
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] border border-[#d8dee8] bg-white px-4 text-sm font-semibold text-[#334155] transition hover:border-[#cbd5e1] hover:bg-[#f8fafc]"
-              onClick={() => openAnnounceUrl(relatedNotices[0].announceUrl)}
-              type="button"
-            >
-              전체 공고 원문 보기
-              <span aria-hidden="true">↗</span>
-            </button>
-          )}
         </div>
 
         {relatedNoticesStatus === "loading" && <StatusPanel message="관련 지원공고를 불러오는 중" />}
@@ -1636,81 +1698,129 @@ const IndustryPositionComparison = ({
           <StatusPanel message="표시할 관련 지원공고가 없습니다." />
         )}
         {relatedNoticesStatus === "idle" && relatedNotices.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1180px] border-collapse text-left">
-            <thead>
-              <tr className="border-y border-[#e5e7eb] bg-[#fafafa] text-sm font-semibold text-[#64748b]">
-                <th className="px-4 py-3">공고명</th>
-                <th className="w-[140px] px-4 py-3">연도 / 상태</th>
-                <th className="w-[160px] px-4 py-3">지원분야</th>
-                <th className="w-[200px] px-4 py-3">지원내용</th>
-                <th className="w-[150px] px-4 py-3">연결 기준</th>
-                <th className="w-[120px] px-4 py-3">연계 장비 수</th>
-                <th className="w-[76px] px-4 py-3">원문</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#eef2f7] text-sm text-[#334155]">
-              {relatedNotices.map((notice) => {
-                const equipmentPage = relatedEquipmentPages[notice.id];
-                const equipmentStatus = relatedEquipmentStatusByNotice[notice.id] ?? "idle";
-                const isExpanded = expandedNoticeId === notice.id;
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2 rounded-[8px] border border-[#dbeafe] bg-[#f8fbff] px-4 py-3 text-sm font-semibold text-[#334155]">
+              <span className="text-[#1d4ed8]">{formatCount(relatedNoticeGroups.length)}개 대표 공고</span>
+              <span className="text-[#94a3b8]">/</span>
+              <span>원문 기준 {formatCount(relatedNotices.length)}건</span>
+            </div>
+            {relatedNoticeVisibleGroups.map(({ duplicateCount, primary }) => {
+              const equipmentPage = relatedEquipmentPages[primary.id];
+              const equipmentStatus = relatedEquipmentStatusByNotice[primary.id] ?? "idle";
+              const isExpanded = expandedNoticeId === primary.id;
 
-                return (
-                  <Fragment key={notice.id}>
-                    <tr className="transition hover:bg-[#fafafa]">
-                      <td className="px-4 py-4 align-top">
-                        <p className="font-semibold leading-6 text-[#111827]">{notice.title}</p>
-                      </td>
-                      <td className="px-4 py-4 align-top font-medium text-[#475569]">
-                        {notice.year} · {notice.status}
-                      </td>
-                      <td className="px-4 py-4 align-top font-medium text-[#475569]">
-                        <p>{notice.supportField}</p>
-                      </td>
-                      <td className="px-4 py-4 align-top font-medium leading-6 text-[#334155]">
-                        {notice.supportContent ?? "-"}
-                      </td>
-                      <td className="px-4 py-4 align-top font-medium leading-6 text-[#475569]">
-                        {notice.connectionBasis ?? "-"}
-                      </td>
-                      <td className="px-4 py-4 align-top font-medium leading-6 text-[#334155]">
-                        <button
-                          className="inline-flex h-8 items-center justify-center rounded-[8px] border border-[#d8dee8] px-3 text-sm font-semibold text-[#2563eb] transition hover:bg-[#eff6ff] disabled:cursor-not-allowed disabled:text-[#94a3b8] disabled:hover:bg-white"
-                          disabled={notice.equipmentCount <= 0}
-                          onClick={() => toggleRelatedEquipments(notice.id)}
-                          type="button"
-                        >
-                          {formatCount(notice.equipmentCount)}개 {isExpanded ? "접기" : "보기"}
-                        </button>
-                      </td>
-                      <td className="px-4 py-4 align-top">
-                        <button
-                          aria-label={`${notice.title} 원문 보기`}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-[8px] text-[#64748b] transition hover:bg-[#f1f5f9] hover:text-[#111827]"
-                          onClick={() => openAnnounceUrl(notice.announceUrl)}
-                          type="button"
-                        >
-                          ↗
-                        </button>
-                      </td>
-                    </tr>
-                    {isExpanded && (
-                      <tr className="bg-[#fbfdff]">
-                        <td className="px-4 py-4" colSpan={7}>
-                          <RelatedProgramEquipmentPanel
-                            onPageChange={(page) => changeRelatedEquipmentPage(notice.id, page)}
-                            response={equipmentPage}
-                            status={equipmentStatus}
-                          />
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+              return (
+                <div
+                  className="rounded-[8px] border border-[#e5e7eb] bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:border-[#bfdbfe] hover:bg-[#fbfdff] max-md:px-4"
+                  key={primary.id}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-3 flex flex-wrap items-center gap-2">
+                        <span className={`rounded-full border px-2.5 py-1 text-xs font-extrabold ${statusBadgeClassName(primary.status)}`}>
+                          {primary.status}
+                        </span>
+                        <span className="rounded-full border border-[#e2e8f0] bg-[#f8fafc] px-2.5 py-1 text-xs font-extrabold text-[#475569]">
+                          {primary.year}
+                        </span>
+                        <span className={`rounded-full border px-2.5 py-1 text-xs font-extrabold ${connectionBasisBadgeClassName(primary.connectionBasis)}`}>
+                          {primary.connectionBasis ?? "규칙 기반 연결"}
+                        </span>
+                        {primary.matchedKeyword && (
+                          <span className="rounded-full border border-[#c7d2fe] bg-[#eef2ff] px-2.5 py-1 text-xs font-extrabold text-[#3730a3]">
+                            키워드: {primary.matchedKeyword}
+                          </span>
+                        )}
+                        {duplicateCount > 0 && (
+                          <span className="rounded-full border border-[#fed7aa] bg-[#fff7ed] px-2.5 py-1 text-xs font-extrabold text-[#c2410c]">
+                            관련 원문 {formatCount(duplicateCount + 1)}건
+                          </span>
+                        )}
+                      </div>
+                      <p className="break-keep text-[17px] font-extrabold leading-7 text-[#111827]">
+                        {primary.title}
+                      </p>
+                      <p className="mt-2 break-keep text-sm font-medium leading-6 text-[#475569]">
+                        {compactSupportContent(primary.supportContent)}
+                      </p>
+                      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-semibold text-[#64748b]">
+                        <span>관련 분야: {primary.supportField}</span>
+                        <span>연계 장비: {formatCount(primary.equipmentCount)}개</span>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      <button
+                        className="inline-flex h-9 items-center justify-center rounded-[8px] border border-[#bfdbfe] bg-[#eff6ff] px-3 text-sm font-extrabold text-[#2563eb] transition hover:bg-[#dbeafe] disabled:cursor-not-allowed disabled:border-[#e2e8f0] disabled:bg-[#f8fafc] disabled:text-[#94a3b8]"
+                        disabled={primary.equipmentCount <= 0}
+                        onClick={() => toggleRelatedEquipments(primary.id)}
+                        type="button"
+                      >
+                        장비 {isExpanded ? "접기" : "보기"}
+                      </button>
+                      <button
+                        aria-label={`${primary.title} 원문 보기`}
+                        className="inline-flex h-9 items-center justify-center rounded-[8px] border border-[#d8dee8] bg-white px-3 text-sm font-extrabold text-[#334155] transition hover:border-[#cbd5e1] hover:bg-[#f8fafc]"
+                        onClick={() => openAnnounceUrl(primary.announceUrl)}
+                        type="button"
+                      >
+                        원문 ↗
+                      </button>
+                    </div>
+                  </div>
+                  {isExpanded && (
+                    <div className="mt-4 rounded-[8px] border border-[#e5e7eb] bg-[#fbfdff] p-4">
+                      <RelatedProgramEquipmentPanel
+                        onPageChange={(page) => changeRelatedEquipmentPage(primary.id, page)}
+                        response={equipmentPage}
+                        status={equipmentStatus}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {relatedNoticeTotalPages > 1 && (
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#eef2f7] pt-4">
+                <p className="text-sm font-semibold text-[#64748b]">
+                  {formatCount(relatedNoticeSafePage * RELATED_NOTICE_PAGE_SIZE + 1)}-
+                  {formatCount(Math.min((relatedNoticeSafePage + 1) * RELATED_NOTICE_PAGE_SIZE, relatedNoticeGroups.length))}
+                  개 표시
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    className="h-9 rounded-[8px] border border-[#d8dee8] px-3 text-sm font-semibold text-[#475569] disabled:cursor-not-allowed disabled:text-[#cbd5e1]"
+                    disabled={relatedNoticeSafePage <= 0}
+                    onClick={() => setRelatedNoticePage((page) => Math.max(page - 1, 0))}
+                    type="button"
+                  >
+                    이전
+                  </button>
+                  {relatedNoticePages.map((pageNumber) => (
+                    <button
+                      className={`h-9 min-w-9 rounded-[8px] px-3 text-sm font-semibold ${
+                        pageNumber === relatedNoticeSafePage
+                          ? "bg-[#2563eb] text-white"
+                          : "border border-[#d8dee8] text-[#475569] hover:bg-[#f8fafc]"
+                      }`}
+                      key={pageNumber}
+                      onClick={() => setRelatedNoticePage(pageNumber)}
+                      type="button"
+                    >
+                      {pageNumber + 1}
+                    </button>
+                  ))}
+                  <button
+                    className="h-9 rounded-[8px] border border-[#d8dee8] px-3 text-sm font-semibold text-[#475569] disabled:cursor-not-allowed disabled:text-[#cbd5e1]"
+                    disabled={relatedNoticeSafePage >= relatedNoticeTotalPages - 1}
+                    onClick={() => setRelatedNoticePage((page) => Math.min(page + 1, relatedNoticeTotalPages - 1))}
+                    type="button"
+                  >
+                    다음
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </section>
