@@ -187,7 +187,7 @@ type RelatedSupportNotice = {
   supportContent?: string;
   connectionBasis?: string;
   linkedEquipment?: string;
-  sourceUrl: string;
+  announceUrl: string | null;
 };
 
 type RelatedSupportProgramsResponse = {
@@ -200,7 +200,7 @@ type RelatedSupportProgramsResponse = {
     supportContent?: string;
     connectionBasis?: string;
     linkedEquipment?: string;
-    sourceUrl: string;
+    announceUrl: string | null;
   }>;
 };
 
@@ -459,7 +459,7 @@ const SAMPLE_RELATED_NOTICES: RelatedSupportNotice[] = [
     supportContent: "기술개발, 시제품 제작, 시험분석, 인증 지원",
     connectionBasis: "지원분야에 반도체 명시",
     linkedEquipment: "반도체 상용화센터 · 반도체 공정 평가 장비",
-    sourceUrl: "#",
+    announceUrl: "#",
   },
   {
     id: "notice-2026-material-parts",
@@ -470,7 +470,7 @@ const SAMPLE_RELATED_NOTICES: RelatedSupportNotice[] = [
     supportContent: "소재 개발, 성능평가, 분석·시험 지원",
     connectionBasis: "지원내용의 소재·부품 항목 일치",
     linkedEquipment: "유기소재분석센터 · 재료분석 장비",
-    sourceUrl: "#",
+    announceUrl: "#",
   },
   {
     id: "notice-always-ai-consulting",
@@ -481,7 +481,7 @@ const SAMPLE_RELATED_NOTICES: RelatedSupportNotice[] = [
     supportContent: "데이터 처리·활용 관련 법·제도, 기술 컨설팅",
     connectionBasis: "디지털 전환/데이터 활용 관련",
     linkedEquipment: "AI·데이터 분석 인프라 · 고성능 연산 장비",
-    sourceUrl: "#",
+    announceUrl: null,
   },
 ];
 
@@ -1188,7 +1188,7 @@ const IndustryPositionComparison = ({
         setRelatedNotices(
           response.data.items.map((item) => ({
             id: String(item.programId),
-            sourceUrl: item.sourceUrl,
+            announceUrl: item.announceUrl,
             status: item.status,
             supportContent: item.supportContent,
             supportField: item.supportField,
@@ -1227,6 +1227,14 @@ const IndustryPositionComparison = ({
     selectedPoint,
   ];
   const baseYear = position.baseYear;
+  const openAnnounceUrl = (announceUrl: string | null) => {
+    if (!announceUrl) {
+      window.alert("삭제되었거나 찾을 수 없습니다.");
+      return;
+    }
+
+    window.open(announceUrl, "_blank", "noopener,noreferrer");
+  };
 
   return (
     <section className="space-y-5">
@@ -1401,15 +1409,14 @@ const IndustryPositionComparison = ({
             </p>
           </div>
           {relatedNotices.length > 0 && (
-            <a
+            <button
               className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] border border-[#d8dee8] bg-white px-4 text-sm font-semibold text-[#334155] transition hover:border-[#cbd5e1] hover:bg-[#f8fafc]"
-              href={relatedNotices[0].sourceUrl}
-              rel="noreferrer"
-              target="_blank"
+              onClick={() => openAnnounceUrl(relatedNotices[0].announceUrl)}
+              type="button"
             >
               전체 공고 원문 보기
               <span aria-hidden="true">↗</span>
-            </a>
+            </button>
           )}
         </div>
 
@@ -1454,15 +1461,14 @@ const IndustryPositionComparison = ({
                     {notice.linkedEquipment ?? "-"}
                   </td>
                   <td className="px-4 py-4 align-top">
-                    <a
+                    <button
                       aria-label={`${notice.title} 원문 보기`}
                       className="inline-flex h-9 w-9 items-center justify-center rounded-[8px] text-[#64748b] transition hover:bg-[#f1f5f9] hover:text-[#111827]"
-                      href={notice.sourceUrl}
-                      rel="noreferrer"
-                      target="_blank"
+                      onClick={() => openAnnounceUrl(notice.announceUrl)}
+                      type="button"
                     >
                       ↗
-                    </a>
+                    </button>
                   </td>
                 </tr>
               ))}
