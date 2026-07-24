@@ -1201,7 +1201,7 @@ const IndustryPositionComparison = ({
     const abortController = new AbortController();
 
     setMatrixStatus("loading");
-    fetch(apiUrl("/btp-solution/industries/infra-connection-matrix"), {
+    fetch(apiUrl("/btp-solution/industries/infra-connection-matrix?level=group"), {
       signal: abortController.signal,
     })
       .then((response) => {
@@ -1453,10 +1453,10 @@ const IndustryPositionComparison = ({
               </h3>
             </div>
             <div className="min-w-[190px] rounded-[8px] border border-[#eef2f7] bg-[#fafafa] px-4 py-3">
-              <p className="text-sm font-extrabold text-[#111827]">산업 비교 (총 {formatCount(matrixPoints.length)}개 산업)</p>
+              <p className="text-sm font-extrabold text-[#111827]">세부 산업 비교 (총 {formatCount(matrixPoints.length)}개)</p>
               <div className="mt-3 space-y-2 text-sm font-medium text-[#475569]">
                 <MatrixLegendItem color="#2478d7" label={`선택 산업 (${position.divisionName})`} />
-                <MatrixLegendItem color="#7b7f86" label={`다른 산업 (${formatCount(Math.max(matrixPoints.length - 1, 0))}개)`} />
+                <MatrixLegendItem color="#7b7f86" label={`다른 세부 산업 (${formatCount(Math.max(matrixPoints.length - 1, 0))}개)`} />
               </div>
             </div>
           </div>
