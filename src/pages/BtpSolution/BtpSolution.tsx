@@ -9,7 +9,11 @@ import {
   LabelList,
   Pie,
   PieChart,
+  ReferenceArea,
   ResponsiveContainer,
+  Scatter,
+  ScatterChart,
+  Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
@@ -147,6 +151,34 @@ type ConnectionEvidenceResponse = {
   size: number;
   totalElements: number;
   totalPages: number;
+};
+
+type IndustryInfraMatrixPoint = {
+  divisionCode: string;
+  industryName: string;
+  employeeGrowthRate: number;
+  connectionRate: number;
+  isSelected?: boolean;
+};
+
+type ConnectionEvidenceSummaryItem = {
+  id: string;
+  label: string;
+  count: number;
+  description: string;
+};
+
+type RelatedSupportNotice = {
+  id: string;
+  title: string;
+  year: number;
+  status: "과거 지원이력" | "현재 접수중";
+  supportMethod: string;
+  supportField: string;
+  supportContent: string;
+  infraLinked: boolean;
+  connectionBasis: "직접 명시" | "상위 분류 기준 연결" | "규칙 기반 연결";
+  sourceUrl: string;
 };
 
 type IndustrySelectedEvent = CustomEvent<{
@@ -380,6 +412,71 @@ const SAMPLE_CONNECTION_ITEMS: ConnectionEvidenceCompany[] = [
       { equipmentId: -1007, equipmentName: "레이저 가공기", categoryLarge: "시제품제작", hubId: -103, hubName: "미음단지" },
     ],
     evidenceText: "시제품 제작과 소량 가공 수요가 있어 미음단지의 제작·가공 장비와 연결됩니다.",
+  },
+];
+
+const SAMPLE_MATRIX_POINTS: IndustryInfraMatrixPoint[] = [
+  { divisionCode: "10", industryName: "식료품 제조업", employeeGrowthRate: -8.2, connectionRate: 46 },
+  { divisionCode: "13", industryName: "섬유제품 제조업", employeeGrowthRate: -2.1, connectionRate: 62 },
+  { divisionCode: "20", industryName: "화학물질 제조업", employeeGrowthRate: 3.4, connectionRate: 21 },
+  { divisionCode: "25", industryName: "금속가공제품 제조업", employeeGrowthRate: 10.2, connectionRate: 74 },
+  { divisionCode: "26", industryName: "전자부품 제조업", employeeGrowthRate: 23.8, connectionRate: 38 },
+  { divisionCode: "28", industryName: "전기장비 제조업", employeeGrowthRate: 12.7, connectionRate: 53 },
+  { divisionCode: "29", industryName: "기타 기계 및 장비 제조업", employeeGrowthRate: 18.4, connectionRate: 31 },
+  { divisionCode: "30", industryName: "자동차 및 트레일러 제조업", employeeGrowthRate: 5.6, connectionRate: 68 },
+];
+
+const SAMPLE_CONNECTION_SUMMARY: ConnectionEvidenceSummaryItem[] = [
+  {
+    id: "direct",
+    label: "직접 확인",
+    count: 12,
+    description: "원문에 시험·인증 수요가 직접 확인되어 기능을 추출했고, 해당 기능과 연결되는 BTP 장비 근거를 함께 확인했습니다.",
+  },
+  {
+    id: "rule",
+    label: "규칙 기반 연결",
+    count: 6,
+    description: "원문 키워드를 정규화한 뒤 사전에 정의된 기능 규칙과 매칭하여 관련 장비 후보까지 연결했습니다.",
+  },
+  {
+    id: "path",
+    label: "중간 경로 연결",
+    count: 3,
+    description: "제품 설명에서 기능을 도출하고, 기능 분류를 거쳐 장비 분류와 이어지는 중간 경로를 확인했습니다.",
+  },
+  {
+    id: "unknown",
+    label: "연결 근거 미확인",
+    count: 9,
+    description: "연결 근거가 아직 확인되지 않은 기능이며, 장비가 존재하지 않는다는 의미는 아닙니다.",
+  },
+];
+
+const SAMPLE_RELATED_NOTICES: RelatedSupportNotice[] = [
+  {
+    id: "notice-2026-power-semiconductor",
+    title: "전동화 전력반도체 테스트베드 기업지원",
+    year: 2026,
+    status: "현재 접수중",
+    supportMethod: "인프라 이용 승인형",
+    supportField: "전력반도체 시험·인증",
+    supportContent: "시제품 성능평가, 신뢰성 시험, 장비 활용 지원",
+    infraLinked: true,
+    connectionBasis: "직접 명시",
+    sourceUrl: "#",
+  },
+  {
+    id: "notice-2025-field-lab",
+    title: "현장솔루션랩 참여기업 모집",
+    year: 2025,
+    status: "과거 지원이력",
+    supportMethod: "컨설팅 매칭형",
+    supportField: "제조 현장 개선",
+    supportContent: "현장 진단, 공정 개선 컨설팅, 기술 전문가 매칭",
+    infraLinked: false,
+    connectionBasis: "상위 분류 기준 연결",
+    sourceUrl: "#",
   },
 ];
 
@@ -927,11 +1024,314 @@ const BtpSolution = () => {
               status={connectionEvidenceStatus}
             />
           )}
+
+          {overview && (
+            <IndustryInfraConnectionStatus
+              functionInfraCoverage={functionInfraCoverage}
+              overview={overview}
+            />
+          )}
         </section>
       )}
     </main>
   );
 };
+
+type IndustryInfraConnectionStatusProps = {
+  functionInfraCoverage: FunctionInfraCoverage | null;
+  overview: IndustryOverview;
+};
+
+const MATRIX_X_MIN = -12;
+const MATRIX_X_MAX = 28;
+const MATRIX_Y_MIN = 0;
+const MATRIX_Y_MAX = 80;
+const OBSERVATION_X_THRESHOLD = 8;
+const OBSERVATION_Y_THRESHOLD = 45;
+
+const formatGrowthPercent = (value: number) => `${value > 0 ? "+" : ""}${value.toFixed(1)}%`;
+
+const IndustryInfraConnectionStatus = ({
+  functionInfraCoverage,
+  overview,
+}: IndustryInfraConnectionStatusProps) => {
+  const selectedConnectionRate = functionInfraCoverage?.coverageRate ?? 31;
+  const btpSampleCount = overview.industryScale.btp.establishmentCount ?? 0;
+  const selectedPoint: IndustryInfraMatrixPoint = {
+    divisionCode: overview.divisionCode,
+    employeeGrowthRate: 18.4,
+    connectionRate: selectedConnectionRate,
+    industryName: overview.divisionName,
+    isSelected: true,
+  };
+  const matrixPoints = [
+    ...SAMPLE_MATRIX_POINTS.filter((point) => point.divisionCode !== overview.divisionCode),
+    selectedPoint,
+  ];
+  const [activeEvidenceId, setActiveEvidenceId] = useState(SAMPLE_CONNECTION_SUMMARY[0]?.id ?? "");
+  const activeEvidence =
+    SAMPLE_CONNECTION_SUMMARY.find((item) => item.id === activeEvidenceId) ??
+    SAMPLE_CONNECTION_SUMMARY[0];
+  const statisticBasis = overview.divisionCode.length > 2 ? "상위 분류 기준 통계" : "KSIC 중분류";
+  const baseYear = overview.busanBaseYear ?? overview.btpBaseYear ?? 2024;
+
+  return (
+    <section className="space-y-5">
+      <div className="rounded-[20px] border border-[#e2e2e2] bg-white px-8 py-8 max-md:px-5">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-[28px] font-black leading-tight text-[#111] max-sm:text-[24px]">
+            산업-인프라 연결 매트릭스
+          </h2>
+          <p className="text-xl font-bold text-[#8b877f] max-sm:text-base">
+            선택 산업: {overview.divisionName}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-[56px_minmax(0,1fr)] gap-4">
+          <div className="flex flex-col justify-between py-1 text-center text-lg font-bold leading-none text-[#8b877f]">
+            <span className="[writing-mode:vertical-rl]">연결률 높음</span>
+            <span className="[writing-mode:vertical-rl]">연결률 낮음</span>
+          </div>
+
+          <div>
+            <div className="h-[464px] bg-white max-sm:h-[360px]">
+              <ResponsiveContainer height="100%" width="100%">
+                <ScatterChart margin={{ bottom: 20, left: 8, right: 12, top: 16 }}>
+                  <CartesianGrid horizontal={false} stroke="#ededed" vertical={false} />
+                  <ReferenceArea
+                    fill="#fdeecf"
+                    fillOpacity={1}
+                    ifOverflow="extendDomain"
+                    stroke="none"
+                    x1={OBSERVATION_X_THRESHOLD}
+                    x2={MATRIX_X_MAX}
+                    y1={MATRIX_Y_MIN}
+                    y2={OBSERVATION_Y_THRESHOLD}
+                  />
+                  <ReferenceArea
+                    fill="transparent"
+                    ifOverflow="extendDomain"
+                    label={{
+                      fill: "#7a5100",
+                      fontSize: 18,
+                      fontWeight: 900,
+                      position: "insideTopRight",
+                      value: "관찰 구간",
+                    }}
+                    stroke="none"
+                    x1={OBSERVATION_X_THRESHOLD}
+                    x2={MATRIX_X_MAX}
+                    y1={MATRIX_Y_MIN}
+                    y2={OBSERVATION_Y_THRESHOLD}
+                  />
+                  <XAxis
+                    axisLine={{ stroke: "#cfcfcf" }}
+                    dataKey="employeeGrowthRate"
+                    domain={[MATRIX_X_MIN, MATRIX_X_MAX]}
+                    hide
+                    tickLine={false}
+                    type="number"
+                  />
+                  <YAxis
+                    axisLine={{ stroke: "#cfcfcf" }}
+                    dataKey="connectionRate"
+                    domain={[MATRIX_Y_MIN, MATRIX_Y_MAX]}
+                    hide
+                    tickLine={false}
+                    type="number"
+                  />
+                  <Tooltip content={<MatrixTooltip />} cursor={false} />
+                  <Scatter
+                    data={matrixPoints.filter((point) => !point.isSelected)}
+                    fill="#84847f"
+                    isAnimationActive={false}
+                  />
+                  <Scatter
+                    data={matrixPoints.filter((point) => point.isSelected)}
+                    fill="#2478d7"
+                    isAnimationActive={false}
+                  >
+                    <Cell fill="#2478d7" stroke="#b8d8ff" strokeWidth={6} />
+                    <LabelList
+                      dataKey="industryName"
+                      fill="#0b5fc8"
+                      fontSize={20}
+                      fontWeight={900}
+                      offset={16}
+                      position="bottom"
+                    />
+                  </Scatter>
+                </ScatterChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="mt-3 flex justify-between text-lg font-bold text-[#8b877f] max-sm:text-sm">
+              <span>증감률 낮음</span>
+              <span>증감률 높음</span>
+            </div>
+          </div>
+        </div>
+
+        <p className="mt-6 break-keep text-xl font-bold leading-9 text-[#8b877f] max-md:text-base max-md:leading-7">
+          ※ 기능-인프라 연결률은 선택 산업에서 확인된 기능 중 BTP 장비와 연결 근거가 확인된
+          기능의 비율이며, 실제 장비 수요나 지원 필요성을 의미하지 않는다. 현재 버전(v1)에서는
+          산업 간 비교가 쉽도록 증감률이 높고 연결률이 낮은 영역을 관찰 구간으로 표시하며, 이는
+          팀이 정의한 시각화 규칙이다.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-7 max-lg:grid-cols-1">
+        <div className="rounded-[20px] border border-[#e2e2e2] bg-white px-9 py-8 max-md:px-5">
+          <h3 className="mb-6 text-[28px] font-black text-[#111] max-sm:text-[24px]">
+            산업 위치 요약
+          </h3>
+          <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
+            <IndustryPositionMetric label="종사자 증감률" value={formatGrowthPercent(selectedPoint.employeeGrowthRate)} />
+            <IndustryPositionMetric label="기능-인프라 연결률" value={`${formatCompactPercent(selectedConnectionRate)}%`} />
+            <IndustryPositionMetric label="비교 구간" value="관찰 구간" valueClassName="text-[#7a5100]" />
+            <IndustryPositionMetric label="BTP 지원기업 표본" value={`${formatCount(btpSampleCount)}개사`} />
+          </div>
+          <p className="mt-5 text-xl font-bold leading-8 text-[#8b877f] max-md:text-base">
+            산업 통계 기준: {statisticBasis} · 데이터 기준연도 {baseYear}
+          </p>
+        </div>
+
+        <div className="rounded-[20px] border border-[#e2e2e2] bg-white px-9 py-8 max-md:px-5">
+          <h3 className="mb-6 text-[28px] font-black text-[#111] max-sm:text-[24px]">
+            연결 근거 요약
+          </h3>
+          <div className="grid gap-3">
+            {SAMPLE_CONNECTION_SUMMARY.map((item) => (
+              <button
+                className={`flex min-h-[64px] items-center justify-between rounded-[14px] border px-5 text-left text-2xl font-bold transition max-sm:text-lg ${
+                  activeEvidence?.id === item.id
+                    ? "border-[#2b7fff] bg-[#f5f9ff] text-[#123b7a]"
+                    : "border-[#e2e2e2] bg-white text-[#111] hover:bg-[#fafafa]"
+                }`}
+                key={item.id}
+                onClick={() => setActiveEvidenceId(item.id)}
+                type="button"
+              >
+                <span className="inline-flex items-center gap-2">
+                  {item.label}
+                  {item.id === "unknown" && (
+                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#aaa] text-xs font-black text-[#8b877f]">
+                      i
+                    </span>
+                  )}
+                </span>
+                <span>{formatCount(item.count)}건</span>
+              </button>
+            ))}
+          </div>
+          {activeEvidence && (
+            <p className="mt-4 break-keep text-xl font-bold leading-8 text-[#8b877f] max-md:text-base">
+              {activeEvidence.description}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="rounded-[20px] border border-[#e2e2e2] bg-white px-9 py-8 max-md:px-5">
+        <h3 className="mb-3 text-[28px] font-black text-[#111] max-sm:text-[24px]">
+          선택 산업 관련 지원공고
+        </h3>
+        <p className="mb-7 break-keep text-xl font-bold leading-8 text-[#555] max-md:text-base">
+          산업의 현재 위치를 확인한 뒤, 해당 산업을 대상으로 하는 부산TP 지원사업 정보를 함께
+          확인할 수 있도록 구성했다. 산업 비교 결과를 근거로 지원 여부를 판단하거나 추천하지
+          않는다.
+        </p>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[920px] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-[#e2e2e2] text-xl font-bold text-[#8b877f]">
+                <th className="px-4 py-4">공고명</th>
+                <th className="w-[170px] px-4 py-4">연도 / 상태</th>
+                <th className="w-[180px] px-4 py-4">지원방식</th>
+                <th className="w-[180px] px-4 py-4">지원분야</th>
+                <th className="w-[170px] px-4 py-4">장비·인프라 연계</th>
+                <th className="w-[92px] px-4 py-4">원문</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#e2e2e2] text-xl text-[#111]">
+              {SAMPLE_RELATED_NOTICES.map((notice) => (
+                <tr key={notice.id}>
+                  <td className="px-4 py-5 align-top">
+                    <p className="font-bold leading-8">{notice.title}</p>
+                    <p className="mt-1 text-base font-semibold leading-6 text-[#777]">{notice.supportContent}</p>
+                  </td>
+                  <td className="px-4 py-5 align-top font-bold text-[#555]">
+                    {notice.year} · {notice.status}
+                  </td>
+                  <td className="px-4 py-5 align-top font-bold text-[#555]">{notice.supportMethod}</td>
+                  <td className="px-4 py-5 align-top font-bold text-[#555]">
+                    <p>{notice.supportField}</p>
+                    <p className="mt-1 text-sm font-bold text-[#8b877f]">{notice.connectionBasis}</p>
+                  </td>
+                  <td className={`px-4 py-5 align-top font-black ${notice.infraLinked ? "text-[#15803d]" : "text-[#8b877f]"}`}>
+                    {notice.infraLinked ? "연계 확인" : "연계 미확인"}
+                  </td>
+                  <td className="px-4 py-5 align-top">
+                    <a
+                      aria-label={`${notice.title} 원문 보기`}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-[8px] text-[#8b877f] hover:bg-[#f4f4f4]"
+                      href={notice.sourceUrl}
+                    >
+                      ↗
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="mt-5 text-lg font-bold text-[#8b877f] max-md:text-base">
+          현재 확보한 공고문 범위에서만 제공하며 전체 BTP 사업을 대표하지 않는다.
+        </p>
+      </div>
+    </section>
+  );
+};
+
+type MatrixTooltipProps = {
+  active?: boolean;
+  payload?: Array<{
+    payload: IndustryInfraMatrixPoint;
+  }>;
+};
+
+const MatrixTooltip = ({ active, payload }: MatrixTooltipProps) => {
+  const point = payload?.[0]?.payload;
+
+  if (!active || !point) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-[10px] border border-[#d7e2f0] bg-white px-4 py-3 text-sm font-bold text-[#334766] shadow-[0_12px_28px_rgba(15,23,42,0.12)]">
+      <p className="mb-1 text-base font-black text-[#123b7a]">{point.industryName}</p>
+      <p>종사자 증감률 {formatGrowthPercent(point.employeeGrowthRate)}</p>
+      <p>기능-인프라 연결률 {formatCompactPercent(point.connectionRate)}%</p>
+    </div>
+  );
+};
+
+type IndustryPositionMetricProps = {
+  label: string;
+  value: string;
+  valueClassName?: string;
+};
+
+const IndustryPositionMetric = ({ label, value, valueClassName = "" }: IndustryPositionMetricProps) => (
+  <div className="min-h-[120px] rounded-[12px] bg-[#fbfbfb] px-6 py-5">
+    <p className="text-2xl font-bold text-[#666] max-md:text-lg">{label}</p>
+    <p className={`mt-3 text-[36px] font-black leading-none text-[#111] max-md:text-[28px] ${valueClassName}`}>
+      {value}
+    </p>
+  </div>
+);
 
 type InfraHubExplorerProps = {
   errorMessage: string;
