@@ -647,8 +647,8 @@ const loadKakaoMapSdk = () => {
   return kakaoMapSdkPromise;
 };
 
-const formatCount = (value: number | null) => {
-  if (value === null) {
+const formatCount = (value: number | null | undefined) => {
+  if (value === null || value === undefined || Number.isNaN(value)) {
     return "-";
   }
 
@@ -1300,7 +1300,7 @@ const IndustryPositionComparison = ({
             supportContent: item.supportContent,
             supportField: item.supportField,
             connectionBasis: item.connectionBasis,
-            equipmentCount: item.equipmentCount,
+            equipmentCount: item.equipmentCount ?? 0,
             title: item.title,
             year: item.year,
           })),
