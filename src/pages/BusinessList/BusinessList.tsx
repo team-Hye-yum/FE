@@ -2,6 +2,7 @@ import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { showAppAlert } from "@/components/AppAlert";
+import SampleOnboarding from "@/components/SampleOnboarding";
 import AnnouncementAnalysisLoadingModal from "./components/AnnouncementAnalysisLoadingModal";
 import SupportProgramRegisterModal from "./components/SupportProgramRegisterModal";
 import type { SupportProgramPeriod, SupportProgramSaveRequest } from "./types";
@@ -415,13 +416,14 @@ const CompanyTable = ({
   };
 
   return (
-    <section className="min-w-0 flex-1 rounded-[10px] bg-white px-4 py-6 sm:px-[30px] sm:py-[36px]">
+    <section
+      className="min-w-0 flex-1 rounded-[10px] bg-white px-4 py-6 sm:px-[30px] sm:py-[36px]"
+      data-sample-tour="business-list-table"
+    >
       <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <h1 className="text-[22px] font-medium leading-8 sm:text-2xl">{title}</h1>
         {isSample && (
-          <span className="inline-flex h-8 min-w-[92px] items-center justify-center rounded-full bg-[#d10000] px-5 text-base font-bold text-white">
-            SAMPLE
-          </span>
+          <SampleOnboarding variant="business-list" />
         )}
       </div>
 
@@ -429,6 +431,7 @@ const CompanyTable = ({
         <h2 className="text-lg font-medium">기업 목록</h2>
         <button
           className="business-action-button flex h-10 shrink-0 items-center justify-center gap-2 rounded-[10px] bg-[#107c41] px-4 text-base font-medium text-white"
+          data-sample-tour="business-list-excel"
           onClick={handleCompanyListExcelDownload}
           type="button"
         >
@@ -441,7 +444,7 @@ const CompanyTable = ({
         <table className="min-w-[1540px] border-collapse text-left text-base">
           <thead>
             <tr className="h-11 bg-white">
-              {companyTableColumns.map((column) => {
+              {companyTableColumns.map((column, index) => {
                 const selected = sortState?.key === column.key;
 
                 return (
@@ -458,6 +461,7 @@ const CompanyTable = ({
                       className={`inline-flex h-9 w-full items-center gap-1.5 rounded-[6px] px-2 text-sm font-bold transition hover:bg-[#eef6ff] ${columnAlignClassName(
                         column.align,
                       )} ${column.align === "right" ? "justify-end" : column.align === "center" ? "justify-center" : "justify-start"}`}
+                      data-sample-tour={index === 0 ? "business-list-sort" : undefined}
                       onClick={() => handleSort(column.key)}
                       type="button"
                     >

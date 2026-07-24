@@ -1,5 +1,6 @@
 import type { DashboardCompanyProps } from "../types";
 import { useDashboardGetData } from "../hooks/useDashboardApi";
+import SampleOnboarding from "@/components/SampleOnboarding";
 
 type CompanyProfileHeaderResponse = {
   companyId: number | null;
@@ -175,13 +176,12 @@ const DashboardHeader = ({ companyId, isSample = false }: DashboardCompanyProps)
       <h1 className="text-3xl font-medium text-[#333]">기업 일련번호 {displayCompanyId}</h1>
       <div className="flex items-center gap-3">
         {isSample && (
-          <span className="inline-flex h-8 min-w-[92px] items-center justify-center rounded-full bg-[#d10000] px-5 text-base font-bold text-white">
-            SAMPLE
-          </span>
+          <SampleOnboarding variant="company-dashboard" />
         )}
         <button
           className="inline-flex h-9 items-center gap-1.5 rounded-[7px] border border-[#e5e5e5] bg-white px-3 text-sm font-medium text-[#777] hover:border-[#51a2ff] hover:text-[#2b7fff]"
           data-dashboard-print-exclude
+          data-sample-tour="company-dashboard-print"
           onClick={handlePdfExport}
           type="button"
         >

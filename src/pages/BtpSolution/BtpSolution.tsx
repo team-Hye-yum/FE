@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { showAppAlert } from "@/components/AppAlert";
+import SampleOnboarding from "@/components/SampleOnboarding";
 import {
   Bar,
   BarChart,
@@ -1556,7 +1557,7 @@ const IndustryPositionComparison = ({
   };
 
   return (
-    <section className="space-y-5">
+    <section className="space-y-5" data-sample-tour="btp-solution-matrix">
       <div>
         <h2 className="inline-flex items-center gap-2 text-[28px] font-extrabold leading-tight text-[#111827] max-sm:text-[24px]">
           산업별 위치 비교
@@ -1732,7 +1733,10 @@ const IndustryPositionComparison = ({
         </aside>
       </div>
 
-      <div className="rounded-[8px] border border-[#e5e7eb] bg-white px-6 py-6 shadow-[0_1px_2px_rgba(15,23,42,0.04)] max-md:px-4">
+      <div
+        className="rounded-[8px] border border-[#e5e7eb] bg-white px-6 py-6 shadow-[0_1px_2px_rgba(15,23,42,0.04)] max-md:px-4"
+        data-sample-tour="btp-solution-related-notices"
+      >
         <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
           <div>
             <h3 className="inline-flex items-center gap-2 text-[22px] font-extrabold text-[#111827] max-sm:text-[20px]">
@@ -2081,11 +2085,7 @@ type InfraHubExplorerProps = {
   status: "idle" | "loading" | "error";
 };
 
-const SampleBadge = () => (
-  <span className="inline-flex h-8 min-w-[92px] items-center justify-center rounded-full bg-[#d10000] px-5 text-base font-bold text-white">
-    SAMPLE
-  </span>
-);
+const SampleBadge = () => <SampleOnboarding variant="btp-solution" />;
 
 const InfraHubExplorer = ({
   errorMessage,
@@ -2097,7 +2097,7 @@ const InfraHubExplorer = ({
   const selectedHub = hubs.find((hub) => hub.hubId === selectedHubId) ?? hubs[0] ?? null;
 
   return (
-    <div className="btp-infra-explorer">
+    <div className="btp-infra-explorer" data-sample-tour="btp-solution-infra-hubs">
       <style>
         {`
           .btp-infra-explorer .infra-layout {
@@ -2524,7 +2524,7 @@ const ConnectionEvidenceCompanies = ({
   const [selectedEvidence, setSelectedEvidence] = useState<ConnectionEvidenceCompany | null>(null);
 
   return (
-    <div className="btp-connection-evidence">
+    <div className="btp-connection-evidence" data-sample-tour="btp-solution-evidence">
       <style>
         {`
           .btp-connection-evidence .evidence-table {
@@ -2951,7 +2951,7 @@ const IndustryStatus = ({ functionInfraCoverage, isSample, overview }: IndustryS
   const btpRatio = overview.businessTypeRatio.btp;
 
   return (
-    <div className="btp-industry-status">
+    <div className="btp-industry-status" data-sample-tour="btp-solution-industry-status">
       <style>
         {`
           .btp-industry-status .scale-grid {

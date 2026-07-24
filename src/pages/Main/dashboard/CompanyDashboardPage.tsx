@@ -142,29 +142,33 @@ const CompanyDashboardPage = () => {
       onToggleSectionVisibility={toggleSectionVisibility}
     >
       <DashboardHeader companyId={companyId} isSample={isSample} />
-      <CompanyInfoSection companyId={companyId} isSample={isSample} />
-      {visibleDisplayableSections.map((section) => {
-        if (section.id === "ai-review") {
+      <div data-sample-tour="company-dashboard-company-info">
+        <CompanyInfoSection companyId={companyId} isSample={isSample} />
+      </div>
+      <div data-sample-tour="company-dashboard-sections">
+        {visibleDisplayableSections.map((section) => {
+          if (section.id === "ai-review") {
+            return (
+              <DashboardSection id={section.id} key={section.id} title={section.label}>
+                <AiReviewOpinionSection
+                  data={aiReviewState.data}
+                  error={aiReviewState.error}
+                  isLoading={aiReviewState.isLoading}
+                  isSample={isSample}
+                />
+              </DashboardSection>
+            );
+          }
+
+          const SectionContent = sectionComponents[section.id];
+
           return (
             <DashboardSection id={section.id} key={section.id} title={section.label}>
-              <AiReviewOpinionSection
-                data={aiReviewState.data}
-                error={aiReviewState.error}
-                isLoading={aiReviewState.isLoading}
-                isSample={isSample}
-              />
+              <SectionContent companyId={requestCompanyId} isSample={isSample} />
             </DashboardSection>
           );
-        }
-
-        const SectionContent = sectionComponents[section.id];
-
-        return (
-          <DashboardSection id={section.id} key={section.id} title={section.label}>
-            <SectionContent companyId={requestCompanyId} isSample={isSample} />
-          </DashboardSection>
-        );
-      })}
+        })}
+      </div>
     </DashboardShell>
   );
 };
