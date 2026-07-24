@@ -1880,7 +1880,6 @@ const InfraHubExplorer = ({
   status,
 }: InfraHubExplorerProps) => {
   const selectedHub = hubs.find((hub) => hub.hubId === selectedHubId) ?? hubs[0] ?? null;
-  const totalEquipmentCount = hubs.reduce((sum, hub) => sum + hub.equipmentCount, 0);
 
   return (
     <div className="btp-infra-explorer">
@@ -1997,30 +1996,10 @@ const InfraHubExplorer = ({
   );
 };
 
-type InfraSummaryMetricProps = {
-  description: string;
-  label: string;
-  value: number;
-};
-
 const InfoDot = () => (
   <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#dbe8f8] text-[11px] font-black text-[#24528d]">
     i
   </span>
-);
-
-const InfraSummaryMetric = ({ description, label, value }: InfraSummaryMetricProps) => (
-  <div className="px-6 max-sm:px-3">
-    <p className="inline-flex items-center gap-1 text-sm font-extrabold text-[#334766]">
-      {label}
-      <InfoDot />
-    </p>
-    <p className="mt-2 text-4xl font-black leading-none text-[#0b4d99]">
-      {formatCount(value)}
-      <span className="ml-1 text-xl font-black text-[#123b7a]">개</span>
-    </p>
-    <p className="mt-2 break-keep text-xs font-bold leading-5 text-[#64748b]">{description}</p>
-  </div>
 );
 
 const MapLegend = () => (
