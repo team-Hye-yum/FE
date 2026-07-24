@@ -161,6 +161,26 @@ type IndustryInfraMatrixPoint = {
   isSelected?: boolean;
 };
 
+type IndustryInfraMatrixResponse = {
+  items: Array<{
+    divisionCode: string;
+    divisionName: string;
+    employeeGrowthRate: number;
+    connectionRate: number;
+  }>;
+};
+
+type IndustryInfraPosition = {
+  divisionCode: string;
+  divisionName: string;
+  employeeGrowthRate: number;
+  connectionRate: number;
+  comparisonZone: string;
+  statisticalBasis: string;
+  btpSupportedCompanyCount: number;
+  baseYear: number;
+};
+
 type ConnectionEvidenceSummaryItem = {
   id: string;
   label: string;
@@ -168,17 +188,39 @@ type ConnectionEvidenceSummaryItem = {
   description: string;
 };
 
+type ConnectionEvidenceSummaryResponse = {
+  items: Array<{
+    type: string;
+    label: string;
+    count: number;
+    description: string;
+  }>;
+};
+
 type RelatedSupportNotice = {
   id: string;
   title: string;
   year: number;
-  status: "과거 지원이력" | "현재 접수중";
+  status: string;
   supportMethod: string;
   supportField: string;
-  supportContent: string;
+  supportContent?: string;
   infraLinked: boolean;
-  connectionBasis: "직접 명시" | "상위 분류 기준 연결" | "규칙 기반 연결";
+  connectionBasis?: string;
   sourceUrl: string;
+};
+
+type RelatedSupportProgramsResponse = {
+  items: Array<{
+    programId: number;
+    title: string;
+    year: number;
+    status: string;
+    supportMethod: string;
+    supportField: string;
+    infraLinked: boolean;
+    sourceUrl: string;
+  }>;
 };
 
 type IndustrySelectedEvent = CustomEvent<{
@@ -1028,6 +1070,7 @@ const BtpSolution = () => {
           {overview && (
             <IndustryInfraConnectionStatus
               functionInfraCoverage={functionInfraCoverage}
+              isSample={isSampleIndustry}
               overview={overview}
             />
           )}
@@ -1039,6 +1082,7 @@ const BtpSolution = () => {
 
 type IndustryInfraConnectionStatusProps = {
   functionInfraCoverage: FunctionInfraCoverage | null;
+  isSample: boolean;
   overview: IndustryOverview;
 };
 
@@ -1053,126 +1097,329 @@ const formatGrowthPercent = (value: number) => `${value > 0 ? "+" : ""}${value.t
 
 const IndustryInfraConnectionStatus = ({
   functionInfraCoverage,
+  isSample,
   overview,
 }: IndustryInfraConnectionStatusProps) => {
-  const selectedConnectionRate = functionInfraCoverage?.coverageRate ?? 31;
-  const btpSampleCount = overview.industryScale.btp.establishmentCount ?? 0;
+  const fallbackPosition = useMemo<IndustryInfraPosition>(
+    () => ({
+      baseYear: overview.busanBaseYear ?? overview.btpBaseYear ?? 2024,
+      btpSupportedCompanyCount: overview.industryScale.btp.establishmentCount ?? 0,
+      comparisonZone: "관찰 구간",
+      connectionRate: functionInfraCoverage?.coverageRate ?? 31,
+      divisionCode: overview.divisionCode,
+      divisionName: overview.divisionName,
+      employeeGrowthRate: 18.4,
+      statisticalBasis: overview.divisionCode.length > 2 ? "상위 분류 기준 통계" : "KSIC 중분류",
+    }),
+    [functionInfraCoverage?.coverageRate, overview],
+  );
+  const [matrixItems, setMatrixItems] = useState<IndustryInfraMatrixPoint[]>(SAMPLE_MATRIX_POINTS);
+  const [position, setPosition] = useState<IndustryInfraPosition>(fallbackPosition);
+  const [evidenceSummaries, setEvidenceSummaries] = useState<ConnectionEvidenceSummaryItem[]>(
+    SAMPLE_CONNECTION_SUMMARY,
+  );
+  const [relatedNotices, setRelatedNotices] = useState<RelatedSupportNotice[]>(
+    SAMPLE_RELATED_NOTICES,
+  );
+  const [activeEvidenceId, setActiveEvidenceId] = useState(SAMPLE_CONNECTION_SUMMARY[0]?.id ?? "");
+  const [matrixStatus, setMatrixStatus] = useState<"loading" | "idle" | "error">(
+    isSample ? "idle" : "loading",
+  );
+  const [positionStatus, setPositionStatus] = useState<"loading" | "idle" | "error">(
+    isSample ? "idle" : "loading",
+  );
+  const [evidenceSummaryStatus, setEvidenceSummaryStatus] = useState<"loading" | "idle" | "error">(
+    isSample ? "idle" : "loading",
+  );
+  const [relatedNoticesStatus, setRelatedNoticesStatus] = useState<"loading" | "idle" | "error">(
+    isSample ? "idle" : "loading",
+  );
+
+  useEffect(() => {
+    setPosition(fallbackPosition);
+  }, [fallbackPosition]);
+
+  useEffect(() => {
+    if (isSample) {
+      setMatrixItems(SAMPLE_MATRIX_POINTS);
+      setMatrixStatus("idle");
+      return undefined;
+    }
+
+    const abortController = new AbortController();
+
+    setMatrixStatus("loading");
+    fetch(apiUrl("/btp-solution/industries/infra-connection-matrix"), {
+      signal: abortController.signal,
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`산업-인프라 매트릭스를 불러오지 못했습니다. (${response.status})`);
+        }
+
+        return response.json() as Promise<ApiDataResponse<IndustryInfraMatrixResponse>>;
+      })
+      .then((response) => {
+        setMatrixItems(
+          response.data.items.map((item) => ({
+            connectionRate: item.connectionRate,
+            divisionCode: item.divisionCode,
+            employeeGrowthRate: item.employeeGrowthRate,
+            industryName: item.divisionName,
+          })),
+        );
+        setMatrixStatus("idle");
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setMatrixStatus("error");
+        console.error("Failed to load BTP solution infra connection matrix.", error);
+      });
+
+    return () => {
+      abortController.abort();
+    };
+  }, [isSample]);
+
+  useEffect(() => {
+    if (isSample) {
+      setPosition(fallbackPosition);
+      setEvidenceSummaries(SAMPLE_CONNECTION_SUMMARY);
+      setRelatedNotices(SAMPLE_RELATED_NOTICES);
+      setActiveEvidenceId(SAMPLE_CONNECTION_SUMMARY[0]?.id ?? "");
+      setPositionStatus("idle");
+      setEvidenceSummaryStatus("idle");
+      setRelatedNoticesStatus("idle");
+      return undefined;
+    }
+
+    const abortController = new AbortController();
+    const divisionCode = encodeURIComponent(overview.divisionCode);
+
+    setPositionStatus("loading");
+    fetch(apiUrl(`/btp-solution/industries/${divisionCode}/infra-connection-position`), {
+      signal: abortController.signal,
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`산업 위치 요약을 불러오지 못했습니다. (${response.status})`);
+        }
+
+        return response.json() as Promise<ApiDataResponse<IndustryInfraPosition>>;
+      })
+      .then((response) => {
+        setPosition(response.data);
+        setPositionStatus("idle");
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setPositionStatus("error");
+        console.error("Failed to load BTP solution infra connection position.", error);
+      });
+
+    setEvidenceSummaryStatus("loading");
+    fetch(apiUrl(`/btp-solution/industries/${divisionCode}/connection-evidence/summary`), {
+      signal: abortController.signal,
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`연결 근거 요약을 불러오지 못했습니다. (${response.status})`);
+        }
+
+        return response.json() as Promise<ApiDataResponse<ConnectionEvidenceSummaryResponse>>;
+      })
+      .then((response) => {
+        const items = response.data.items.map((item) => ({
+          count: item.count,
+          description: item.description,
+          id: item.type,
+          label: item.label,
+        }));
+
+        setEvidenceSummaries(items);
+        setActiveEvidenceId((currentId) => (items.some((item) => item.id === currentId) ? currentId : items[0]?.id ?? ""));
+        setEvidenceSummaryStatus("idle");
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setEvidenceSummaryStatus("error");
+        console.error("Failed to load BTP solution connection evidence summary.", error);
+      });
+
+    setRelatedNoticesStatus("loading");
+    fetch(apiUrl(`/btp-solution/industries/${divisionCode}/related-support-programs`), {
+      signal: abortController.signal,
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`관련 지원공고를 불러오지 못했습니다. (${response.status})`);
+        }
+
+        return response.json() as Promise<ApiDataResponse<RelatedSupportProgramsResponse>>;
+      })
+      .then((response) => {
+        setRelatedNotices(
+          response.data.items.map((item) => ({
+            id: String(item.programId),
+            infraLinked: item.infraLinked,
+            sourceUrl: item.sourceUrl,
+            status: item.status,
+            supportField: item.supportField,
+            supportMethod: item.supportMethod,
+            title: item.title,
+            year: item.year,
+          })),
+        );
+        setRelatedNoticesStatus("idle");
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setRelatedNoticesStatus("error");
+        console.error("Failed to load BTP solution related support programs.", error);
+      });
+
+    return () => {
+      abortController.abort();
+    };
+  }, [fallbackPosition, isSample, overview.divisionCode]);
+
+  const selectedConnectionRate = position.connectionRate;
+  const btpSampleCount = position.btpSupportedCompanyCount;
   const selectedPoint: IndustryInfraMatrixPoint = {
-    divisionCode: overview.divisionCode,
-    employeeGrowthRate: 18.4,
+    divisionCode: position.divisionCode,
+    employeeGrowthRate: position.employeeGrowthRate,
     connectionRate: selectedConnectionRate,
-    industryName: overview.divisionName,
+    industryName: position.divisionName,
     isSelected: true,
   };
   const matrixPoints = [
-    ...SAMPLE_MATRIX_POINTS.filter((point) => point.divisionCode !== overview.divisionCode),
+    ...matrixItems.filter((point) => point.divisionCode !== position.divisionCode),
     selectedPoint,
   ];
-  const [activeEvidenceId, setActiveEvidenceId] = useState(SAMPLE_CONNECTION_SUMMARY[0]?.id ?? "");
   const activeEvidence =
-    SAMPLE_CONNECTION_SUMMARY.find((item) => item.id === activeEvidenceId) ??
-    SAMPLE_CONNECTION_SUMMARY[0];
-  const statisticBasis = overview.divisionCode.length > 2 ? "상위 분류 기준 통계" : "KSIC 중분류";
-  const baseYear = overview.busanBaseYear ?? overview.btpBaseYear ?? 2024;
+    evidenceSummaries.find((item) => item.id === activeEvidenceId) ??
+    evidenceSummaries[0];
+  const statisticBasis = position.statisticalBasis;
+  const baseYear = position.baseYear;
 
   return (
     <section className="space-y-5">
-      <div className="rounded-[20px] border border-[#e2e2e2] bg-white px-8 py-8 max-md:px-5">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-[28px] font-black leading-tight text-[#111] max-sm:text-[24px]">
+      <div className="rounded-lg border border-[#dce4ef] bg-white px-6 py-6 shadow-sm max-md:px-4">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-[26px] font-extrabold leading-tight text-[#123b7a] max-sm:text-[22px]">
             산업-인프라 연결 매트릭스
           </h2>
-          <p className="text-xl font-bold text-[#8b877f] max-sm:text-base">
-            선택 산업: {overview.divisionName}
+          <p className="rounded-[6px] bg-[#f4f8fd] px-3 py-2 text-sm font-extrabold text-[#517094]">
+            선택 산업: {position.divisionName}
           </p>
         </div>
 
-        <div className="grid grid-cols-[56px_minmax(0,1fr)] gap-4">
-          <div className="flex flex-col justify-between py-1 text-center text-lg font-bold leading-none text-[#8b877f]">
+        <div className="grid grid-cols-[44px_minmax(0,1fr)] gap-3">
+          <div className="flex flex-col justify-between py-1 text-center text-sm font-extrabold leading-none text-[#8b98a8]">
             <span className="[writing-mode:vertical-rl]">연결률 높음</span>
             <span className="[writing-mode:vertical-rl]">연결률 낮음</span>
           </div>
 
           <div>
-            <div className="h-[464px] bg-white max-sm:h-[360px]">
-              <ResponsiveContainer height="100%" width="100%">
-                <ScatterChart margin={{ bottom: 20, left: 8, right: 12, top: 16 }}>
-                  <CartesianGrid horizontal={false} stroke="#ededed" vertical={false} />
-                  <ReferenceArea
-                    fill="#fdeecf"
-                    fillOpacity={1}
-                    ifOverflow="extendDomain"
-                    stroke="none"
-                    x1={OBSERVATION_X_THRESHOLD}
-                    x2={MATRIX_X_MAX}
-                    y1={MATRIX_Y_MIN}
-                    y2={OBSERVATION_Y_THRESHOLD}
-                  />
-                  <ReferenceArea
-                    fill="transparent"
-                    ifOverflow="extendDomain"
-                    label={{
-                      fill: "#7a5100",
-                      fontSize: 18,
-                      fontWeight: 900,
-                      position: "insideTopRight",
-                      value: "관찰 구간",
-                    }}
-                    stroke="none"
-                    x1={OBSERVATION_X_THRESHOLD}
-                    x2={MATRIX_X_MAX}
-                    y1={MATRIX_Y_MIN}
-                    y2={OBSERVATION_Y_THRESHOLD}
-                  />
-                  <XAxis
-                    axisLine={{ stroke: "#cfcfcf" }}
-                    dataKey="employeeGrowthRate"
-                    domain={[MATRIX_X_MIN, MATRIX_X_MAX]}
-                    hide
-                    tickLine={false}
-                    type="number"
-                  />
-                  <YAxis
-                    axisLine={{ stroke: "#cfcfcf" }}
-                    dataKey="connectionRate"
-                    domain={[MATRIX_Y_MIN, MATRIX_Y_MAX]}
-                    hide
-                    tickLine={false}
-                    type="number"
-                  />
-                  <Tooltip content={<MatrixTooltip />} cursor={false} />
-                  <Scatter
-                    data={matrixPoints.filter((point) => !point.isSelected)}
-                    fill="#84847f"
-                    isAnimationActive={false}
-                  />
-                  <Scatter
-                    data={matrixPoints.filter((point) => point.isSelected)}
-                    fill="#2478d7"
-                    isAnimationActive={false}
-                  >
-                    <Cell fill="#2478d7" stroke="#b8d8ff" strokeWidth={6} />
-                    <LabelList
-                      dataKey="industryName"
-                      fill="#0b5fc8"
-                      fontSize={20}
-                      fontWeight={900}
-                      offset={16}
-                      position="bottom"
+            <div className="h-[420px] rounded-[8px] bg-white max-sm:h-[340px]">
+              {matrixStatus === "loading" && (
+                <StatusPanel message="산업-인프라 매트릭스를 불러오는 중" />
+              )}
+              {matrixStatus === "error" && (
+                <StatusPanel isError message="산업-인프라 매트릭스 분석 실패" />
+              )}
+              {matrixStatus === "idle" && (
+                <ResponsiveContainer height="100%" width="100%">
+                  <ScatterChart margin={{ bottom: 20, left: 8, right: 12, top: 16 }}>
+                    <CartesianGrid horizontal={false} stroke="#ededed" vertical={false} />
+                    <ReferenceArea
+                      fill="#fdeecf"
+                      fillOpacity={1}
+                      ifOverflow="extendDomain"
+                      stroke="none"
+                      x1={OBSERVATION_X_THRESHOLD}
+                      x2={MATRIX_X_MAX}
+                      y1={MATRIX_Y_MIN}
+                      y2={OBSERVATION_Y_THRESHOLD}
                     />
-                  </Scatter>
-                </ScatterChart>
-              </ResponsiveContainer>
+                    <ReferenceArea
+                      fill="transparent"
+                      ifOverflow="extendDomain"
+                      label={{
+                        fill: "#7a5100",
+                        fontSize: 15,
+                        fontWeight: 900,
+                        position: "insideTopRight",
+                        value: "관찰 구간",
+                      }}
+                      stroke="none"
+                      x1={OBSERVATION_X_THRESHOLD}
+                      x2={MATRIX_X_MAX}
+                      y1={MATRIX_Y_MIN}
+                      y2={OBSERVATION_Y_THRESHOLD}
+                    />
+                    <XAxis
+                      axisLine={{ stroke: "#cfcfcf" }}
+                      dataKey="employeeGrowthRate"
+                      domain={[MATRIX_X_MIN, MATRIX_X_MAX]}
+                      hide
+                      tickLine={false}
+                      type="number"
+                    />
+                    <YAxis
+                      axisLine={{ stroke: "#cfcfcf" }}
+                      dataKey="connectionRate"
+                      domain={[MATRIX_Y_MIN, MATRIX_Y_MAX]}
+                      hide
+                      tickLine={false}
+                      type="number"
+                    />
+                    <Tooltip content={<MatrixTooltip />} cursor={false} />
+                    <Scatter
+                      data={matrixPoints.filter((point) => !point.isSelected)}
+                      fill="#84847f"
+                      isAnimationActive={false}
+                    />
+                    <Scatter
+                      data={matrixPoints.filter((point) => point.isSelected)}
+                      fill="#2478d7"
+                      isAnimationActive={false}
+                    >
+                      <Cell fill="#2478d7" stroke="#b8d8ff" strokeWidth={6} />
+                      <LabelList
+                        dataKey="industryName"
+                        fill="#0b5fc8"
+                        fontSize={17}
+                        fontWeight={900}
+                        offset={16}
+                        position="bottom"
+                      />
+                    </Scatter>
+                  </ScatterChart>
+                </ResponsiveContainer>
+              )}
             </div>
 
-            <div className="mt-3 flex justify-between text-lg font-bold text-[#8b877f] max-sm:text-sm">
+            <div className="mt-2 flex justify-between text-sm font-extrabold text-[#8b98a8]">
               <span>증감률 낮음</span>
               <span>증감률 높음</span>
             </div>
           </div>
         </div>
 
-        <p className="mt-6 break-keep text-xl font-bold leading-9 text-[#8b877f] max-md:text-base max-md:leading-7">
+        <p className="mt-5 break-keep rounded-[8px] bg-[#f7faff] px-4 py-3 text-sm font-semibold leading-6 text-[#64748b]">
           ※ 기능-인프라 연결률은 선택 산업에서 확인된 기능 중 BTP 장비와 연결 근거가 확인된
           기능의 비율이며, 실제 장비 수요나 지원 필요성을 의미하지 않는다. 현재 버전(v1)에서는
           산업 간 비교가 쉽도록 증감률이 높고 연결률이 낮은 영역을 관찰 구간으로 표시하며, 이는
@@ -1180,99 +1427,124 @@ const IndustryInfraConnectionStatus = ({
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-7 max-lg:grid-cols-1">
-        <div className="rounded-[20px] border border-[#e2e2e2] bg-white px-9 py-8 max-md:px-5">
-          <h3 className="mb-6 text-[28px] font-black text-[#111] max-sm:text-[24px]">
+      <div className="grid grid-cols-2 gap-5 max-lg:grid-cols-1">
+        <div className="rounded-lg border border-[#dce4ef] bg-white px-6 py-6 shadow-sm max-md:px-4">
+          <h3 className="mb-5 text-[24px] font-extrabold text-[#123b7a] max-sm:text-[22px]">
             산업 위치 요약
           </h3>
-          <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
-            <IndustryPositionMetric label="종사자 증감률" value={formatGrowthPercent(selectedPoint.employeeGrowthRate)} />
-            <IndustryPositionMetric label="기능-인프라 연결률" value={`${formatCompactPercent(selectedConnectionRate)}%`} />
-            <IndustryPositionMetric label="비교 구간" value="관찰 구간" valueClassName="text-[#7a5100]" />
-            <IndustryPositionMetric label="BTP 지원기업 표본" value={`${formatCount(btpSampleCount)}개사`} />
-          </div>
-          <p className="mt-5 text-xl font-bold leading-8 text-[#8b877f] max-md:text-base">
-            산업 통계 기준: {statisticBasis} · 데이터 기준연도 {baseYear}
-          </p>
+          {positionStatus === "loading" && <StatusPanel message="산업 위치 요약을 불러오는 중" />}
+          {positionStatus === "error" && <StatusPanel isError message="산업 위치 요약 분석 실패" />}
+          {positionStatus === "idle" && (
+            <>
+              <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
+                <IndustryPositionMetric label="종사자 증감률" value={formatGrowthPercent(selectedPoint.employeeGrowthRate)} />
+                <IndustryPositionMetric label="기능-인프라 연결률" value={`${formatCompactPercent(selectedConnectionRate)}%`} />
+                <IndustryPositionMetric label="비교 구간" value={position.comparisonZone} valueClassName="text-[#7a5100]" />
+                <IndustryPositionMetric label="BTP 지원기업 표본" value={`${formatCount(btpSampleCount)}개사`} />
+              </div>
+              <p className="mt-4 text-sm font-bold leading-6 text-[#64748b]">
+                산업 통계 기준: {statisticBasis} · 데이터 기준연도 {baseYear}
+              </p>
+            </>
+          )}
         </div>
 
-        <div className="rounded-[20px] border border-[#e2e2e2] bg-white px-9 py-8 max-md:px-5">
-          <h3 className="mb-6 text-[28px] font-black text-[#111] max-sm:text-[24px]">
+        <div className="rounded-lg border border-[#dce4ef] bg-white px-6 py-6 shadow-sm max-md:px-4">
+          <h3 className="mb-5 text-[24px] font-extrabold text-[#123b7a] max-sm:text-[22px]">
             연결 근거 요약
           </h3>
-          <div className="grid gap-3">
-            {SAMPLE_CONNECTION_SUMMARY.map((item) => (
-              <button
-                className={`flex min-h-[64px] items-center justify-between rounded-[14px] border px-5 text-left text-2xl font-bold transition max-sm:text-lg ${
-                  activeEvidence?.id === item.id
-                    ? "border-[#2b7fff] bg-[#f5f9ff] text-[#123b7a]"
-                    : "border-[#e2e2e2] bg-white text-[#111] hover:bg-[#fafafa]"
-                }`}
-                key={item.id}
-                onClick={() => setActiveEvidenceId(item.id)}
-                type="button"
-              >
-                <span className="inline-flex items-center gap-2">
-                  {item.label}
-                  {item.id === "unknown" && (
-                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#aaa] text-xs font-black text-[#8b877f]">
-                      i
+          {evidenceSummaryStatus === "loading" && <StatusPanel message="연결 근거 요약을 불러오는 중" />}
+          {evidenceSummaryStatus === "error" && <StatusPanel isError message="연결 근거 요약 분석 실패" />}
+          {evidenceSummaryStatus === "idle" && evidenceSummaries.length === 0 && (
+            <StatusPanel message="표시할 연결 근거 요약이 없습니다." />
+          )}
+          {evidenceSummaryStatus === "idle" && evidenceSummaries.length > 0 && (
+            <>
+              <div className="grid gap-3">
+                {evidenceSummaries.map((item) => (
+                  <button
+                    className={`flex min-h-[54px] items-center justify-between rounded-[8px] border px-4 text-left text-base font-extrabold transition ${
+                      activeEvidence?.id === item.id
+                        ? "border-[#2b7fff] bg-[#f5f9ff] text-[#123b7a]"
+                        : "border-[#e2e2e2] bg-white text-[#111] hover:bg-[#fafafa]"
+                    }`}
+                    key={item.id}
+                    onClick={() => setActiveEvidenceId(item.id)}
+                    type="button"
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      {item.label}
+                      {(item.id === "UNCONFIRMED" || item.label.includes("미확인")) && (
+                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#aaa] text-xs font-black text-[#8b877f]">
+                          i
+                        </span>
+                      )}
                     </span>
-                  )}
-                </span>
-                <span>{formatCount(item.count)}건</span>
-              </button>
-            ))}
-          </div>
-          {activeEvidence && (
-            <p className="mt-4 break-keep text-xl font-bold leading-8 text-[#8b877f] max-md:text-base">
-              {activeEvidence.description}
-            </p>
+                    <span>{formatCount(item.count)}건</span>
+                  </button>
+                ))}
+              </div>
+              {activeEvidence && (
+                <p className="mt-4 break-keep rounded-[8px] bg-[#f7faff] px-4 py-3 text-sm font-semibold leading-6 text-[#64748b]">
+                  {activeEvidence.description}
+                </p>
+              )}
+            </>
           )}
         </div>
       </div>
 
-      <div className="rounded-[20px] border border-[#e2e2e2] bg-white px-9 py-8 max-md:px-5">
-        <h3 className="mb-3 text-[28px] font-black text-[#111] max-sm:text-[24px]">
+      <div className="rounded-lg border border-[#dce4ef] bg-white px-6 py-6 shadow-sm max-md:px-4">
+        <h3 className="mb-2 text-[24px] font-extrabold text-[#123b7a] max-sm:text-[22px]">
           선택 산업 관련 지원공고
         </h3>
-        <p className="mb-7 break-keep text-xl font-bold leading-8 text-[#555] max-md:text-base">
+        <p className="mb-5 break-keep text-sm font-semibold leading-6 text-[#64748b]">
           산업의 현재 위치를 확인한 뒤, 해당 산업을 대상으로 하는 부산TP 지원사업 정보를 함께
           확인할 수 있도록 구성했다. 산업 비교 결과를 근거로 지원 여부를 판단하거나 추천하지
           않는다.
         </p>
 
+        {relatedNoticesStatus === "loading" && <StatusPanel message="관련 지원공고를 불러오는 중" />}
+        {relatedNoticesStatus === "error" && <StatusPanel isError message="관련 지원공고 분석 실패" />}
+        {relatedNoticesStatus === "idle" && relatedNotices.length === 0 && (
+          <StatusPanel message="표시할 관련 지원공고가 없습니다." />
+        )}
+        {relatedNoticesStatus === "idle" && relatedNotices.length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[920px] border-collapse text-left">
             <thead>
-              <tr className="border-b border-[#e2e2e2] text-xl font-bold text-[#8b877f]">
-                <th className="px-4 py-4">공고명</th>
-                <th className="w-[170px] px-4 py-4">연도 / 상태</th>
-                <th className="w-[180px] px-4 py-4">지원방식</th>
-                <th className="w-[180px] px-4 py-4">지원분야</th>
-                <th className="w-[170px] px-4 py-4">장비·인프라 연계</th>
-                <th className="w-[92px] px-4 py-4">원문</th>
+              <tr className="border-y border-[#e2eaf4] bg-[#f7faff] text-sm font-extrabold text-[#64748b]">
+                <th className="px-4 py-3">공고명</th>
+                <th className="w-[160px] px-4 py-3">연도 / 상태</th>
+                <th className="w-[170px] px-4 py-3">지원방식</th>
+                <th className="w-[170px] px-4 py-3">지원분야</th>
+                <th className="w-[160px] px-4 py-3">장비·인프라 연계</th>
+                <th className="w-[76px] px-4 py-3">원문</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#e2e2e2] text-xl text-[#111]">
-              {SAMPLE_RELATED_NOTICES.map((notice) => (
+            <tbody className="divide-y divide-[#e2eaf4] text-sm text-[#334766]">
+              {relatedNotices.map((notice) => (
                 <tr key={notice.id}>
-                  <td className="px-4 py-5 align-top">
-                    <p className="font-bold leading-8">{notice.title}</p>
-                    <p className="mt-1 text-base font-semibold leading-6 text-[#777]">{notice.supportContent}</p>
+                  <td className="px-4 py-4 align-top">
+                    <p className="font-extrabold leading-6 text-[#123b7a]">{notice.title}</p>
+                    {notice.supportContent && (
+                      <p className="mt-1 text-base font-semibold leading-6 text-[#777]">{notice.supportContent}</p>
+                    )}
                   </td>
-                  <td className="px-4 py-5 align-top font-bold text-[#555]">
+                  <td className="px-4 py-4 align-top font-bold text-[#555]">
                     {notice.year} · {notice.status}
                   </td>
-                  <td className="px-4 py-5 align-top font-bold text-[#555]">{notice.supportMethod}</td>
-                  <td className="px-4 py-5 align-top font-bold text-[#555]">
+                  <td className="px-4 py-4 align-top font-bold text-[#555]">{notice.supportMethod}</td>
+                  <td className="px-4 py-4 align-top font-bold text-[#555]">
                     <p>{notice.supportField}</p>
-                    <p className="mt-1 text-sm font-bold text-[#8b877f]">{notice.connectionBasis}</p>
+                    {notice.connectionBasis && (
+                      <p className="mt-1 text-sm font-bold text-[#8b877f]">{notice.connectionBasis}</p>
+                    )}
                   </td>
-                  <td className={`px-4 py-5 align-top font-black ${notice.infraLinked ? "text-[#15803d]" : "text-[#8b877f]"}`}>
+                  <td className={`px-4 py-4 align-top font-black ${notice.infraLinked ? "text-[#15803d]" : "text-[#8b877f]"}`}>
                     {notice.infraLinked ? "연계 확인" : "연계 미확인"}
                   </td>
-                  <td className="px-4 py-5 align-top">
+                  <td className="px-4 py-4 align-top">
                     <a
                       aria-label={`${notice.title} 원문 보기`}
                       className="inline-flex h-9 w-9 items-center justify-center rounded-[8px] text-[#8b877f] hover:bg-[#f4f4f4]"
@@ -1286,14 +1558,30 @@ const IndustryInfraConnectionStatus = ({
             </tbody>
           </table>
         </div>
+        )}
 
-        <p className="mt-5 text-lg font-bold text-[#8b877f] max-md:text-base">
+        <p className="mt-4 text-sm font-semibold text-[#8b98a8]">
           현재 확보한 공고문 범위에서만 제공하며 전체 BTP 사업을 대표하지 않는다.
         </p>
       </div>
     </section>
   );
 };
+
+type StatusPanelProps = {
+  isError?: boolean;
+  message: string;
+};
+
+const StatusPanel = ({ isError = false, message }: StatusPanelProps) => (
+  <div
+    className={`flex min-h-[120px] items-center justify-center rounded-[8px] px-5 py-7 text-center text-sm font-extrabold ${
+      isError ? "bg-red-50 text-red-600" : "bg-[#f7f8fa] text-[#64748b]"
+    }`}
+  >
+    {message}
+  </div>
+);
 
 type MatrixTooltipProps = {
   active?: boolean;
@@ -1325,9 +1613,9 @@ type IndustryPositionMetricProps = {
 };
 
 const IndustryPositionMetric = ({ label, value, valueClassName = "" }: IndustryPositionMetricProps) => (
-  <div className="min-h-[120px] rounded-[12px] bg-[#fbfbfb] px-6 py-5">
-    <p className="text-2xl font-bold text-[#666] max-md:text-lg">{label}</p>
-    <p className={`mt-3 text-[36px] font-black leading-none text-[#111] max-md:text-[28px] ${valueClassName}`}>
+  <div className="min-h-[96px] rounded-[8px] border border-[#eef2f7] bg-[#fbfdff] px-5 py-4">
+    <p className="text-sm font-extrabold text-[#64748b]">{label}</p>
+    <p className={`mt-3 text-[28px] font-black leading-none text-[#123b7a] max-md:text-[24px] ${valueClassName}`}>
       {value}
     </p>
   </div>
