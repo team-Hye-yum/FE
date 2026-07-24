@@ -1043,7 +1043,7 @@ const BtpSolution = () => {
     )
       .then((response) => {
         if (!response.ok) {
-          throw new Error(`연결 근거 정보를 불러오지 못했습니다. (${response.status})`);
+          throw new Error(`확인 내용 정보를 불러오지 못했습니다. (${response.status})`);
         }
 
         return response.json() as Promise<ApiDataResponse<ConnectionEvidenceResponse>>;
@@ -1055,7 +1055,7 @@ const BtpSolution = () => {
       .catch((error: unknown) => {
         setConnectionEvidenceStatus("error");
         setConnectionEvidenceErrorMessage(
-          error instanceof Error ? error.message : "연결 근거 정보를 불러오지 못했습니다.",
+          error instanceof Error ? error.message : "확인 내용 정보를 불러오지 못했습니다.",
         );
       });
   }, [
@@ -1578,7 +1578,7 @@ const IndustryPositionComparison = ({
               <div className="overflow-hidden rounded-[8px] border border-[#e5e7eb] bg-white">
                 <IndustryPositionMetric label="종사자 증감률 (2023~2024)" value={formatGrowthPercent(selectedPoint.employeeGrowthRate)} />
                 <IndustryPositionMetric label="장비 연계 비율" value={`${formatCompactPercent(selectedConnectionRate)}%`} />
-                <IndustryPositionMetric label="연결 근거 확인 기능 수" value={`${formatCount(functionInfraCoverage?.connectedFunctionCount ?? 7)}개`} />
+                <IndustryPositionMetric label="공동활용 장비 상세 수" value={`${formatCount(functionInfraCoverage?.connectedFunctionCount ?? 7)}개`} />
                 <IndustryPositionMetric label="전체 기능 수" value={`${formatCount(functionInfraCoverage?.detectedFunctionCount ?? 23)}개`} />
                 <IndustryPositionMetric label="데이터 기준연도" value={String(baseYear)} />
               </div>
@@ -1595,7 +1595,7 @@ const IndustryPositionComparison = ({
               <InfoDot />
             </h3>
             <p className="mt-3 break-keep text-sm font-medium leading-6 text-[#64748b]">
-              선택 산업({position.divisionName})에 연결 근거가 있는 부산TP 지원사업 정보를 제공합니다.
+              선택 산업({position.divisionName})에 확인 내용이 있는 부산TP 지원사업 정보를 제공합니다.
               <br />
               공고문 원문에서 해당 산업 또는 장비·인프라 활용이 명시된 경우에만 “연결 확인”으로 표시합니다.
             </p>
@@ -2196,7 +2196,7 @@ const InfraHubDetail = ({ hub }: InfraHubDetailProps) => {
       <div className="flex flex-wrap items-center gap-3">
         <h3 className="text-3xl font-black leading-tight text-[#123b7a]">{hub.hubName}</h3>
         <span className="rounded-[6px] border border-[#c9ddf4] bg-[#eef6ff] px-3 py-1.5 text-base font-black text-[#0b4d99]">
-          확인 장비 {formatCount(hub.equipmentCount)}개
+          활용 장비 {formatCount(hub.equipmentCount)}개
         </span>
       </div>
       {hub.centerName && <p className="mt-2 text-lg font-bold text-[#64748b]">{hub.centerName}</p>}
@@ -2236,7 +2236,7 @@ const InfraHubDetail = ({ hub }: InfraHubDetailProps) => {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h4 className="inline-flex items-center gap-2 text-xl font-black text-[#123b7a]">
             주요 장비 분야
-            <span className="text-sm font-bold text-[#64748b]">(연결 장비 수 기준)</span>
+            <span className="text-sm font-bold text-[#64748b]">(장비 정보 수 기준)</span>
             <InfoDot />
           </h4>
           {hub.topEquipmentCategories.length > 3 && (
@@ -2370,10 +2370,10 @@ const ConnectionEvidenceCompanies = ({
             </span>
             <div>
               <h2 className="font-extrabold leading-none" style={{ fontSize: 26 }}>
-                연결 근거 확인
+                공동활용 장비 상세
               </h2>
               <p className="mt-2 text-sm font-semibold text-[#64748b]">
-                탐색한 연결은 데이터 기반 근거를 가지며, 기업별 연결 장비와 거점을 함께 제공합니다.
+                탐색한 연결은 데이터 기반 근거를 가지며, 기업별 장비 정보와 거점을 함께 제공합니다.
               </p>
             </div>
           </div>
@@ -2401,23 +2401,23 @@ const ConnectionEvidenceCompanies = ({
         </div>
 
         <div className="mb-4 flex flex-wrap items-center gap-2 text-sm font-extrabold text-[#517094]">
-          <span>현재 탐색 경로</span>
+          <span>탐색 경로</span>
           <span className="rounded-[6px] bg-[#f4f8fd] px-3 py-2 text-[#123b7a]">{sectionName}</span>
           <span className="text-[#9aa9ba]">&gt;</span>
-          <span className="rounded-[6px] bg-[#f4f8fd] px-3 py-2 text-[#123b7a]">확인 기업</span>
+          <span className="rounded-[6px] bg-[#f4f8fd] px-3 py-2 text-[#123b7a]">관련 기업</span>
         </div>
 
         {response && (
           <div className="summary-strip mb-4 grid grid-cols-3 overflow-hidden rounded-[8px] border border-[#dce4ef]">
-            <EvidenceSummaryMetric label="확인 기업" unit="건" value={response.summary.companyCount} />
-            <EvidenceSummaryMetric label="확인 장비" unit="개" value={response.summary.equipmentCount} />
-            <EvidenceSummaryMetric label="확인 거점" unit="개" value={response.summary.hubCount} />
+            <EvidenceSummaryMetric label="관련 기업" unit="건" value={response.summary.companyCount} />
+            <EvidenceSummaryMetric label="활용 장비" unit="개" value={response.summary.equipmentCount} />
+            <EvidenceSummaryMetric label="보유 장소" unit="곳" value={response.summary.hubCount} />
           </div>
         )}
 
         {status === "loading" && (
           <div className="rounded-[8px] bg-[#f4f8fd] px-6 py-8 text-center text-sm font-semibold text-[#2b7fff]">
-            연결 근거를 불러오는 중
+            확인 내용을 불러오는 중
           </div>
         )}
 
@@ -2431,7 +2431,7 @@ const ConnectionEvidenceCompanies = ({
           <>
             {response.items.length === 0 ? (
               <div className="rounded-[8px] bg-[#f4f8fd] px-6 py-8 text-center text-sm font-semibold text-[#64748b]">
-                조건에 맞는 연결 근거가 없습니다.
+                조건에 맞는 확인 내용이 없습니다.
               </div>
             ) : (
               <div className="overflow-x-auto rounded-[8px] border border-[#dce4ef]">
@@ -2441,8 +2441,8 @@ const ConnectionEvidenceCompanies = ({
                       <th className="w-[160px] px-4 py-4">기업명</th>
                       <th className="w-[260px] px-4 py-4">주요제품 / 지원품목</th>
                       <th className="w-[190px] px-4 py-4">연결 기능</th>
-                      <th className="w-[280px] px-4 py-4">연결 장비 (설치 거점)</th>
-                      <th className="px-4 py-4">연결 근거</th>
+                      <th className="w-[280px] px-4 py-4">장비 정보</th>
+                      <th className="px-4 py-4">확인 내용</th>
                       <th className="w-[100px] px-4 py-4 text-center">상세</th>
                     </tr>
                   </thead>
@@ -2645,7 +2645,7 @@ const ConnectionEvidenceDetailModal = ({ item, onClose }: ConnectionEvidenceDeta
     <div className="max-h-[88vh] w-full max-w-3xl overflow-hidden rounded-[10px] bg-white shadow-xl">
       <div className="flex items-start justify-between gap-4 border-b border-[#e2eaf4] px-6 py-5">
         <div>
-          <p className="text-sm font-extrabold text-[#64748b]">연결 근거 상세</p>
+          <p className="text-sm font-extrabold text-[#64748b]">확인 내용 상세</p>
           <h3 className="mt-1 text-2xl font-black text-[#123b7a]">{item.companyName}</h3>
         </div>
         <button
@@ -2667,7 +2667,7 @@ const ConnectionEvidenceDetailModal = ({ item, onClose }: ConnectionEvidenceDeta
           <DetailList items={item.connectedFunctions} />
         </DetailSection>
 
-        <DetailSection title="연결 장비 및 설치 거점">
+        <DetailSection title="장비 정보 및 설치 거점">
           {item.connectedEquipments.length === 0 ? (
             <p className="text-sm font-semibold text-[#9aa9ba]">-</p>
           ) : (
@@ -2694,7 +2694,7 @@ const ConnectionEvidenceDetailModal = ({ item, onClose }: ConnectionEvidenceDeta
           )}
         </DetailSection>
 
-        <DetailSection title="연결 근거">
+        <DetailSection title="확인 내용">
           <p className="rounded-[8px] bg-[#f4f8fd] px-4 py-3 text-sm font-semibold leading-6 text-[#44566e]">
             {item.evidenceText ?? "-"}
           </p>
@@ -3006,13 +3006,13 @@ const FunctionInfraCoveragePanel = ({ coverage }: FunctionInfraCoveragePanelProp
 
       <div className="mt-4 flex flex-wrap justify-center gap-5 text-sm font-bold text-[#334766]">
         <LegendItem color="#1f67d2" label="확인 가능한 장비" />
-        <LegendItem color="#b7bfcc" label="연결 근거 미확인" />
+        <LegendItem color="#b7bfcc" label="확인 내용 미확인" />
       </div>
 
       <p className="mt-6 border-t border-[#e2eaf4] pt-5 text-sm font-semibold leading-6 text-[#44566e]">
         기능 수는 기업 데이터에서 확인된 내용을 정리하여중복을 제거한 고유 기능 기준입니다.
         <br />
-        장비 연결은 BTP 보유 장비와 확인된 연결 근거를 의미하며, 장비 수요나 지원 필요성을 판단하지 않습니다.
+        장비 연결은 BTP 보유 장비와 확인된 확인 내용을 의미하며, 장비 수요나 지원 필요성을 판단하지 않습니다.
       </p>
     </aside>
   );
