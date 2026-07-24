@@ -175,26 +175,7 @@ type IndustryInfraPosition = {
   divisionName: string;
   employeeGrowthRate: number;
   connectionRate: number;
-  comparisonZone: string;
-  statisticalBasis: string;
-  btpSupportedCompanyCount: number;
   baseYear: number;
-};
-
-type ConnectionEvidenceSummaryItem = {
-  id: string;
-  label: string;
-  count: number;
-  description: string;
-};
-
-type ConnectionEvidenceSummaryResponse = {
-  items: Array<{
-    type: string;
-    label: string;
-    count: number;
-    description: string;
-  }>;
 };
 
 type RelatedSupportNotice = {
@@ -202,11 +183,10 @@ type RelatedSupportNotice = {
   title: string;
   year: number;
   status: string;
-  supportMethod: string;
   supportField: string;
   supportContent?: string;
-  infraLinked: boolean;
   connectionBasis?: string;
+  linkedEquipment?: string;
   sourceUrl: string;
 };
 
@@ -216,9 +196,10 @@ type RelatedSupportProgramsResponse = {
     title: string;
     year: number;
     status: string;
-    supportMethod: string;
     supportField: string;
-    infraLinked: boolean;
+    supportContent?: string;
+    connectionBasis?: string;
+    linkedEquipment?: string;
     sourceUrl: string;
   }>;
 };
@@ -468,56 +449,38 @@ const SAMPLE_MATRIX_POINTS: IndustryInfraMatrixPoint[] = [
   { divisionCode: "30", industryName: "자동차 및 트레일러 제조업", employeeGrowthRate: 5.6, connectionRate: 68 },
 ];
 
-const SAMPLE_CONNECTION_SUMMARY: ConnectionEvidenceSummaryItem[] = [
-  {
-    id: "direct",
-    label: "직접 확인",
-    count: 12,
-    description: "원문에 시험·인증 수요가 직접 확인되어 기능을 추출했고, 해당 기능과 연결되는 BTP 장비 근거를 함께 확인했습니다.",
-  },
-  {
-    id: "rule",
-    label: "규칙 기반 연결",
-    count: 6,
-    description: "원문 키워드를 정규화한 뒤 사전에 정의된 기능 규칙과 매칭하여 관련 장비 후보까지 연결했습니다.",
-  },
-  {
-    id: "path",
-    label: "중간 경로 연결",
-    count: 3,
-    description: "제품 설명에서 기능을 도출하고, 기능 분류를 거쳐 장비 분류와 이어지는 중간 경로를 확인했습니다.",
-  },
-  {
-    id: "unknown",
-    label: "연결 근거 미확인",
-    count: 9,
-    description: "연결 근거가 아직 확인되지 않은 기능이며, 장비가 존재하지 않는다는 의미는 아닙니다.",
-  },
-];
-
 const SAMPLE_RELATED_NOTICES: RelatedSupportNotice[] = [
   {
     id: "notice-2026-power-semiconductor",
-    title: "전동화 전력반도체 테스트베드 기업지원",
+    title: "2026 전략산업 선도기업 역량강화 지원사업",
     year: 2026,
-    status: "현재 접수중",
-    supportMethod: "인프라 이용 승인형",
-    supportField: "전력반도체 시험·인증",
-    supportContent: "시제품 성능평가, 신뢰성 시험, 장비 활용 지원",
-    infraLinked: true,
-    connectionBasis: "직접 명시",
+    status: "접수중",
+    supportField: "반도체",
+    supportContent: "기술개발, 시제품 제작, 시험분석, 인증 지원",
+    connectionBasis: "지원분야에 반도체 명시",
+    linkedEquipment: "반도체 상용화센터 · 반도체 공정 평가 장비",
     sourceUrl: "#",
   },
   {
-    id: "notice-2025-field-lab",
-    title: "현장솔루션랩 참여기업 모집",
-    year: 2025,
-    status: "과거 지원이력",
-    supportMethod: "컨설팅 매칭형",
-    supportField: "제조 현장 개선",
-    supportContent: "현장 진단, 공정 개선 컨설팅, 기술 전문가 매칭",
-    infraLinked: false,
-    connectionBasis: "상위 분류 기준 연결",
+    id: "notice-2026-material-parts",
+    title: "첨단소재·부품 기술지원사업",
+    year: 2026,
+    status: "접수중",
+    supportField: "소재·부품",
+    supportContent: "소재 개발, 성능평가, 분석·시험 지원",
+    connectionBasis: "지원내용의 소재·부품 항목 일치",
+    linkedEquipment: "유기소재분석센터 · 재료분석 장비",
+    sourceUrl: "#",
+  },
+  {
+    id: "notice-always-ai-consulting",
+    title: "가명정보 활용 컨설팅 지원",
+    year: 2026,
+    status: "상시 접수중",
+    supportField: "데이터·AI",
+    supportContent: "데이터 처리·활용 관련 법·제도, 기술 컨설팅",
+    connectionBasis: "디지털 전환/데이터 활용 관련",
+    linkedEquipment: "AI·데이터 분석 인프라 · 고성능 연산 장비",
     sourceUrl: "#",
   },
 ];
@@ -1068,7 +1031,7 @@ const BtpSolution = () => {
           )}
 
           {overview && (
-            <IndustryInfraConnectionStatus
+            <IndustryPositionComparison
               functionInfraCoverage={functionInfraCoverage}
               isSample={isSampleIndustry}
               overview={overview}
@@ -1080,55 +1043,45 @@ const BtpSolution = () => {
   );
 };
 
-type IndustryInfraConnectionStatusProps = {
+type IndustryPositionComparisonProps = {
   functionInfraCoverage: FunctionInfraCoverage | null;
   isSample: boolean;
   overview: IndustryOverview;
 };
 
-const MATRIX_X_MIN = -12;
-const MATRIX_X_MAX = 28;
+const MATRIX_X_MIN = -30;
+const MATRIX_X_MAX = 45;
 const MATRIX_Y_MIN = 0;
-const MATRIX_Y_MAX = 80;
-const OBSERVATION_X_THRESHOLD = 8;
-const OBSERVATION_Y_THRESHOLD = 45;
+const MATRIX_Y_MAX = 100;
+const OBSERVATION_X_THRESHOLD = 0;
+const OBSERVATION_Y_THRESHOLD = 40;
 
 const formatGrowthPercent = (value: number) => `${value > 0 ? "+" : ""}${value.toFixed(1)}%`;
 
-const IndustryInfraConnectionStatus = ({
+const IndustryPositionComparison = ({
   functionInfraCoverage,
   isSample,
   overview,
-}: IndustryInfraConnectionStatusProps) => {
+}: IndustryPositionComparisonProps) => {
   const fallbackPosition = useMemo<IndustryInfraPosition>(
     () => ({
       baseYear: overview.busanBaseYear ?? overview.btpBaseYear ?? 2024,
-      btpSupportedCompanyCount: overview.industryScale.btp.establishmentCount ?? 0,
-      comparisonZone: "관찰 구간",
       connectionRate: functionInfraCoverage?.coverageRate ?? 31,
       divisionCode: overview.divisionCode,
       divisionName: overview.divisionName,
       employeeGrowthRate: 18.4,
-      statisticalBasis: overview.divisionCode.length > 2 ? "상위 분류 기준 통계" : "KSIC 중분류",
     }),
     [functionInfraCoverage?.coverageRate, overview],
   );
   const [matrixItems, setMatrixItems] = useState<IndustryInfraMatrixPoint[]>(SAMPLE_MATRIX_POINTS);
   const [position, setPosition] = useState<IndustryInfraPosition>(fallbackPosition);
-  const [evidenceSummaries, setEvidenceSummaries] = useState<ConnectionEvidenceSummaryItem[]>(
-    SAMPLE_CONNECTION_SUMMARY,
-  );
   const [relatedNotices, setRelatedNotices] = useState<RelatedSupportNotice[]>(
     SAMPLE_RELATED_NOTICES,
   );
-  const [activeEvidenceId, setActiveEvidenceId] = useState(SAMPLE_CONNECTION_SUMMARY[0]?.id ?? "");
   const [matrixStatus, setMatrixStatus] = useState<"loading" | "idle" | "error">(
     isSample ? "idle" : "loading",
   );
   const [positionStatus, setPositionStatus] = useState<"loading" | "idle" | "error">(
-    isSample ? "idle" : "loading",
-  );
-  const [evidenceSummaryStatus, setEvidenceSummaryStatus] = useState<"loading" | "idle" | "error">(
     isSample ? "idle" : "loading",
   );
   const [relatedNoticesStatus, setRelatedNoticesStatus] = useState<"loading" | "idle" | "error">(
@@ -1187,11 +1140,8 @@ const IndustryInfraConnectionStatus = ({
   useEffect(() => {
     if (isSample) {
       setPosition(fallbackPosition);
-      setEvidenceSummaries(SAMPLE_CONNECTION_SUMMARY);
       setRelatedNotices(SAMPLE_RELATED_NOTICES);
-      setActiveEvidenceId(SAMPLE_CONNECTION_SUMMARY[0]?.id ?? "");
       setPositionStatus("idle");
-      setEvidenceSummaryStatus("idle");
       setRelatedNoticesStatus("idle");
       return undefined;
     }
@@ -1223,38 +1173,6 @@ const IndustryInfraConnectionStatus = ({
         console.error("Failed to load BTP solution infra connection position.", error);
       });
 
-    setEvidenceSummaryStatus("loading");
-    fetch(apiUrl(`/btp-solution/industries/${divisionCode}/connection-evidence/summary`), {
-      signal: abortController.signal,
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`연결 근거 요약을 불러오지 못했습니다. (${response.status})`);
-        }
-
-        return response.json() as Promise<ApiDataResponse<ConnectionEvidenceSummaryResponse>>;
-      })
-      .then((response) => {
-        const items = response.data.items.map((item) => ({
-          count: item.count,
-          description: item.description,
-          id: item.type,
-          label: item.label,
-        }));
-
-        setEvidenceSummaries(items);
-        setActiveEvidenceId((currentId) => (items.some((item) => item.id === currentId) ? currentId : items[0]?.id ?? ""));
-        setEvidenceSummaryStatus("idle");
-      })
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          return;
-        }
-
-        setEvidenceSummaryStatus("error");
-        console.error("Failed to load BTP solution connection evidence summary.", error);
-      });
-
     setRelatedNoticesStatus("loading");
     fetch(apiUrl(`/btp-solution/industries/${divisionCode}/related-support-programs`), {
       signal: abortController.signal,
@@ -1270,11 +1188,12 @@ const IndustryInfraConnectionStatus = ({
         setRelatedNotices(
           response.data.items.map((item) => ({
             id: String(item.programId),
-            infraLinked: item.infraLinked,
             sourceUrl: item.sourceUrl,
             status: item.status,
+            supportContent: item.supportContent,
             supportField: item.supportField,
-            supportMethod: item.supportMethod,
+            connectionBasis: item.connectionBasis,
+            linkedEquipment: item.linkedEquipment,
             title: item.title,
             year: item.year,
           })),
@@ -1296,7 +1215,6 @@ const IndustryInfraConnectionStatus = ({
   }, [fallbackPosition, isSample, overview.divisionCode]);
 
   const selectedConnectionRate = position.connectionRate;
-  const btpSampleCount = position.btpSupportedCompanyCount;
   const selectedPoint: IndustryInfraMatrixPoint = {
     divisionCode: position.divisionCode,
     employeeGrowthRate: position.employeeGrowthRate,
@@ -1308,201 +1226,192 @@ const IndustryInfraConnectionStatus = ({
     ...matrixItems.filter((point) => point.divisionCode !== position.divisionCode),
     selectedPoint,
   ];
-  const activeEvidence =
-    evidenceSummaries.find((item) => item.id === activeEvidenceId) ??
-    evidenceSummaries[0];
-  const statisticBasis = position.statisticalBasis;
   const baseYear = position.baseYear;
 
   return (
     <section className="space-y-5">
-      <div className="rounded-lg border border-[#dce4ef] bg-white px-6 py-6 shadow-sm max-md:px-4">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-[26px] font-extrabold leading-tight text-[#123b7a] max-sm:text-[22px]">
-            산업-인프라 연결 매트릭스
-          </h2>
-          <p className="rounded-[6px] bg-[#f4f8fd] px-3 py-2 text-sm font-extrabold text-[#517094]">
-            선택 산업: {position.divisionName}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-[44px_minmax(0,1fr)] gap-3">
-          <div className="flex flex-col justify-between py-1 text-center text-sm font-extrabold leading-none text-[#8b98a8]">
-            <span className="[writing-mode:vertical-rl]">연결률 높음</span>
-            <span className="[writing-mode:vertical-rl]">연결률 낮음</span>
-          </div>
-
-          <div>
-            <div className="h-[420px] rounded-[8px] bg-white max-sm:h-[340px]">
-              {matrixStatus === "loading" && (
-                <StatusPanel message="산업-인프라 매트릭스를 불러오는 중" />
-              )}
-              {matrixStatus === "error" && (
-                <StatusPanel isError message="산업-인프라 매트릭스 분석 실패" />
-              )}
-              {matrixStatus === "idle" && (
-                <ResponsiveContainer height="100%" width="100%">
-                  <ScatterChart margin={{ bottom: 20, left: 8, right: 12, top: 16 }}>
-                    <CartesianGrid horizontal={false} stroke="#ededed" vertical={false} />
-                    <ReferenceArea
-                      fill="#fdeecf"
-                      fillOpacity={1}
-                      ifOverflow="extendDomain"
-                      stroke="none"
-                      x1={OBSERVATION_X_THRESHOLD}
-                      x2={MATRIX_X_MAX}
-                      y1={MATRIX_Y_MIN}
-                      y2={OBSERVATION_Y_THRESHOLD}
-                    />
-                    <ReferenceArea
-                      fill="transparent"
-                      ifOverflow="extendDomain"
-                      label={{
-                        fill: "#7a5100",
-                        fontSize: 15,
-                        fontWeight: 900,
-                        position: "insideTopRight",
-                        value: "관찰 구간",
-                      }}
-                      stroke="none"
-                      x1={OBSERVATION_X_THRESHOLD}
-                      x2={MATRIX_X_MAX}
-                      y1={MATRIX_Y_MIN}
-                      y2={OBSERVATION_Y_THRESHOLD}
-                    />
-                    <XAxis
-                      axisLine={{ stroke: "#cfcfcf" }}
-                      dataKey="employeeGrowthRate"
-                      domain={[MATRIX_X_MIN, MATRIX_X_MAX]}
-                      hide
-                      tickLine={false}
-                      type="number"
-                    />
-                    <YAxis
-                      axisLine={{ stroke: "#cfcfcf" }}
-                      dataKey="connectionRate"
-                      domain={[MATRIX_Y_MIN, MATRIX_Y_MAX]}
-                      hide
-                      tickLine={false}
-                      type="number"
-                    />
-                    <Tooltip content={<MatrixTooltip />} cursor={false} />
-                    <Scatter
-                      data={matrixPoints.filter((point) => !point.isSelected)}
-                      fill="#84847f"
-                      isAnimationActive={false}
-                    />
-                    <Scatter
-                      data={matrixPoints.filter((point) => point.isSelected)}
-                      fill="#2478d7"
-                      isAnimationActive={false}
-                    >
-                      <Cell fill="#2478d7" stroke="#b8d8ff" strokeWidth={6} />
-                      <LabelList
-                        dataKey="industryName"
-                        fill="#0b5fc8"
-                        fontSize={17}
-                        fontWeight={900}
-                        offset={16}
-                        position="bottom"
-                      />
-                    </Scatter>
-                  </ScatterChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-
-            <div className="mt-2 flex justify-between text-sm font-extrabold text-[#8b98a8]">
-              <span>증감률 낮음</span>
-              <span>증감률 높음</span>
-            </div>
-          </div>
-        </div>
-
-        <p className="mt-5 break-keep rounded-[8px] bg-[#f7faff] px-4 py-3 text-sm font-semibold leading-6 text-[#64748b]">
-          ※ 기능-인프라 연결률은 선택 산업에서 확인된 기능 중 BTP 장비와 연결 근거가 확인된
-          기능의 비율이며, 실제 장비 수요나 지원 필요성을 의미하지 않는다. 현재 버전(v1)에서는
-          산업 간 비교가 쉽도록 증감률이 높고 연결률이 낮은 영역을 관찰 구간으로 표시하며, 이는
-          팀이 정의한 시각화 규칙이다.
+      <div>
+        <h2 className="inline-flex items-center gap-2 text-[28px] font-extrabold leading-tight text-[#111827] max-sm:text-[24px]">
+          산업별 위치 비교
+          <InfoDot />
+        </h2>
+        <p className="mt-3 text-sm font-medium leading-6 text-[#4b5563]">
+          선택 산업을 다른 산업과 비교하여 종사자 증감률과 장비 연계 비율에 따른 상대적 위치를 확인합니다.
+        </p>
+        <p className="mt-1 text-sm font-medium leading-6 text-[#4b5563]">
+          시스템은 산업의 우선순위나 지원 필요성을 판단하지 않으며, 비교 근거만 제공합니다.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-5 max-lg:grid-cols-1">
-        <div className="rounded-lg border border-[#dce4ef] bg-white px-6 py-6 shadow-sm max-md:px-4">
-          <h3 className="mb-5 text-[24px] font-extrabold text-[#123b7a] max-sm:text-[22px]">
-            산업 위치 요약
+      <div className="grid grid-cols-[minmax(0,1fr)_340px] overflow-hidden rounded-[8px] border border-[#e5e7eb] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] max-xl:grid-cols-1">
+        <div className="border-r border-[#eef2f7] px-6 py-6 max-xl:border-r-0 max-xl:border-b max-md:px-4">
+          <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h3 className="inline-flex items-center gap-2 text-[20px] font-extrabold text-[#111827]">
+                산업별 분포 차트
+                <InfoDot />
+              </h3>
+            </div>
+            <div className="min-w-[190px] rounded-[8px] border border-[#eef2f7] bg-[#fafafa] px-4 py-3">
+              <p className="text-sm font-extrabold text-[#111827]">산업 비교 (총 {formatCount(matrixPoints.length)}개 산업)</p>
+              <div className="mt-3 space-y-2 text-sm font-medium text-[#475569]">
+                <MatrixLegendItem color="#2478d7" label={`선택 산업 (${position.divisionName})`} />
+                <MatrixLegendItem color="#7b7f86" label={`다른 산업 (${formatCount(Math.max(matrixPoints.length - 1, 0))}개)`} />
+              </div>
+            </div>
+          </div>
+
+          <div className="h-[480px] rounded-[8px] bg-white max-sm:h-[360px]">
+            {matrixStatus === "loading" && <StatusPanel message="산업별 분포 차트를 불러오는 중" />}
+            {matrixStatus === "error" && <StatusPanel isError message="산업별 분포 차트 분석 실패" />}
+            {matrixStatus === "idle" && (
+              <ResponsiveContainer height="100%" width="100%">
+                <ScatterChart margin={{ bottom: 34, left: 22, right: 18, top: 14 }}>
+                  <CartesianGrid stroke="#eef2f7" strokeDasharray="2 2" />
+                  <ReferenceArea
+                    fill="#fff8e8"
+                    fillOpacity={1}
+                    ifOverflow="extendDomain"
+                    stroke="none"
+                    x1={OBSERVATION_X_THRESHOLD}
+                    x2={MATRIX_X_MAX}
+                    y1={MATRIX_Y_MIN}
+                    y2={OBSERVATION_Y_THRESHOLD}
+                  />
+                  <ReferenceArea
+                    fill="transparent"
+                    ifOverflow="extendDomain"
+                    label={{
+                      fill: "#9a5b00",
+                      fontSize: 15,
+                      fontWeight: 800,
+                      position: "insideTopRight",
+                      value: "장비 연계 비율 높음",
+                    }}
+                    stroke="none"
+                    x1={OBSERVATION_X_THRESHOLD}
+                    x2={MATRIX_X_MAX}
+                    y1={MATRIX_Y_MIN}
+                    y2={OBSERVATION_Y_THRESHOLD}
+                  />
+                  <XAxis
+                    axisLine={{ stroke: "#d8dee8" }}
+                    dataKey="employeeGrowthRate"
+                    domain={[MATRIX_X_MIN, MATRIX_X_MAX]}
+                    label={{
+                      fill: "#475569",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      offset: -18,
+                      position: "insideBottom",
+                      value: "종사자 증감률 (%) (2020~2024)",
+                    }}
+                    tick={{ fill: "#64748b", fontSize: 12, fontWeight: 600 }}
+                    tickLine={false}
+                    ticks={[-30, -20, -10, 0, 10, 20, 30, 40]}
+                    type="number"
+                  />
+                  <YAxis
+                    axisLine={{ stroke: "#d8dee8" }}
+                    dataKey="connectionRate"
+                    domain={[MATRIX_Y_MIN, MATRIX_Y_MAX]}
+                    label={{
+                      angle: -90,
+                      fill: "#475569",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      position: "insideLeft",
+                      value: "장비 연계 비율 (%)",
+                    }}
+                    tick={{ fill: "#64748b", fontSize: 12, fontWeight: 600 }}
+                    tickLine={false}
+                    ticks={[0, 20, 40, 60, 80, 100]}
+                    type="number"
+                    width={52}
+                  />
+                  <Tooltip content={<MatrixTooltip />} cursor={false} />
+                  <Scatter
+                    data={matrixPoints.filter((point) => !point.isSelected)}
+                    fill="#8b9199"
+                    isAnimationActive={false}
+                  />
+                  <Scatter
+                    data={matrixPoints.filter((point) => point.isSelected)}
+                    fill="#2478d7"
+                    isAnimationActive={false}
+                  >
+                    <Cell fill="#2563eb" stroke="#dbeafe" strokeWidth={6} />
+                    <LabelList
+                      dataKey="industryName"
+                      fill="#2563eb"
+                      fontSize={14}
+                      fontWeight={800}
+                      offset={16}
+                      position="bottom"
+                    />
+                  </Scatter>
+                </ScatterChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          <p className="mt-4 rounded-[8px] border border-[#dbeafe] bg-[#f8fbff] px-4 py-3 text-sm font-medium text-[#334155]">
+            점 하나는 부산의 주요 산업 1개를 의미합니다. 점 위에 마우스를 올리면 산업명과 수치를 확인할 수 있습니다.
+          </p>
+        </div>
+
+        <aside className="bg-[#fafafa] px-5 py-6 max-md:px-4">
+          <h3 className="mb-4 inline-flex items-center gap-2 text-[20px] font-extrabold text-[#111827]">
+            선택 산업 요약
+            <InfoDot />
           </h3>
           {positionStatus === "loading" && <StatusPanel message="산업 위치 요약을 불러오는 중" />}
           {positionStatus === "error" && <StatusPanel isError message="산업 위치 요약 분석 실패" />}
           {positionStatus === "idle" && (
             <>
-              <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
-                <IndustryPositionMetric label="종사자 증감률" value={formatGrowthPercent(selectedPoint.employeeGrowthRate)} />
-                <IndustryPositionMetric label="기능-인프라 연결률" value={`${formatCompactPercent(selectedConnectionRate)}%`} />
-                <IndustryPositionMetric label="비교 구간" value={position.comparisonZone} valueClassName="text-[#7a5100]" />
-                <IndustryPositionMetric label="BTP 지원기업 표본" value={`${formatCount(btpSampleCount)}개사`} />
-              </div>
-              <p className="mt-4 text-sm font-bold leading-6 text-[#64748b]">
-                산업 통계 기준: {statisticBasis} · 데이터 기준연도 {baseYear}
+              <span className="mb-3 inline-flex rounded-[6px] bg-[#eff6ff] px-2.5 py-1 text-xs font-extrabold text-[#2563eb]">
+                선택 산업
+              </span>
+              <p className="mb-5 text-[26px] font-extrabold leading-tight text-[#111827]">
+                {position.divisionName} ({position.divisionCode})
               </p>
-            </>
-          )}
-        </div>
-
-        <div className="rounded-lg border border-[#dce4ef] bg-white px-6 py-6 shadow-sm max-md:px-4">
-          <h3 className="mb-5 text-[24px] font-extrabold text-[#123b7a] max-sm:text-[22px]">
-            연결 근거 요약
-          </h3>
-          {evidenceSummaryStatus === "loading" && <StatusPanel message="연결 근거 요약을 불러오는 중" />}
-          {evidenceSummaryStatus === "error" && <StatusPanel isError message="연결 근거 요약 분석 실패" />}
-          {evidenceSummaryStatus === "idle" && evidenceSummaries.length === 0 && (
-            <StatusPanel message="표시할 연결 근거 요약이 없습니다." />
-          )}
-          {evidenceSummaryStatus === "idle" && evidenceSummaries.length > 0 && (
-            <>
-              <div className="grid gap-3">
-                {evidenceSummaries.map((item) => (
-                  <button
-                    className={`flex min-h-[54px] items-center justify-between rounded-[8px] border px-4 text-left text-base font-extrabold transition ${
-                      activeEvidence?.id === item.id
-                        ? "border-[#2b7fff] bg-[#f5f9ff] text-[#123b7a]"
-                        : "border-[#e2e2e2] bg-white text-[#111] hover:bg-[#fafafa]"
-                    }`}
-                    key={item.id}
-                    onClick={() => setActiveEvidenceId(item.id)}
-                    type="button"
-                  >
-                    <span className="inline-flex items-center gap-2">
-                      {item.label}
-                      {(item.id === "UNCONFIRMED" || item.label.includes("미확인")) && (
-                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#aaa] text-xs font-black text-[#8b877f]">
-                          i
-                        </span>
-                      )}
-                    </span>
-                    <span>{formatCount(item.count)}건</span>
-                  </button>
-                ))}
+              <div className="overflow-hidden rounded-[8px] border border-[#e5e7eb] bg-white">
+                <IndustryPositionMetric label="종사자 증감률 (2020~2024)" value={formatGrowthPercent(selectedPoint.employeeGrowthRate)} />
+                <IndustryPositionMetric label="장비 연계 비율" value={`${formatCompactPercent(selectedConnectionRate)}%`} />
+                <IndustryPositionMetric label="연결 근거 확인 기능 수" value={`${formatCount(functionInfraCoverage?.connectedFunctionCount ?? 7)}개`} />
+                <IndustryPositionMetric label="전체 기능 수" value={`${formatCount(functionInfraCoverage?.detectedFunctionCount ?? 23)}개`} />
+                <IndustryPositionMetric label="데이터 기준연도" value={String(baseYear)} />
               </div>
-              {activeEvidence && (
-                <p className="mt-4 break-keep rounded-[8px] bg-[#f7faff] px-4 py-3 text-sm font-semibold leading-6 text-[#64748b]">
-                  {activeEvidence.description}
-                </p>
-              )}
             </>
           )}
-        </div>
+        </aside>
       </div>
 
-      <div className="rounded-lg border border-[#dce4ef] bg-white px-6 py-6 shadow-sm max-md:px-4">
-        <h3 className="mb-2 text-[24px] font-extrabold text-[#123b7a] max-sm:text-[22px]">
-          선택 산업 관련 지원공고
-        </h3>
-        <p className="mb-5 break-keep text-sm font-semibold leading-6 text-[#64748b]">
-          산업의 현재 위치를 확인한 뒤, 해당 산업을 대상으로 하는 부산TP 지원사업 정보를 함께
-          확인할 수 있도록 구성했다. 산업 비교 결과를 근거로 지원 여부를 판단하거나 추천하지
-          않는다.
-        </p>
+      <div className="rounded-[8px] border border-[#e5e7eb] bg-white px-6 py-6 shadow-[0_1px_2px_rgba(15,23,42,0.04)] max-md:px-4">
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="inline-flex items-center gap-2 text-[22px] font-extrabold text-[#111827] max-sm:text-[20px]">
+              선택 산업 관련 지원공고
+              <InfoDot />
+            </h3>
+            <p className="mt-3 break-keep text-sm font-medium leading-6 text-[#64748b]">
+              선택 산업({position.divisionName})에 연결 근거가 있는 부산TP 지원사업 정보를 제공합니다.
+              <br />
+              공고문 원문에서 해당 산업 또는 장비·인프라 활용이 명시된 경우에만 “연결 확인”으로 표시합니다.
+            </p>
+          </div>
+          {relatedNotices.length > 0 && (
+            <a
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-[8px] border border-[#d8dee8] bg-white px-4 text-sm font-semibold text-[#334155] transition hover:border-[#cbd5e1] hover:bg-[#f8fafc]"
+              href={relatedNotices[0].sourceUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              전체 공고 원문 보기
+              <span aria-hidden="true">↗</span>
+            </a>
+          )}
+        </div>
 
         {relatedNoticesStatus === "loading" && <StatusPanel message="관련 지원공고를 불러오는 중" />}
         {relatedNoticesStatus === "error" && <StatusPanel isError message="관련 지원공고 분석 실패" />}
@@ -1511,44 +1420,46 @@ const IndustryInfraConnectionStatus = ({
         )}
         {relatedNoticesStatus === "idle" && relatedNotices.length > 0 && (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[920px] border-collapse text-left">
+          <table className="w-full min-w-[1180px] border-collapse text-left">
             <thead>
-              <tr className="border-y border-[#e2eaf4] bg-[#f7faff] text-sm font-extrabold text-[#64748b]">
+              <tr className="border-y border-[#e5e7eb] bg-[#fafafa] text-sm font-semibold text-[#64748b]">
                 <th className="px-4 py-3">공고명</th>
-                <th className="w-[160px] px-4 py-3">연도 / 상태</th>
-                <th className="w-[170px] px-4 py-3">지원방식</th>
-                <th className="w-[170px] px-4 py-3">지원분야</th>
-                <th className="w-[160px] px-4 py-3">장비·인프라 연계</th>
+                <th className="w-[140px] px-4 py-3">연도 / 상태</th>
+                <th className="w-[160px] px-4 py-3">지원분야</th>
+                <th className="w-[200px] px-4 py-3">지원내용</th>
+                <th className="w-[150px] px-4 py-3">연결 기준</th>
+                <th className="w-[220px] px-4 py-3">연계 장비</th>
                 <th className="w-[76px] px-4 py-3">원문</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#e2eaf4] text-sm text-[#334766]">
+            <tbody className="divide-y divide-[#eef2f7] text-sm text-[#334155]">
               {relatedNotices.map((notice) => (
-                <tr key={notice.id}>
+                <tr className="transition hover:bg-[#fafafa]" key={notice.id}>
                   <td className="px-4 py-4 align-top">
-                    <p className="font-extrabold leading-6 text-[#123b7a]">{notice.title}</p>
-                    {notice.supportContent && (
-                      <p className="mt-1 text-base font-semibold leading-6 text-[#777]">{notice.supportContent}</p>
-                    )}
+                    <p className="font-semibold leading-6 text-[#111827]">{notice.title}</p>
                   </td>
-                  <td className="px-4 py-4 align-top font-bold text-[#555]">
+                  <td className="px-4 py-4 align-top font-medium text-[#475569]">
                     {notice.year} · {notice.status}
                   </td>
-                  <td className="px-4 py-4 align-top font-bold text-[#555]">{notice.supportMethod}</td>
-                  <td className="px-4 py-4 align-top font-bold text-[#555]">
+                  <td className="px-4 py-4 align-top font-medium text-[#475569]">
                     <p>{notice.supportField}</p>
-                    {notice.connectionBasis && (
-                      <p className="mt-1 text-sm font-bold text-[#8b877f]">{notice.connectionBasis}</p>
-                    )}
                   </td>
-                  <td className={`px-4 py-4 align-top font-black ${notice.infraLinked ? "text-[#15803d]" : "text-[#8b877f]"}`}>
-                    {notice.infraLinked ? "연계 확인" : "연계 미확인"}
+                  <td className="px-4 py-4 align-top font-medium leading-6 text-[#334155]">
+                    {notice.supportContent ?? "-"}
+                  </td>
+                  <td className="px-4 py-4 align-top font-medium leading-6 text-[#475569]">
+                    {notice.connectionBasis ?? "-"}
+                  </td>
+                  <td className="px-4 py-4 align-top font-medium leading-6 text-[#334155]">
+                    {notice.linkedEquipment ?? "-"}
                   </td>
                   <td className="px-4 py-4 align-top">
                     <a
                       aria-label={`${notice.title} 원문 보기`}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-[8px] text-[#8b877f] hover:bg-[#f4f4f4]"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-[8px] text-[#64748b] transition hover:bg-[#f1f5f9] hover:text-[#111827]"
                       href={notice.sourceUrl}
+                      rel="noreferrer"
+                      target="_blank"
                     >
                       ↗
                     </a>
@@ -1559,14 +1470,22 @@ const IndustryInfraConnectionStatus = ({
           </table>
         </div>
         )}
-
-        <p className="mt-4 text-sm font-semibold text-[#8b98a8]">
-          현재 확보한 공고문 범위에서만 제공하며 전체 BTP 사업을 대표하지 않는다.
-        </p>
       </div>
     </section>
   );
 };
+
+type MatrixLegendItemProps = {
+  color: string;
+  label: string;
+};
+
+const MatrixLegendItem = ({ color, label }: MatrixLegendItemProps) => (
+  <span className="flex items-center gap-2">
+    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
+    <span>{label}</span>
+  </span>
+);
 
 type StatusPanelProps = {
   isError?: boolean;
@@ -1575,8 +1494,8 @@ type StatusPanelProps = {
 
 const StatusPanel = ({ isError = false, message }: StatusPanelProps) => (
   <div
-    className={`flex min-h-[120px] items-center justify-center rounded-[8px] px-5 py-7 text-center text-sm font-extrabold ${
-      isError ? "bg-red-50 text-red-600" : "bg-[#f7f8fa] text-[#64748b]"
+    className={`flex min-h-[120px] items-center justify-center rounded-[8px] border px-5 py-7 text-center text-sm font-semibold ${
+      isError ? "border-red-100 bg-red-50 text-red-600" : "border-[#eef2f7] bg-[#fafafa] text-[#64748b]"
     }`}
   >
     {message}
@@ -1598,10 +1517,10 @@ const MatrixTooltip = ({ active, payload }: MatrixTooltipProps) => {
   }
 
   return (
-    <div className="rounded-[10px] border border-[#d7e2f0] bg-white px-4 py-3 text-sm font-bold text-[#334766] shadow-[0_12px_28px_rgba(15,23,42,0.12)]">
-      <p className="mb-1 text-base font-black text-[#123b7a]">{point.industryName}</p>
+    <div className="rounded-[8px] border border-[#e5e7eb] bg-white px-4 py-3 text-sm font-medium text-[#334155] shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
+      <p className="mb-1 text-base font-semibold text-[#111827]">{point.industryName}</p>
       <p>종사자 증감률 {formatGrowthPercent(point.employeeGrowthRate)}</p>
-      <p>기능-인프라 연결률 {formatCompactPercent(point.connectionRate)}%</p>
+      <p>장비 연계 비율 {formatCompactPercent(point.connectionRate)}%</p>
     </div>
   );
 };
@@ -1613,9 +1532,9 @@ type IndustryPositionMetricProps = {
 };
 
 const IndustryPositionMetric = ({ label, value, valueClassName = "" }: IndustryPositionMetricProps) => (
-  <div className="min-h-[96px] rounded-[8px] border border-[#eef2f7] bg-[#fbfdff] px-5 py-4">
-    <p className="text-sm font-extrabold text-[#64748b]">{label}</p>
-    <p className={`mt-3 text-[28px] font-black leading-none text-[#123b7a] max-md:text-[24px] ${valueClassName}`}>
+  <div className="border-b border-[#eef2f7] bg-white px-4 py-4 last:border-b-0">
+    <p className="text-sm font-medium text-[#64748b]">{label}</p>
+    <p className={`mt-2 text-[22px] font-extrabold leading-none text-[#111827] ${valueClassName}`}>
       {value}
     </p>
   </div>
