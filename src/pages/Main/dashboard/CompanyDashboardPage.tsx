@@ -1,8 +1,6 @@
 import { useEffect, useRef } from "react";
-import { useIsFetching } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { showAppAlert } from "@/components/AppAlert";
-import DimLoadingOverlay from "@/components/DimLoadingOverlay";
 import DashboardHeader from "./components/DashboardHeader";
 import DashboardSection from "./components/DashboardSection";
 import DashboardShell from "./components/DashboardShell";
@@ -126,9 +124,6 @@ const CompanyDashboardPage = () => {
     "company-info",
     ...visibleDisplayableSections.map((section) => section.id),
   ]);
-  const activeDashboardFetchCount = useIsFetching({ queryKey: ["dashboard-get", companyId] });
-  const isDashboardLoading = !isSample && activeDashboardFetchCount > 0;
-
   useEffect(() => {
     if (!searchedCompanyId) {
       invalidCompanyAlertedRef.current = "";

@@ -891,6 +891,7 @@ const BusinessList = () => {
       setSupportProgramCode(supportProgram.code);
       setTitle(`${supportProgram.programYear} ${supportProgram.budgetProgramName} — ${supportProgram.code}`);
       setActiveTab("companies");
+      setIsLoadingCompanies(false);
     };
 
     window.addEventListener("support-program-companies-loaded", handleCompaniesLoaded);
@@ -909,10 +910,12 @@ const BusinessList = () => {
       setCompanies(fallbackCompanies);
       setSupportProgramCode("");
       setTitle("샘플 지원사업 기업 목록");
+      setIsLoadingCompanies(false);
       return;
     }
 
     if (programCode === supportProgramCode) {
+      setIsLoadingCompanies(false);
       return;
     }
 

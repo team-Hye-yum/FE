@@ -1,6 +1,6 @@
 import SectionShell from "./SectionShell";
 import type { PastSupportReviewData } from "../types";
-import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 type IndustrySupportExplorerProps = {
   data: PastSupportReviewData;
@@ -37,7 +37,14 @@ const IndustrySupportExplorer = ({ data }: IndustrySupportExplorerProps) => (
                 width={116}
               />
               <Tooltip formatter={(value) => formatChange(value === null ? null : Number(value))} />
-              <Bar dataKey="changeRate" fill="#2b7fff" radius={[0, 8, 8, 0]} />
+              <Bar dataKey="changeRate" fill="#2b7fff" minPointSize={4} radius={[0, 8, 8, 0]}>
+                <LabelList
+                  dataKey="changeRate"
+                  formatter={(value) => formatChange(typeof value === "number" ? value : null)}
+                  position="right"
+                  style={{ fill: "#394b63", fontSize: 12, fontWeight: 800 }}
+                />
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
