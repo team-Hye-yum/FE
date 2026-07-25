@@ -21,8 +21,7 @@ const AiReviewBriefing = ({ data }: AiReviewBriefingProps) => {
         <article className="rounded-md border border-[#d7e5f6] bg-white px-6 py-5 shadow-[0_10px_28px_rgba(27,65,116,0.07)]">
           <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#edf2f8] pb-4">
             <div>
-              <h3 className="text-lg font-extrabold text-[#102f63]">{data.title}</h3>
-              <p className="mt-1 text-xs font-bold text-[#6b7d93]">{data.industryName} 산업 현황, 과거 사례, 지원사업, RSS 근거 종합</p>
+              <p className="text-sm font-bold text-[#6b7d93]">{data.industryName} 산업 현황, 과거 사례, 지원사업, RSS 근거 종합</p>
             </div>
             <span className="rounded-full border border-[#d7e5f6] bg-[#f7faff] px-3 py-1 text-xs font-extrabold text-[#3568bb]">
               {data.source === "AI_RSS" ? "AI + RSS" : "RULE + RSS"}

@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from "react";
 import {
   CartesianGrid,
   ComposedChart,
@@ -11,6 +10,7 @@ import {
 } from "recharts";
 import type { DashboardCompanyProps } from "../types";
 import { useDashboardGetData } from "../hooks/useDashboardApi";
+import ChartFrame from "../components/ChartFrame";
 
 type GrowthLineCode =
   | "COMPANY_ACTUAL"
@@ -465,39 +465,12 @@ const GrowthChangeMatrix = ({ observedFlow }: { observedFlow: ObservedFlow }) =>
 );
 
 const GrowthScenarioSection = ({ companyId, isSample = false }: DashboardCompanyProps) => {
-  const chartContainerRef = useRef<HTMLDivElement | null>(null);
-  const [chartWidth, setChartWidth] = useState(360);
   const { data, error, isLoading } = useDashboardGetData<GrowthScenarioResponse>(
     isSample ? "" : companyId,
     "/companies/{companyId}/growth-scenario",
   );
   const scenario = isSample ? sampleGrowthScenario : data;
   const chartRows = scenario ? buildChartRows(scenario) : [];
-  useEffect(() => {
-    const container = chartContainerRef.current;
-
-    if (!container) {
-      return;
-    }
-
-    const updateWidth = () => {
-      const nextWidth = Math.floor(container.getBoundingClientRect().width);
-
-      setChartWidth(Math.max(280, nextWidth));
-    };
-
-    updateWidth();
-
-    const resizeObserver = new ResizeObserver(updateWidth);
-    resizeObserver.observe(container);
-
-    window.setTimeout(updateWidth, 0);
-    window.setTimeout(updateWidth, 250);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, []);
 
   if (error) {
     return (
@@ -517,7 +490,7 @@ const GrowthScenarioSection = ({ companyId, isSample = false }: DashboardCompany
 
   return (
     <div>
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="grid items-start gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="min-w-0">
           <div className="mb-[18px] pl-0 sm:pl-[38px]">
             <div className="flex min-w-0 flex-wrap items-center gap-x-[8px] gap-y-2 text-[10px] font-medium leading-[14px] text-[#666] 2xl:flex-nowrap 2xl:whitespace-nowrap">
@@ -530,18 +503,14 @@ const GrowthScenarioSection = ({ companyId, isSample = false }: DashboardCompany
             </div>
           </div>
 
-          <div className="min-h-[250px] w-full min-w-0" ref={chartContainerRef}>
+          <div className="min-h-[250px] w-full min-w-0 overflow-visible">
             {chartRows.length === 0 ? (
               <div className="flex h-[250px] items-center justify-center rounded-[6px] bg-[#fafafa] text-sm font-medium text-[#777]">
                 표시할 성장 시나리오 데이터가 없습니다.
               </div>
             ) : (
-              <ComposedChart
-                data={chartRows}
-                height={250}
-                margin={{ bottom: 4, left: 2, right: 14, top: 5 }}
-                width={chartWidth}
-              >
+              <ChartFrame height={250} minWidth={320}>
+                <ComposedChart data={chartRows} margin={{ bottom: 4, left: 2, right: 14, top: 5 }}>
                   <CartesianGrid stroke="#eeeeee" strokeOpacity={0.82} vertical={false} />
                   <XAxis
                     allowDecimals={false}
@@ -585,7 +554,8 @@ const GrowthScenarioSection = ({ companyId, isSample = false }: DashboardCompany
                     type="linear"
                   />
                   <Scatter dataKey="supportIndex" fill="#ffb000" isAnimationActive={false} shape={markerDot} />
-              </ComposedChart>
+                </ComposedChart>
+              </ChartFrame>
             )}
           </div>
 
