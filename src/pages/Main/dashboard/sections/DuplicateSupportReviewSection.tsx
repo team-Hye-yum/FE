@@ -158,20 +158,30 @@ type ActivityTooltipState = {
 } | null;
 
 type ChartPoint = {
-  business: number;
-  other: number;
-  package: number;
-  technical: number;
   year: number;
   yearLabel: string;
+} & Record<string, number | string>;
+
+type SupportCategory = {
+  color: string;
+  dataKey: string;
+  label: string;
 };
 
-const supportCategories = [
-  { color: "#3b8ddf", dataKey: "technical", label: "기술지원" },
-  { color: "#25a376", dataKey: "business", label: "사업화지원" },
-  { color: "#dd5730", dataKey: "package", label: "패키지지원" },
-  { color: "#b8b5ae", dataKey: "other", label: "기타" },
-] as const;
+const supportChartColors = [
+  "#3b8ddf",
+  "#25a376",
+  "#dd5730",
+  "#8b5cf6",
+  "#f59e0b",
+  "#14b8a6",
+  "#ef5da8",
+  "#64748b",
+  "#84cc16",
+  "#06b6d4",
+  "#f97316",
+  "#6366f1",
+];
 
 const sampleSupportItems: YearlySupportCountItem[] = [
   { supportCount: 1, supportType: "기술지원", supportYear: 2019 },
@@ -535,29 +545,14 @@ const sampleActivityTimeline: CompanyActivitySupportTimelineResponse = {
 };
 
 const emptyChartPoint = (year: number): ChartPoint => ({
-  business: 0,
-  other: 0,
-  package: 0,
-  technical: 0,
   year,
   yearLabel: String(year),
 });
 
-const supportCategoryKey = (supportType: string | null | undefined) => {
-  if (supportType?.includes("기술")) {
-    return "technical";
-  }
+const supportTypeLabel = (supportType: string | null | undefined) =>
+  supportType?.trim() || "기타";
 
-  if (supportType?.includes("사업화")) {
-    return "business";
-  }
-
-  if (supportType?.includes("패키지")) {
-    return "package";
-  }
-
-  return "other";
-};
+const supportTypeDataKey = (supportType: string) => `supportType:${supportType}`;
 
 const buildChartData = (items: YearlySupportCountItem[]) => {
   const years = items
@@ -581,13 +576,25 @@ const buildChartData = (items: YearlySupportCountItem[]) => {
       return;
     }
 
-    const key = supportCategoryKey(item.supportType);
-    point[key] += item.supportCount;
+    const key = supportTypeDataKey(supportTypeLabel(item.supportType));
+    point[key] = (Number(point[key]) || 0) + item.supportCount;
   });
 
   return Array.from(chartByYear.values()).sort(
     (firstPoint, secondPoint) => firstPoint.year - secondPoint.year,
   );
+};
+
+const buildSupportCategories = (items: YearlySupportCountItem[]): SupportCategory[] => {
+  const supportTypes = Array.from(
+    new Set(items.map((item) => supportTypeLabel(item.supportType))),
+  ).sort((left, right) => left.localeCompare(right, "ko-KR"));
+
+  return supportTypes.map((supportType, index) => ({
+    color: supportChartColors[index % supportChartColors.length],
+    dataKey: supportTypeDataKey(supportType),
+    label: supportType,
+  }));
 };
 
 const buildSupportItemsFromTimeline = (items: BtpSupportTimelineItem[]) =>
@@ -1604,9 +1611,9 @@ const SupportTooltip = ({
   );
 };
 
-const LegendContent = () => (
-  <div className="mt-3 flex items-center gap-6 pl-1 text-lg font-medium text-[#555]">
-    {supportCategories.map((category) => (
+const LegendContent = ({ categories }: { categories: SupportCategory[] }) => (
+  <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 pl-1 text-sm font-medium text-[#555] sm:text-base">
+    {categories.map((category) => (
       <span className="inline-flex items-center gap-2" key={category.dataKey}>
         <span
           className="h-[14px] w-[14px] rounded-[3px]"
@@ -1664,6 +1671,7 @@ const DuplicateSupportReviewSection = ({
     : data?.summary?.btpSelectedSupportCount ?? timelineItems.length;
   const currentYearStatus = isSample ? sampleCurrentYearStatus : currentYearStatusData;
   const chartData = buildChartData(items);
+  const supportCategories = buildSupportCategories(items);
   const activityTimeline = isSample ? sampleActivityTimeline : activityTimelineData;
   const activityYears = chartData.map((item) => item.year);
 
@@ -1721,7 +1729,7 @@ const DuplicateSupportReviewSection = ({
                 width={36}
               />
               <Tooltip content={<SupportTooltip />} />
-              <Legend content={<LegendContent />} verticalAlign="bottom" />
+              <Legend content={<LegendContent categories={supportCategories} />} verticalAlign="bottom" />
               {supportCategories.map((category) => (
                 <Bar
                   dataKey={category.dataKey}
