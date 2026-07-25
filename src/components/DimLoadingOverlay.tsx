@@ -7,7 +7,7 @@ type DimLoadingOverlayProps = {
 const DimLoadingOverlay = ({ message }: DimLoadingOverlayProps) => (
   <motion.div
     animate={{ opacity: 1 }}
-    className="absolute inset-0 z-30 flex items-center justify-center rounded-md bg-white/70 backdrop-blur-[1px]"
+    className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-[1px]"
     initial={{ opacity: 0 }}
     transition={{ duration: 0.16, ease: "easeOut" }}
   >

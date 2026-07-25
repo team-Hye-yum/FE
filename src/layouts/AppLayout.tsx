@@ -2,6 +2,7 @@ import type { ChangeEvent, KeyboardEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import AppAlertHost, { showAppAlert } from "@/components/AppAlert";
+import DimLoadingOverlay from "@/components/DimLoadingOverlay";
 
 type AppLayoutProps = {
   children: ReactNode;
@@ -546,6 +547,9 @@ const AppLayout = ({ children }: AppLayoutProps) => {
             </div>
           </div>
         </div>
+      )}
+      {isCompanyDashboard && isCompanySearchChecking && (
+        <DimLoadingOverlay message="기업 정보를 불러오는 중입니다." />
       )}
       {children}
       <AppAlertHost />
