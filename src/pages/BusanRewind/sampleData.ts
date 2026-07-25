@@ -30,6 +30,7 @@ export const sampleBusanRewindData: BusanRewindData = {
     referenceYear: 2026,
     items: [
       {
+        announceUrl: "https://www.btp.or.kr",
         dueDate: "2026-06-20",
         programId: 101,
         referenceYear: 2026,
@@ -39,6 +40,7 @@ export const sampleBusanRewindData: BusanRewindData = {
         title: "2026 스마트제조혁신 기술지원사업",
       },
       {
+        announceUrl: "https://www.btp.or.kr",
         dueDate: "2026-07-15",
         programId: 102,
         referenceYear: 2026,
@@ -48,6 +50,7 @@ export const sampleBusanRewindData: BusanRewindData = {
         title: "AI·데이터 기반 제조혁신 지원사업",
       },
       {
+        announceUrl: null,
         dueDate: "2026-07-20",
         programId: 103,
         referenceYear: 2026,

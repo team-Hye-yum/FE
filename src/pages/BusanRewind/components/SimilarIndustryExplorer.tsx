@@ -28,7 +28,7 @@ const SimilarIndustryExplorer = ({ data }: SimilarIndustryExplorerProps) => (
               <LineChart data={data.series} margin={{ bottom: 8, left: -18, right: 18, top: 12 }}>
                 {data.periodHighlights.map((item, index) => (
                   <ReferenceArea
-                    fill={["#fff1f2", "#f0fdf4", "#eff6ff"][index % 3]}
+                    fill={["#fecdd3", "#bbf7d0", "#bfdbfe"][index % 3]}
                     ifOverflow="extendDomain"
                     key={`${item.label}-${item.startYear}-${item.endYear}`}
                     strokeOpacity={0}

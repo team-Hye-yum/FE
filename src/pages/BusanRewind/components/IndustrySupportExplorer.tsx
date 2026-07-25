@@ -23,8 +23,6 @@ const IndustrySupportExplorer = ({ data }: IndustrySupportExplorerProps) => (
       <div className="rounded-md border border-[#dfe8f5] p-4">
         <div className="mb-4 flex gap-2 text-sm font-bold">
           <button className="rounded-md bg-[#eaf3ff] px-3 py-2 text-[#1f67d2]" type="button">산업 변화</button>
-          <button className="rounded-md px-3 py-2 text-[#6b7c95]" type="button">당시 지원사업</button>
-          <button className="rounded-md px-3 py-2 text-[#6b7c95]" type="button">지원 기업 변화</button>
         </div>
         <div className="h-48 rounded-md bg-[#f7faff] p-3">
           <ResponsiveContainer height="100%" width="100%">

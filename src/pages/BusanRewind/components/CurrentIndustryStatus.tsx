@@ -72,26 +72,28 @@ const CurrentIndustryStatus = ({ data, supportPrograms }: CurrentIndustryStatusP
           <div>
             <p className="text-sm font-bold text-[#52647e]">종사자 수 증감률</p>
             <p className="mt-3 text-3xl font-black text-[#ef3748]">{formatPercent(data.employeeGrowthRate)}</p>
-            <p className="mt-4 text-sm font-bold text-[#52647e]">종사자 수</p>
-            <p className="mt-1 text-2xl font-black text-[#1d4f9f]">{formatCount(data.employeeCount)}</p>
           </div>
-          <div className="h-44 min-w-0">
-            <ResponsiveContainer height="100%" width="100%">
-              <BarChart data={data.employeeSizeRatios} layout="vertical" margin={{ bottom: 4, left: 0, right: 26, top: 4 }}>
-                <XAxis hide domain={[0, 45]} type="number" />
-                <YAxis
-                  axisLine={false}
-                  dataKey="label"
-                  tick={{ fill: "#44566e", fontSize: 12, fontWeight: 700 }}
-                  tickLine={false}
-                  type="category"
-                  width={74}
-                />
-                <Tooltip formatter={(value) => `${value}%`} />
-                <Bar dataKey="ratio" fill="#3b82f6" radius={[0, 8, 8, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div>
+            <p className="text-sm font-bold text-[#52647e]">종사자 수</p>
+            <p className="mt-3 text-3xl font-black text-[#1d4f9f]">{formatCount(data.employeeCount)}</p>
           </div>
+        </div>
+        <div className="mt-4 h-44 min-w-0">
+          <ResponsiveContainer height="100%" width="100%">
+            <BarChart data={data.employeeSizeRatios} layout="vertical" margin={{ bottom: 4, left: 0, right: 26, top: 4 }}>
+              <XAxis hide domain={[0, 45]} type="number" />
+              <YAxis
+                axisLine={false}
+                dataKey="label"
+                tick={{ fill: "#44566e", fontSize: 12, fontWeight: 700 }}
+                tickLine={false}
+                type="category"
+                width={74}
+              />
+              <Tooltip formatter={(value) => `${value}%`} />
+              <Bar dataKey="ratio" fill="#3b82f6" name="비율" radius={[0, 8, 8, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
 

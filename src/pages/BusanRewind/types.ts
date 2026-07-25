@@ -32,6 +32,7 @@ export type CurrentStatusData = {
 };
 
 export type CurrentSupportProgram = {
+  announceUrl: string | null;
   dueDate: string | null;
   programId: number | null;
   referenceYear: number | null;
