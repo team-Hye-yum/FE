@@ -79,7 +79,12 @@ type ChartRow = {
   supportMarkers?: SupportMarker[];
 };
 
-const CHART_BASE_YEAR = 2020;
+const CHART_START_YEAR = 2021;
+const CHART_END_YEAR = 2024;
+const CHART_YEARS = Array.from(
+  { length: CHART_END_YEAR - CHART_START_YEAR + 1 },
+  (_, index) => CHART_START_YEAR + index,
+);
 
 const sampleGrowthScenario: GrowthScenarioResponse = {
   companyId: 0,
@@ -88,32 +93,18 @@ const sampleGrowthScenario: GrowthScenarioResponse = {
       code: "COMPANY_ACTUAL",
       points: [
         { year: 2021, index: 100 },
-        { year: 2022, index: 95 },
-        { year: 2023, index: 110 },
-      ],
-    },
-    {
-      code: "COMPANY_REFERENCE",
-      points: [
-        { year: 2023, index: 110 },
-        { year: 2024, index: 108 },
-        { year: 2025, index: 113 },
+        { year: 2022, index: 160 },
+        { year: 2023, index: 290 },
+        { year: 2024, index: 450 },
       ],
     },
     {
       code: "INDUSTRY_ACTUAL",
       points: [
         { year: 2021, index: 100 },
-        { year: 2022, index: 114 },
-        { year: 2023, index: 122 },
-      ],
-    },
-    {
-      code: "INDUSTRY_REFERENCE",
-      points: [
-        { year: 2023, index: 122 },
-        { year: 2024, index: 123 },
-        { year: 2025, index: 128 },
+        { year: 2022, index: 112 },
+        { year: 2023, index: 145 },
+        { year: 2024, index: 175 },
       ],
     },
   ],
@@ -259,8 +250,6 @@ const getLineValue = (data: GrowthScenarioResponse, code: GrowthLineCode) =>
 
 const buildChartRows = (data: GrowthScenarioResponse): ChartRow[] => {
   const rows = new Map<number, ChartRow>();
-  const actualYears: number[] = [];
-
   data.chartLines.forEach((line) => {
     if (line.code === "COMPANY_REFERENCE" || line.code === "INDUSTRY_REFERENCE") {
       return;
@@ -273,18 +262,19 @@ const buildChartRows = (data: GrowthScenarioResponse): ChartRow[] => {
     }
 
     line.points.forEach((point) => {
+      if (point.year < CHART_START_YEAR || point.year > CHART_END_YEAR) {
+        return;
+      }
+
       if (!rows.has(point.year)) {
         rows.set(point.year, { year: point.year });
       }
 
       rows.get(point.year)![key] = point.index;
-      actualYears.push(point.year);
     });
   });
 
-  const maxActualYear = Math.max(CHART_BASE_YEAR, ...actualYears);
-
-  for (let year = CHART_BASE_YEAR; year <= maxActualYear; year += 1) {
+  for (const year of CHART_YEARS) {
     if (!rows.has(year)) {
       rows.set(year, { year });
     }
@@ -294,6 +284,9 @@ const buildChartRows = (data: GrowthScenarioResponse): ChartRow[] => {
   const companyIndexByYear = new Map(companyPoints.map((point) => [point.year, point.index]));
   const markersByYear = data.supportMarkers.reduce((map, marker) => {
     if (marker.markerYear === null) {
+      return map;
+    }
+    if (marker.markerYear < CHART_START_YEAR || marker.markerYear > CHART_END_YEAR) {
       return map;
     }
 
@@ -480,9 +473,6 @@ const GrowthScenarioSection = ({ companyId, isSample = false }: DashboardCompany
   );
   const scenario = isSample ? sampleGrowthScenario : data;
   const chartRows = scenario ? buildChartRows(scenario) : [];
-  const chartYears = chartRows.map((row) => row.year);
-  const chartMaxYear = chartYears.at(-1) ?? CHART_BASE_YEAR;
-
   useEffect(() => {
     const container = chartContainerRef.current;
 
@@ -527,7 +517,7 @@ const GrowthScenarioSection = ({ companyId, isSample = false }: DashboardCompany
 
   return (
     <div>
-      <div className="grid items-start gap-5 2xl:grid-cols-[minmax(0,1fr)_472px]">
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="min-w-0">
           <div className="mb-[18px] pl-0 sm:pl-[38px]">
             <div className="flex min-w-0 flex-wrap items-center gap-x-[8px] gap-y-2 text-[10px] font-medium leading-[14px] text-[#666] 2xl:flex-nowrap 2xl:whitespace-nowrap">
@@ -558,11 +548,12 @@ const GrowthScenarioSection = ({ companyId, isSample = false }: DashboardCompany
                     allowDataOverflow
                     axisLine={{ stroke: "#e5e7eb" }}
                     dataKey="year"
-                    domain={[CHART_BASE_YEAR, chartMaxYear]}
+                    domain={[CHART_START_YEAR, CHART_END_YEAR]}
+                    interval={0}
                     padding={{ left: 0, right: 0 }}
                     tick={{ fill: "#888", fontSize: 13, fontWeight: 400 }}
                     tickLine={false}
-                    ticks={chartYears}
+                    ticks={CHART_YEARS}
                     type="number"
                   />
                   <YAxis
