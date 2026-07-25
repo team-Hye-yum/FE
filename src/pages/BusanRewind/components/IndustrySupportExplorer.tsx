@@ -14,6 +14,11 @@ const formatKrw = (value: number | null) =>
 
 const IndustrySupportExplorer = ({ data }: IndustrySupportExplorerProps) => (
   <SectionShell dataSampleTour="busan-rewind-past-support-review" title="당시 산업과 지원 사업 함께 살펴보기">
+    {data.matchedPeriod && (
+      <div className="mb-4 inline-flex rounded-full border border-[#dbeafe] bg-white px-3 py-1.5 text-xs font-extrabold text-[#1d4ed8]">
+        {data.matchedPeriod.label} 기준
+      </div>
+    )}
     <div className="grid gap-4 lg:grid-cols-[1fr_1.05fr_1fr]">
       <div className="rounded-md border border-[#dfe8f5] p-4">
         <div className="mb-4 flex gap-2 text-sm font-bold">
@@ -69,7 +74,7 @@ const IndustrySupportExplorer = ({ data }: IndustrySupportExplorerProps) => (
         {data.supportedCompanyChanges.map((company) => (
           <article className="rounded-md border border-[#dfe8f5] p-4" key={company.companyId}>
             <h3 className="text-base font-extrabold text-[#123b7a]">
-              {company.companyName} ({company.supportYear}년 지원)
+              기업 #{company.companyId} ({company.supportYear}년 지원)
             </h3>
             <p className="mt-3 text-sm font-semibold leading-6 text-[#44566e]">
               종사자: {company.employeeBefore ?? "-"}명 → {company.employeeAfter ?? "-"}명

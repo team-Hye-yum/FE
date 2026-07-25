@@ -50,7 +50,7 @@ const CurrentSupportProgramList = ({ data, industryName }: CurrentSupportProgram
         </p>
       </div>
       <span className="rounded-full border border-[#dbeafe] bg-[#f8fbff] px-3 py-1.5 text-xs font-extrabold text-[#1d4ed8]">
-        {formatCount(data.items.length)}건
+        {data.referenceYear ? `${data.referenceYear}년 기준 · ` : ""}{formatCount(data.items.length)}건
       </span>
     </div>
 
@@ -63,7 +63,7 @@ const CurrentSupportProgramList = ({ data, industryName }: CurrentSupportProgram
         {data.items.map((item) => (
           <article
             className="rounded-[8px] border border-[#e5e7eb] bg-white px-4 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:border-[#bfdbfe] hover:bg-[#fbfdff]"
-            key={item.programId}
+            key={item.programId ?? `${item.referenceYear}-${item.title}`}
           >
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <span className={`rounded-full border px-2.5 py-1 text-xs font-extrabold ${statusBadgeClassName(item.status)}`}>
@@ -73,7 +73,7 @@ const CurrentSupportProgramList = ({ data, industryName }: CurrentSupportProgram
                 {item.supportField || "분야 확인 필요"}
               </span>
               <span className="rounded-full border border-[#e2e8f0] bg-[#f8fafc] px-2.5 py-1 text-xs font-extrabold text-[#475569]">
-                {formatDueDate(item.dueDate)}
+                {item.referenceYear ? `${item.referenceYear}년 기준` : formatDueDate(item.dueDate)}
               </span>
             </div>
             <p className="break-keep text-[16px] font-extrabold leading-7 text-[#111827]">

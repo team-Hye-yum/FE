@@ -1718,15 +1718,15 @@ const IndustryPositionComparison = ({
               <span className="mb-3 inline-flex rounded-[6px] bg-[#eff6ff] px-2.5 py-1 text-xs font-extrabold text-[#2563eb]">
                 선택 산업
               </span>
-              <p className="mb-5 text-[26px] font-extrabold leading-tight text-[#111827]">
+              <p className="mb-1 text-[26px] font-extrabold leading-tight text-[#111827]">
                 {position.divisionName} ({position.divisionCode})
               </p>
+              <p className="mb-5 text-xs font-semibold text-[#8a98ad]">{baseYear}년 기준 데이터</p>
               <div className="overflow-hidden rounded-[8px] border border-[#e5e7eb] bg-white">
                 <IndustryPositionMetric label="종사자 증감률 (2023~2024)" value={formatGrowthPercent(selectedPoint.employeeGrowthRate)} />
                 <IndustryPositionMetric label="장비 연계 비율" value={`${formatCompactPercent(selectedConnectionRate)}%`} />
                 <IndustryPositionMetric label="공동활용 장비 상세 수" value={`${formatCount(functionInfraCoverage?.connectedFunctionCount ?? 7)}개`} />
                 <IndustryPositionMetric label="전체 기능 수" value={`${formatCount(functionInfraCoverage?.detectedFunctionCount ?? 23)}개`} />
-                <IndustryPositionMetric label="데이터 기준연도" value={String(baseYear)} />
               </div>
             </>
           )}

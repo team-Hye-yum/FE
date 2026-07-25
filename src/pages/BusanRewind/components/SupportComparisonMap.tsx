@@ -8,6 +8,11 @@ type SupportComparisonMapProps = {
 const SupportComparisonMap = ({ data }: SupportComparisonMapProps) => (
   <SectionShell dataSampleTour="busan-rewind-support-comparison" title="현재 지원 사업과 비교">
     <div className="relative min-h-[430px] overflow-hidden rounded-md border border-[#dfe8f5] bg-[#fbfdff] p-6">
+      {data.referenceYear && (
+        <div className="relative z-10 mb-4 inline-flex rounded-full border border-[#dbeafe] bg-white px-3 py-1.5 text-xs font-extrabold text-[#1d4ed8]">
+          {data.referenceYear}년 최신 지원이력 기준
+        </div>
+      )}
       <div className="pointer-events-none absolute left-[25%] top-[32%] hidden h-px w-[20%] rotate-[12deg] bg-[#f59e0b] lg:block" />
       <div className="pointer-events-none absolute left-[25%] top-[56%] hidden h-px w-[20%] -rotate-[12deg] bg-[#a855f7] lg:block" />
       <div className="pointer-events-none absolute right-[25%] top-[32%] hidden h-px w-[20%] -rotate-[12deg] bg-[#2b7fff] lg:block" />

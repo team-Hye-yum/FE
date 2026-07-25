@@ -27,10 +27,12 @@ export const sampleBusanRewindData: BusanRewindData = {
   },
   currentSupportPrograms: {
     industryCode: SAMPLE_INDUSTRY_CODE,
+    referenceYear: 2026,
     items: [
       {
         dueDate: "2026-06-20",
         programId: 101,
+        referenceYear: 2026,
         status: "접수중",
         summary: "스마트공장 구축 및 고도화 지원",
         supportField: "스마트공장",
@@ -39,6 +41,7 @@ export const sampleBusanRewindData: BusanRewindData = {
       {
         dueDate: "2026-07-15",
         programId: 102,
+        referenceYear: 2026,
         status: "접수중",
         summary: "스마트 장비 도입 및 운영 최적화를 위한 컨설팅과 일부 구축비를 지원합니다.",
         supportField: "AI·AX",
@@ -47,6 +50,7 @@ export const sampleBusanRewindData: BusanRewindData = {
       {
         dueDate: "2026-07-20",
         programId: 103,
+        referenceYear: 2026,
         status: "예정",
         summary: "친환경 공정 전환과 탄소 저감 설비 검토를 위한 진단 및 고도화 계획 수립을 지원합니다.",
         supportField: "ESG·탄소중립",
@@ -191,6 +195,7 @@ export const sampleBusanRewindData: BusanRewindData = {
     industryCode: SAMPLE_INDUSTRY_CODE,
     newFields: ["AI 사전 수요", "ESG·탄소공정 대응 지원", "대기업 협업 컨설팅"],
     pastFields: ["스마트공장 구축", "제조 데이터 활용", "공정 자동화", "인력 양성", "기술 컨설팅"],
+    referenceYear: 2026,
     trendKeywords: ["AI/AX", "스마트 제조", "데이터 활용", "ESG", "탄소중립", "지역 고용"],
   },
 };

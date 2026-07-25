@@ -33,7 +33,8 @@ export type CurrentStatusData = {
 
 export type CurrentSupportProgram = {
   dueDate: string | null;
-  programId: number;
+  programId: number | null;
+  referenceYear: number | null;
   status: string;
   summary: string;
   supportField: string;
@@ -42,6 +43,7 @@ export type CurrentSupportProgram = {
 
 export type CurrentSupportProgramsData = {
   industryCode: string;
+  referenceYear: number | null;
   items: CurrentSupportProgram[];
 };
 
@@ -152,6 +154,7 @@ export type SupportComparisonData = {
   industryCode: string;
   newFields: string[];
   pastFields: string[];
+  referenceYear: number | null;
   trendKeywords: string[];
 };
 
