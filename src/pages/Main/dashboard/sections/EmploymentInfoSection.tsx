@@ -32,6 +32,8 @@ type ChartPoint = EmploymentPoint & {
   yearLabel: string;
 };
 
+const DISPLAY_START_YEAR = 2020;
+
 const sampleEmploymentSeries: EmploymentPoint[] = [
   {
     employeeCount: 8,
@@ -120,6 +122,7 @@ const EmploymentInfoSection = ({ companyId, isSample = false }: DashboardCompany
   );
   const series = (isSample ? sampleEmploymentSeries : data?.series ?? [])
     .slice()
+    .filter((point) => point.year >= DISPLAY_START_YEAR)
     .sort((firstPoint, secondPoint) => firstPoint.year - secondPoint.year);
   const chartData: ChartPoint[] = series.map((point) => ({
     ...point,

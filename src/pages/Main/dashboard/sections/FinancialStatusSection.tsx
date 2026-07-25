@@ -40,6 +40,11 @@ type RndChartPoint = IncomeStatementPoint & {
   yearLabel: string;
 };
 
+const DISPLAY_START_YEAR = 2020;
+const ASSET_COLOR = "#2b7fff";
+const LIABILITY_COLOR = "#ff8a3d";
+const EQUITY_COLOR = "#25a376";
+
 const sampleFinancialSeries: FinancialPositionPoint[] = [
   {
     paidInCapital: 100_000,
@@ -151,9 +156,11 @@ const FinancialStatusSection = ({ companyId, isSample = false }: DashboardCompan
   );
   const series = (isSample ? sampleFinancialSeries : data?.series ?? [])
     .slice()
+    .filter((point) => point.year >= DISPLAY_START_YEAR)
     .sort((firstPoint, secondPoint) => firstPoint.year - secondPoint.year);
   const incomeSeries = (isSample ? sampleIncomeStatements : incomeData?.series ?? [])
     .slice()
+    .filter((point) => point.year >= DISPLAY_START_YEAR)
     .sort((firstPoint, secondPoint) => firstPoint.year - secondPoint.year);
   const chartData: ChartPoint[] = series.map((point) => ({
     ...point,
@@ -183,7 +190,7 @@ const FinancialStatusSection = ({ companyId, isSample = false }: DashboardCompan
   if ((isLoading || isIncomeLoading) && chartData.length === 0) {
     return (
       <div className="space-y-8">
-        <div className="grid grid-cols-[525px_minmax(0,1fr)] gap-8">
+        <div className="grid gap-8 lg:grid-cols-2">
           <div className="h-[192px] animate-pulse rounded-[10px] bg-[#f8f9fb]" />
           <div className="h-[220px] animate-pulse rounded-[10px] bg-[#f8f9fb]" />
         </div>
@@ -201,7 +208,7 @@ const FinancialStatusSection = ({ companyId, isSample = false }: DashboardCompan
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-[525px_minmax(0,1fr)] items-start gap-8">
+      <div className="grid items-start gap-8 lg:grid-cols-2">
         <div className="overflow-hidden rounded-[10px] border border-[#eee]">
         <table className="w-full table-fixed border-collapse text-center text-base text-[#333]">
           <thead>
@@ -254,7 +261,7 @@ const FinancialStatusSection = ({ companyId, isSample = false }: DashboardCompan
                 barSize={24}
                 dataKey="totalLiabilities"
                 isAnimationActive={false}
-                fill="#51a2ff"
+                fill={LIABILITY_COLOR}
                 name="부채 총계"
                 radius={[4, 4, 0, 0]}
               />
@@ -262,7 +269,7 @@ const FinancialStatusSection = ({ companyId, isSample = false }: DashboardCompan
                 barSize={24}
                 dataKey="totalEquity"
                 isAnimationActive={false}
-                fill="#9bd0ff"
+                fill={EQUITY_COLOR}
                 name="자본 총계"
                 radius={[4, 4, 0, 0]}
               />
@@ -271,7 +278,7 @@ const FinancialStatusSection = ({ companyId, isSample = false }: DashboardCompan
                 isAnimationActive={false}
                 dot={false}
                 name="자산 총계"
-                stroke="#ffc928"
+                stroke={ASSET_COLOR}
                 strokeWidth={3}
                 type="monotone"
               />
@@ -279,15 +286,15 @@ const FinancialStatusSection = ({ companyId, isSample = false }: DashboardCompan
           </ChartFrame>
           <div className="mt-2 flex justify-center gap-5 text-xs text-[#666]">
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-[#51a2ff]" />
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: LIABILITY_COLOR }} />
             부채 총계
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-[#9bd0ff]" />
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: EQUITY_COLOR }} />
             자본 총계
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-[#ffc928]" />
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: ASSET_COLOR }} />
             자산 총계
           </span>
           </div>
@@ -304,7 +311,7 @@ const FinancialStatusSection = ({ companyId, isSample = false }: DashboardCompan
             자본총계 대비 {formatPercent(paidInCapitalRatio)}
           </div>
           <p className="absolute bottom-[30px] right-[30px] text-right text-base text-[#666]">
-            {latestFinancialPoint?.year ?? "-"}년 기준 · 최근 5개년{" "}
+            {latestFinancialPoint?.year ?? "-"}년 기준 · 2020년 이후{" "}
             {paidInCapitalChanged ? "변동 있음" : "변동 없음"}
           </p>
         </div>

@@ -29,6 +29,8 @@ type ChartPoint = IncomeStatementPoint & {
   yearLabel: string;
 };
 
+const DISPLAY_START_YEAR = 2020;
+
 const sampleIncomeStatements: IncomeStatementPoint[] = [
   {
     costOfSales: 1_200_000,
@@ -111,6 +113,7 @@ const IncomeStatementSection = ({ companyId, isSample = false }: DashboardCompan
   );
   const series = (isSample ? sampleIncomeStatements : data?.series ?? [])
     .slice()
+    .filter((point) => point.year >= DISPLAY_START_YEAR)
     .sort((firstPoint, secondPoint) => firstPoint.year - secondPoint.year);
   const chartData: ChartPoint[] = series.map((point) => ({
     ...point,
@@ -127,7 +130,7 @@ const IncomeStatementSection = ({ companyId, isSample = false }: DashboardCompan
 
   if (isLoading && chartData.length === 0) {
     return (
-      <div className="grid grid-cols-[397px_minmax(0,1fr)] gap-8">
+      <div className="grid gap-8 lg:grid-cols-2">
         <div className="h-[192px] animate-pulse rounded-[10px] bg-[#f8f9fb]" />
         <div className="h-[220px] animate-pulse rounded-[10px] bg-[#f8f9fb]" />
       </div>
@@ -140,7 +143,7 @@ const IncomeStatementSection = ({ companyId, isSample = false }: DashboardCompan
 
   return (
     <div className="space-y-10">
-      <div className="grid grid-cols-[397px_minmax(0,1fr)] items-start gap-8">
+      <div className="grid items-start gap-8 lg:grid-cols-2">
         <div className="overflow-hidden rounded-[10px] border border-[#eee]">
           <table className="w-full table-fixed border-collapse text-center text-base text-[#333]">
             <thead>
@@ -212,7 +215,7 @@ const IncomeStatementSection = ({ companyId, isSample = false }: DashboardCompan
         </div>
       </div>
 
-      <div className="grid grid-cols-[525px_minmax(0,1fr)] items-start gap-8">
+      <div className="grid items-start gap-8 lg:grid-cols-2">
         <div className="overflow-hidden rounded-[10px] border border-[#eee]">
           <table className="w-full table-fixed border-collapse text-center text-base text-[#333]">
             <thead>
