@@ -1,3 +1,5 @@
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { DashboardCompanyProps } from "../types";
 import { useDashboardChainPostData } from "../hooks/useDashboardApi";
 
@@ -7,13 +9,8 @@ type AnalysisLine = {
 };
 
 type AiAnalysisResponse = {
+  analysisMarkdown?: string;
   analysisLines: AnalysisLine[];
-};
-
-const lineLabels: Record<AnalysisLine["type"], string> = {
-  IDENTITY: "기업 정체성",
-  PERFORMANCE: "성과 흐름",
-  EMPLOYMENT_SUPPORT: "고용·지원",
 };
 
 const AiReportLoadingBox = () => (
@@ -50,6 +47,33 @@ const sampleAnalysisLines: AnalysisLine[] = [
   },
 ];
 
+const sampleAnalysisMarkdown = [
+  "## 기업 개요",
+  "- **샘플 업종과 제품군**을 기준으로 기업의 주요 활동 영역을 먼저 확인할 수 있습니다.",
+  "- 사업목적, 연구·활동, 특허·인증 근거를 함께 보면 기업 정체성을 더 안정적으로 파악할 수 있습니다.",
+  "## 성과 흐름",
+  "- 지원 이력과 매출, R&D, 특허, NTIS 성과를 같은 시점에 놓고 비교하면 변화의 흐름이 더 잘 보입니다.",
+  "- 매출 증가만 단독으로 보기보다 영업이익률과 부채비율을 함께 확인하는 것이 좋습니다.",
+  "## 우선 확인할 지표",
+  "- **매출액, 영업이익률, 부채비율**은 성장성과 재무 부담을 함께 보는 기본 지표입니다.",
+  "- **종사자수 변화, R&D 비용, 특허·인증, 지원 이력**은 실행 역량과 사업화 흐름을 확인하는 보조 지표입니다.",
+  "## 참고 한계",
+  "- 본 리포트는 대시보드 해석을 돕는 참고자료이며 평가 결과나 지원 여부를 제시하지 않습니다.",
+].join("\n\n");
+
+const markdownFromLines = (lines: AnalysisLine[]) =>
+  [
+    "## 기업 개요",
+    `- ${lines.find((item) => item.type === "IDENTITY")?.line ?? "기업의 업종, 사업목적, 기술 근거를 먼저 확인할 수 있습니다."}`,
+    "## 성과 흐름",
+    `- ${lines.find((item) => item.type === "PERFORMANCE")?.line ?? "지원 이력과 재무·R&D 성과 흐름을 함께 확인할 수 있습니다."}`,
+    "## 우선 확인할 지표",
+    `- ${lines.find((item) => item.type === "EMPLOYMENT_SUPPORT")?.line ?? "고용, 재무, 지원 시점을 함께 확인할 수 있습니다."}`,
+    "- **매출액, 영업이익률, 부채비율, 종사자수 변화, R&D 비용, 특허·인증**을 함께 보면 대시보드 해석이 더 안정적입니다.",
+    "## 참고 한계",
+    "- 본 리포트는 대시보드 해석을 돕는 참고자료이며 평가 결과나 지원 여부를 제시하지 않습니다.",
+  ].join("\n\n");
+
 const AiAnalysisReportSection = ({ companyId, isSample = false }: DashboardCompanyProps) => {
   const analysisState = useDashboardChainPostData<AiAnalysisResponse>(
     isSample ? "" : companyId,
@@ -58,6 +82,9 @@ const AiAnalysisReportSection = ({ companyId, isSample = false }: DashboardCompa
   );
 
   const analysisLines = isSample ? sampleAnalysisLines : analysisState.data?.analysisLines ?? [];
+  const analysisMarkdown = isSample
+    ? sampleAnalysisMarkdown
+    : analysisState.data?.analysisMarkdown?.trim() || (analysisLines.length > 0 ? markdownFromLines(analysisLines) : "");
   const isLoading = analysisState.isLoading;
   const hasError = analysisState.error;
 
@@ -74,22 +101,32 @@ const AiAnalysisReportSection = ({ companyId, isSample = false }: DashboardCompa
   }
 
   return (
-    <div className="rounded-[10px] bg-[#eef8ff] px-7 py-6">
-      {analysisLines.length > 0 && (
-        <ul className="space-y-2 text-sm leading-6 text-[#333]">
-          {analysisLines.map((item) => (
-            <li className="flex gap-2" key={item.type}>
-              <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[#333]" />
-              <span>
-                <strong className="font-medium text-[#333]">{lineLabels[item.type]}: </strong>
-                {item.line}
-              </span>
-            </li>
-          ))}
-        </ul>
+    <div className="rounded-[10px] border border-[#d5e9ff] bg-[#f5fbff] px-7 py-6 shadow-[0_8px_24px_rgba(43,127,255,0.07)]">
+      {analysisMarkdown && (
+        <div className="ai-analysis-markdown text-sm font-medium leading-7 text-[#334155]">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              h2: ({ children }) => (
+                <h2 className="mb-2 mt-5 flex items-center gap-2 text-[15px] font-extrabold text-[#123b7a] first:mt-0">
+                  <span className="h-2 w-2 rounded-full bg-[#2b7fff]" />
+                  {children}
+                </h2>
+              ),
+              li: ({ children }) => <li className="pl-1">{children}</li>,
+              p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
+              strong: ({ children }) => <strong className="font-extrabold text-[#17376b]">{children}</strong>,
+              ul: ({ children }) => (
+                <ul className="mb-4 space-y-1.5 rounded-md border border-[#e1efff] bg-white/75 px-4 py-3 last:mb-0">{children}</ul>
+              ),
+            }}
+          >
+            {analysisMarkdown}
+          </ReactMarkdown>
+        </div>
       )}
 
-      {!isLoading && analysisLines.length === 0 && (
+      {!isLoading && !analysisMarkdown && (
         <p className="text-sm leading-6 text-[#333]">표시할 AI 분석 리포트가 없습니다.</p>
       )}
     </div>
