@@ -107,21 +107,33 @@ const AiAnalysisReportSection = ({ companyId, isSample = false }: DashboardCompa
   return (
     <div className="rounded-[10px] border border-[#d5e9ff] bg-[#f5fbff] px-7 py-6 shadow-[0_8px_24px_rgba(43,127,255,0.07)]">
       {analysisMarkdown && (
-        <div className="ai-analysis-markdown text-sm font-medium leading-7 text-[#334155]">
+        <div className="ai-analysis-markdown text-sm font-medium leading-6 text-[#334155]">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
               h2: ({ children }) => (
-                <h2 className="mb-2 mt-5 flex items-center gap-2 text-[15px] font-extrabold text-[#123b7a] first:mt-0">
+                <h2 className="mb-1.5 mt-4 flex items-center gap-2 text-[15px] font-extrabold text-[#123b7a] first:mt-0">
                   <span className="h-2 w-2 rounded-full bg-[#2b7fff]" />
                   {children}
                 </h2>
               ),
               li: ({ children }) => <li className="pl-1">{children}</li>,
-              p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
-              strong: ({ children }) => <strong className="font-extrabold text-[#17376b]">{children}</strong>,
+              p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+              strong: ({ children }) => (
+                <strong className="rounded bg-[rgba(242,179,18,0.3)] px-1 font-extrabold text-[#17376b]">{children}</strong>
+              ),
+              a: ({ children, href }) => (
+                <a
+                  className="rounded bg-[rgba(173,216,230,0.3)] px-1 font-extrabold text-[#1f67d2] underline decoration-[#9cc7ff] decoration-2 underline-offset-2"
+                  href={href}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  {children}
+                </a>
+              ),
               ul: ({ children }) => (
-                <ul className="mb-4 space-y-1.5 rounded-md border border-[#e1efff] bg-white/75 px-4 py-3 last:mb-0">{children}</ul>
+                <ul className="mb-3 space-y-1 rounded-md border border-[#e1efff] bg-white/75 px-4 py-2.5 last:mb-0">{children}</ul>
               ),
             }}
           >

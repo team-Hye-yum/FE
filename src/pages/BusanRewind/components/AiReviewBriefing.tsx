@@ -27,14 +27,14 @@ const AiReviewBriefing = ({ data }: AiReviewBriefingProps) => {
               {data.source === "AI_RSS" ? "AI + RSS" : "RULE + RSS"}
             </span>
           </div>
-          <div className="mt-5 text-[15px] font-semibold leading-8 text-[#30445f]">
+          <div className="mt-4 text-[14px] font-semibold leading-6 text-[#30445f]">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
                 a: ({ children, href }) =>
                   href && isUsefulNewsLink(href) ? (
                     <a
-                      className="font-extrabold text-[#1f67d2] underline decoration-[#9cc7ff] decoration-2 underline-offset-2"
+                      className="rounded bg-[rgba(173,216,230,0.3)] px-1 font-extrabold text-[#1f67d2] underline decoration-[#9cc7ff] decoration-2 underline-offset-2"
                       href={href}
                       rel="noreferrer"
                       target="_blank"
@@ -45,16 +45,18 @@ const AiReviewBriefing = ({ data }: AiReviewBriefingProps) => {
                     <span className="font-extrabold text-[#17376b]">({children})</span>
                   ),
                 blockquote: ({ children }) => (
-                  <blockquote className="my-4 border-l-4 border-[#dce8f8] bg-[#f7faff] px-4 py-3 text-[#344a64]">{children}</blockquote>
+                  <blockquote className="my-2 border-l-4 border-[#dce8f8] bg-[#f7faff] px-3 py-2 text-[#344a64]">{children}</blockquote>
                 ),
-                h1: ({ children }) => <h3 className="mb-3 mt-5 text-lg font-extrabold text-[#102f63]">{children}</h3>,
-                h2: ({ children }) => <h4 className="mb-2 mt-5 text-base font-extrabold text-[#102f63]">{children}</h4>,
-                h3: ({ children }) => <h5 className="mb-2 mt-4 text-sm font-extrabold text-[#102f63]">{children}</h5>,
+                h1: ({ children }) => <h3 className="mb-2 mt-4 text-lg font-extrabold text-[#102f63] first:mt-0">{children}</h3>,
+                h2: ({ children }) => <h4 className="mb-1.5 mt-4 text-base font-extrabold text-[#102f63] first:mt-0">{children}</h4>,
+                h3: ({ children }) => <h5 className="mb-1.5 mt-3 text-sm font-extrabold text-[#102f63] first:mt-0">{children}</h5>,
                 li: ({ children }) => <li className="pl-1 text-[#344a64]">{children}</li>,
-                ol: ({ children }) => <ol className="my-4 list-decimal space-y-2 pl-5">{children}</ol>,
-                p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
-                strong: ({ children }) => <strong className="font-extrabold text-[#17376b]">{children}</strong>,
-                ul: ({ children }) => <ul className="my-4 list-disc space-y-2 pl-5">{children}</ul>,
+                ol: ({ children }) => <ol className="my-2 list-decimal space-y-1 pl-5">{children}</ol>,
+                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                strong: ({ children }) => (
+                  <strong className="rounded bg-[rgba(242,179,18,0.3)] px-1 font-extrabold text-[#17376b]">{children}</strong>
+                ),
+                ul: ({ children }) => <ul className="my-2 list-disc space-y-1 pl-5">{children}</ul>,
               }}
             >
               {markdown}
