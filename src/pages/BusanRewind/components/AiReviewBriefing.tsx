@@ -51,7 +51,7 @@ const renderInlineMarkdown = (text: string) => {
         rel="noreferrer"
         target="_blank"
       >
-        {part.label} <span className="font-semibold text-[#5c718a]">({part.href})</span>
+        ({part.label})
       </a>
     ),
   );
