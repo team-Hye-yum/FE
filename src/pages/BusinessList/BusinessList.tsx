@@ -2,6 +2,7 @@ import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { showAppAlert } from "@/components/AppAlert";
+import DimLoadingOverlay from "@/components/DimLoadingOverlay";
 import SampleOnboarding from "@/components/SampleOnboarding";
 import AnnouncementAnalysisLoadingModal from "./components/AnnouncementAnalysisLoadingModal";
 import SupportProgramRegisterModal from "./components/SupportProgramRegisterModal";
@@ -286,6 +287,18 @@ const DownloadIcon = ({ className = "" }: { className?: string }) => (
   </svg>
 );
 
+const SearchIcon = ({ className = "" }: { className?: string }) => (
+  <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
+    <path
+      d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm10 2-4.35-4.35"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+    />
+  </svg>
+);
+
 const FileIcon = ({ className = "" }: { className?: string }) => (
   <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24">
     <path
@@ -345,6 +358,9 @@ const CompanyTable = ({
   const navigate = useNavigate();
   const isSample = !supportProgramCode.trim();
   const [sortState, setSortState] = useState<SortState>(null);
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [highlightedRowKey, setHighlightedRowKey] = useState<string | null>(null);
+  const rowRefs = useRef(new Map<string, HTMLTableRowElement>());
   const sortedCompanies = useMemo(() => {
     if (!sortState) {
       return companies;
@@ -355,6 +371,32 @@ const CompanyTable = ({
       return sortState.direction === "asc" ? comparison : -comparison;
     });
   }, [companies, sortState]);
+
+  useEffect(() => {
+    setSearchKeyword("");
+    setHighlightedRowKey(null);
+  }, [companies]);
+
+  const handleSearchCompany = () => {
+    const trimmedKeyword = searchKeyword.trim();
+
+    if (!trimmedKeyword) {
+      setHighlightedRowKey(null);
+      return;
+    }
+
+    const matchIndex = sortedCompanies.findIndex((company) => company.companyId === trimmedKeyword);
+
+    if (matchIndex === -1) {
+      setHighlightedRowKey(null);
+      showAppAlert("일치하는 기업일련번호를 찾을 수 없습니다.");
+      return;
+    }
+
+    const rowKey = `${sortedCompanies[matchIndex].companyId}-${matchIndex}`;
+    setHighlightedRowKey(rowKey);
+    rowRefs.current.get(rowKey)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
 
   const handleSort = (key: CompanyColumnKey) => {
     setSortState((current) => ({
@@ -429,6 +471,28 @@ const CompanyTable = ({
 
       <div className="mt-8 flex flex-col items-stretch gap-4 sm:mt-[48px] sm:flex-row sm:items-center sm:justify-between sm:gap-6">
         <h2 className="text-lg font-medium">기업 목록</h2>
+        <div className="flex h-10 w-full max-w-[280px] items-center gap-2 rounded-[10px] border border-[#e5e5e5] px-3">
+          <button
+            aria-label="기업일련번호 검색"
+            className="shrink-0 text-[#9aa9ba] hover:text-[#2b7fff]"
+            onClick={handleSearchCompany}
+            type="button"
+          >
+            <SearchIcon className="h-4 w-4" />
+          </button>
+          <input
+            className="h-full w-full text-sm text-[#333] outline-none placeholder:text-[#9aa9ba]"
+            onChange={(event) => setSearchKeyword(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                handleSearchCompany();
+              }
+            }}
+            placeholder="기업일련번호"
+            type="text"
+            value={searchKeyword}
+          />
+        </div>
         <button
           className="business-action-button flex h-10 shrink-0 items-center justify-center gap-2 rounded-[10px] bg-[#107c41] px-4 text-base font-medium text-white"
           data-sample-tour="business-list-excel"
@@ -440,10 +504,10 @@ const CompanyTable = ({
         </button>
       </div>
 
-      <div className="business-table-scroll mt-7 overflow-x-auto pb-3">
+      <div className="business-table-scroll mt-7 max-h-[560px] overflow-auto pb-3">
         <table className="min-w-[1540px] border-collapse text-left text-base">
           <thead>
-            <tr className="h-11 bg-white">
+            <tr className="sticky top-0 z-30 h-11 bg-white">
               {companyTableColumns.map((column, index) => {
                 const selected = sortState?.key === column.key;
 
@@ -453,7 +517,7 @@ const CompanyTable = ({
                       selected ? (sortState.direction === "asc" ? "ascending" : "descending") : "none"
                     }
                     className={`whitespace-nowrap px-2 font-normal ${
-                      column.sticky ? "sticky left-0 z-20" : ""
+                      column.sticky ? "sticky left-0 z-40" : ""
                     } ${selected ? "bg-[#dceeff] text-[#0b4d99]" : "bg-white"}`}
                     key={column.key}
                   >
@@ -477,19 +541,30 @@ const CompanyTable = ({
             </tr>
           </thead>
           <tbody>
-            {sortedCompanies.map((company, index) => (
+            {sortedCompanies.map((company, index) => {
+              const rowKey = `${company.companyId}-${index}`;
+              const isHighlighted = highlightedRowKey === rowKey;
+
+              return (
               <tr
                 className={`business-table-row h-11 transition ${
                   isSample ? "cursor-default" : "cursor-pointer hover:bg-blue-50"
                 } ${index % 2 === 0 ? "bg-gray-50" : "bg-white"}`}
-                key={`${company.companyId}-${index}`}
+                key={rowKey}
                 onClick={() => handleCompanyClick(company.companyId)}
+                ref={(element) => {
+                  if (element) {
+                    rowRefs.current.set(rowKey, element);
+                  } else {
+                    rowRefs.current.delete(rowKey);
+                  }
+                }}
               >
                 {companyTableColumns.map((column) => (
                   <td
                     className={`whitespace-nowrap px-4 ${columnAlignClassName(column.align)} ${
                       column.sticky ? "sticky left-0 z-10" : ""
-                    } ${columnBackgroundClassName(column.key, index)}`}
+                    } ${isHighlighted ? "bg-[#dceeff]" : columnBackgroundClassName(column.key, index)}`}
                     key={column.key}
                   >
                     {company[column.key]}
@@ -503,7 +578,8 @@ const CompanyTable = ({
                   )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -803,6 +879,7 @@ const BusinessList = () => {
   const [companies, setCompanies] = useState<CompanyRow[]>(fallbackCompanies);
   const [supportProgramCode, setSupportProgramCode] = useState("");
   const [title, setTitle] = useState("샘플 지원사업 기업 목록");
+  const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
 
   useEffect(() => {
     const handleCompaniesLoaded = (event: Event) => {
@@ -840,6 +917,7 @@ const BusinessList = () => {
     }
 
     let ignore = false;
+    setIsLoadingCompanies(true);
 
     requestJson<{ items: SupportProgramCompanyItem[] }>(
       apiUrl(`/support-programs/${encodeURIComponent(programCode)}/companies`),
@@ -874,6 +952,11 @@ const BusinessList = () => {
         setSupportProgramCode(programCode);
         setTitle(error instanceof Error ? error.message : `지원사업 ${programCode}`);
         setActiveTab("companies");
+      })
+      .finally(() => {
+        if (!ignore) {
+          setIsLoadingCompanies(false);
+        }
       });
 
     return () => {
@@ -884,11 +967,16 @@ const BusinessList = () => {
   return (
     <main className="flex flex-col gap-6 px-4 py-8 lg:flex-row lg:px-6 lg:py-12">
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-      {activeTab === "companies" ? (
-        <CompanyTable companies={companies} supportProgramCode={supportProgramCode} title={title} />
-      ) : (
-        <UploadPanel />
-      )}
+      <div className="relative min-w-0 flex-1">
+        {isLoadingCompanies && (
+          <DimLoadingOverlay message="선택한 지원사업 기준으로 기업 목록을 불러오는 중입니다." />
+        )}
+        {activeTab === "companies" ? (
+          <CompanyTable companies={companies} supportProgramCode={supportProgramCode} title={title} />
+        ) : (
+          <UploadPanel />
+        )}
+      </div>
     </main>
   );
 };
