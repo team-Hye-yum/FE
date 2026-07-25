@@ -1,3 +1,5 @@
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import SectionShell from "./SectionShell";
 import type { AiReviewBriefingData } from "../types";
 
@@ -5,68 +7,13 @@ type AiReviewBriefingProps = {
   data: AiReviewBriefingData;
 };
 
-const inlineMarkdownPattern = /(\*\*([^*]+)\*\*|\[([^\]]+)\]\((https?:\/\/[^)]+)\))/g;
-
 const isUsefulNewsLink = (href: string) => {
   const value = href.trim();
   return value !== "" && value !== "https://news.google.com/" && value !== "http://news.google.com/";
 };
 
-const renderInlineMarkdown = (text: string) => {
-  const parts: Array<string | { href: string; label: string } | { strong: string }> = [];
-  let lastIndex = 0;
-
-  for (const match of text.matchAll(inlineMarkdownPattern)) {
-    if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index));
-    }
-    if (match[2]) {
-      parts.push({ strong: match[2] });
-    } else if (match[3] && match[4]) {
-      parts.push({ href: match[4], label: match[3] });
-    }
-    lastIndex = match.index + match[0].length;
-  }
-
-  if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex));
-  }
-
-  return parts.map((part, index) =>
-    typeof part === "string" ? (
-      <span key={`${part}-${index}`}>{part}</span>
-    ) : "strong" in part ? (
-      <strong className="font-extrabold text-[#17376b]" key={`${part.strong}-${index}`}>
-        {part.strong}
-      </strong>
-    ) : !isUsefulNewsLink(part.href) ? (
-      <span className="font-extrabold text-[#17376b]" key={`${part.label}-${index}`}>
-        {part.label}
-      </span>
-    ) : (
-      <a
-        className="font-extrabold text-[#1f67d2] underline decoration-[#9cc7ff] decoration-2 underline-offset-2"
-        href={part.href}
-        key={`${part.href}-${index}`}
-        rel="noreferrer"
-        target="_blank"
-      >
-        ({part.label})
-      </a>
-    ),
-  );
-};
-
-const markdownBlocks = (markdown: string, fallbackLines: string[]) => {
-  const source = markdown.trim() || fallbackLines.join("\n\n");
-  return source
-    .split(/\n{2,}/)
-    .map((block) => block.trim())
-    .filter(Boolean);
-};
-
 const AiReviewBriefing = ({ data }: AiReviewBriefingProps) => {
-  const blocks = markdownBlocks(data.briefingMarkdown, data.briefingLines);
+  const markdown = data.briefingMarkdown.trim() || data.briefingLines.join("\n\n");
 
   return (
     <SectionShell dataSampleTour="busan-rewind-ai-review-briefing" title="AI 종합 검토 브리핑">
@@ -81,25 +28,38 @@ const AiReviewBriefing = ({ data }: AiReviewBriefingProps) => {
               {data.source === "AI_RSS" ? "AI + RSS" : "RULE + RSS"}
             </span>
           </div>
-          <div className="mt-5 space-y-4 text-[15px] font-semibold leading-8 text-[#30445f]">
-            {blocks.map((block, index) => {
-              const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
-              const isList = lines.every((line) => line.startsWith("- ") || line.startsWith("* "));
-
-              if (isList) {
-                return (
-                  <ul className="space-y-2 border-l-2 border-[#dce8f8] pl-4" key={`${block}-${index}`}>
-                    {lines.map((line, lineIndex) => (
-                      <li className="text-[#344a64]" key={`${line}-${lineIndex}`}>
-                        {renderInlineMarkdown(line.replace(/^[-*]\s+/, ""))}
-                      </li>
-                    ))}
-                  </ul>
-                );
-              }
-
-              return <p key={`${block}-${index}`}>{renderInlineMarkdown(block)}</p>;
-            })}
+          <div className="mt-5 text-[15px] font-semibold leading-8 text-[#30445f]">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                a: ({ children, href }) =>
+                  href && isUsefulNewsLink(href) ? (
+                    <a
+                      className="font-extrabold text-[#1f67d2] underline decoration-[#9cc7ff] decoration-2 underline-offset-2"
+                      href={href}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      ({children})
+                    </a>
+                  ) : (
+                    <span className="font-extrabold text-[#17376b]">({children})</span>
+                  ),
+                blockquote: ({ children }) => (
+                  <blockquote className="my-4 border-l-4 border-[#dce8f8] bg-[#f7faff] px-4 py-3 text-[#344a64]">{children}</blockquote>
+                ),
+                h1: ({ children }) => <h3 className="mb-3 mt-5 text-lg font-extrabold text-[#102f63]">{children}</h3>,
+                h2: ({ children }) => <h4 className="mb-2 mt-5 text-base font-extrabold text-[#102f63]">{children}</h4>,
+                h3: ({ children }) => <h5 className="mb-2 mt-4 text-sm font-extrabold text-[#102f63]">{children}</h5>,
+                li: ({ children }) => <li className="pl-1 text-[#344a64]">{children}</li>,
+                ol: ({ children }) => <ol className="my-4 list-decimal space-y-2 pl-5">{children}</ol>,
+                p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
+                strong: ({ children }) => <strong className="font-extrabold text-[#17376b]">{children}</strong>,
+                ul: ({ children }) => <ul className="my-4 list-disc space-y-2 pl-5">{children}</ul>,
+              }}
+            >
+              {markdown}
+            </ReactMarkdown>
           </div>
         </article>
       </div>

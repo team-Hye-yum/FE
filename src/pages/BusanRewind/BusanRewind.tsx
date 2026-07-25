@@ -25,12 +25,12 @@ const BusanRewind = () => {
       )}
       <div className="relative space-y-5">
         {isLoading && <DimLoadingOverlay message="선택한 산업 기준으로 부산 리와인드 데이터를 불러오는 중입니다." />}
+        <AiReviewBriefing data={data.aiReviewBriefing} />
         <CurrentIndustryStatus data={data.currentStatus} supportPrograms={data.currentSupportPrograms} />
         <IndustryTrendBriefing data={data.trendBriefing} />
         <SimilarIndustryExplorer data={data.similarFlow} />
         <IndustrySupportExplorer data={data.pastSupportReview} />
         <SupportComparisonMap data={data.supportComparison} />
-        <AiReviewBriefing data={data.aiReviewBriefing} />
       </div>
     </main>
   );
