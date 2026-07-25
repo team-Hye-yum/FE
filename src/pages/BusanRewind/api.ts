@@ -1,5 +1,6 @@
 import type {
   ApiDataResponse,
+  AiReviewBriefingData,
   BusanRewindApiKey,
   BusanRewindData,
   CurrentStatusData,
@@ -29,6 +30,7 @@ export const busanRewindApiSources: Record<BusanRewindApiKey, string> = {
   pastSupportReview: "/api/busan-rewind/past-support-review",
   similarFlow: "/api/busan-rewind/similar-flow",
   supportComparison: "/api/busan-rewind/support-comparison",
+  aiReviewBriefing: "/api/busan-rewind/ai-review-briefing",
   trendBriefing: "/api/busan-rewind/trend-briefing",
 };
 
@@ -39,6 +41,7 @@ export const busanRewindComponentApiMap = {
   IndustrySupportExplorer: busanRewindApiSources.pastSupportReview,
   SimilarIndustryExplorer: busanRewindApiSources.similarFlow,
   SupportComparisonMap: busanRewindApiSources.supportComparison,
+  AiReviewBriefing: busanRewindApiSources.aiReviewBriefing,
 } as const;
 
 const fetchData = async <T>(path: string, industryCode: string): Promise<T> => {
@@ -63,6 +66,8 @@ export const busanRewindApi = {
     fetchData<SimilarFlowData>(busanRewindApiSources.similarFlow, industryCode),
   supportComparison: (industryCode: string) =>
     fetchData<SupportComparisonData>(busanRewindApiSources.supportComparison, industryCode),
+  aiReviewBriefing: (industryCode: string) =>
+    fetchData<AiReviewBriefingData>(busanRewindApiSources.aiReviewBriefing, industryCode),
   trendBriefing: (industryCode: string) =>
     fetchData<TrendBriefingData>(busanRewindApiSources.trendBriefing, industryCode),
 };
@@ -75,6 +80,7 @@ export const fetchBusanRewindData = async (industryCode: string): Promise<BusanR
     similarFlow,
     pastSupportReview,
     supportComparison,
+    aiReviewBriefing,
   ] = await Promise.all([
     busanRewindApi.currentStatus(industryCode),
     busanRewindApi.currentSupportPrograms(industryCode),
@@ -82,9 +88,11 @@ export const fetchBusanRewindData = async (industryCode: string): Promise<BusanR
     busanRewindApi.similarFlow(industryCode),
     busanRewindApi.pastSupportReview(industryCode),
     busanRewindApi.supportComparison(industryCode),
+    busanRewindApi.aiReviewBriefing(industryCode),
   ]);
 
   return {
+    aiReviewBriefing,
     currentStatus,
     currentSupportPrograms,
     pastSupportReview,

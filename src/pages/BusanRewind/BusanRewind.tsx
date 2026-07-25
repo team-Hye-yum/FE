@@ -1,5 +1,6 @@
 import DimLoadingOverlay from "@/components/DimLoadingOverlay";
 import SampleOnboarding from "@/components/SampleOnboarding";
+import AiReviewBriefing from "./components/AiReviewBriefing";
 import CurrentIndustryStatus from "./components/CurrentIndustryStatus";
 import IndustrySupportExplorer from "./components/IndustrySupportExplorer";
 import IndustryTrendBriefing from "./components/IndustryTrendBriefing";
@@ -29,6 +30,7 @@ const BusanRewind = () => {
         <SimilarIndustryExplorer data={data.similarFlow} />
         <IndustrySupportExplorer data={data.pastSupportReview} />
         <SupportComparisonMap data={data.supportComparison} />
+        <AiReviewBriefing data={data.aiReviewBriefing} />
       </div>
     </main>
   );

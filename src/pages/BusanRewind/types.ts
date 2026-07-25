@@ -159,7 +159,26 @@ export type SupportComparisonData = {
   trendKeywords: string[];
 };
 
+export type IndustryEvidenceNews = {
+  industryChange: string;
+  link: string;
+  publishedAt: string;
+  source: string;
+  title: string;
+};
+
+export type AiReviewBriefingData = {
+  briefingLines: string[];
+  evidenceNews: IndustryEvidenceNews[];
+  industryCode: string;
+  industryName: string;
+  newsSynthesis: string;
+  source: "AI_RSS" | "RULE_BASED_RSS";
+  title: string;
+};
+
 export type BusanRewindData = {
+  aiReviewBriefing: AiReviewBriefingData;
   currentStatus: CurrentStatusData;
   currentSupportPrograms: CurrentSupportProgramsData;
   pastSupportReview: PastSupportReviewData;

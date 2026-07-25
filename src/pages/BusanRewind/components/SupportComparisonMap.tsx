@@ -41,9 +41,6 @@ const SupportComparisonMap = ({ data }: SupportComparisonMapProps) => (
           </span>
         ))}
       </div>
-      <div className="relative z-10 mt-4 rounded-md border border-[#cfe0f7] bg-[#f6faff] px-4 py-3 text-sm font-semibold leading-6 text-[#38506c]">
-        <b className="text-[#1f67d2]">AI 요약</b> {data.aiSummary}
-      </div>
     </div>
   </SectionShell>
 );
