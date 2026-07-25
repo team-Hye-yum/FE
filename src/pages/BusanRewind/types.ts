@@ -168,6 +168,7 @@ export type IndustryEvidenceNews = {
 };
 
 export type AiReviewBriefingData = {
+  briefingMarkdown: string;
   briefingLines: string[];
   evidenceNews: IndustryEvidenceNews[];
   industryCode: string;

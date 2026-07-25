@@ -4,27 +4,29 @@ export const SAMPLE_INDUSTRY_CODE = "28";
 
 export const sampleBusanRewindData: BusanRewindData = {
   aiReviewBriefing: {
+    briefingMarkdown:
+      "전기장비 제조업은 생산 자동화와 에너지 전환 수요를 함께 받는 산업으로 검토할 필요가 있습니다. [스마트 제조 투자 확대](https://news.google.com/search?q=%EC%8A%A4%EB%A7%88%ED%8A%B8%20%EC%A0%9C%EC%A1%B0%20%ED%88%AC%EC%9E%90)\n\n현재 산업 현황에서는 종사자 증가 흐름과 디지털 전환 키워드가 함께 확인되므로, 단순 성장률보다 실행 역량을 같이 봐야 합니다.\n\n과거 유사 시기에는 스마트공장 구축과 제조 데이터 활용 지원이 중심이었고, 현재 지원사업은 AI·AX 기술 도입, ESG·탄소중립, 디지털 전환 컨설팅처럼 기술 전환 관점이 강화되었습니다.\n\n기업 검토 시에는 매출 증가 여부와 산업 전체 회복 흐름을 비교해 기업 고유 변화인지 확인할 수 있습니다.\n\n고용 변화는 수요 확대 국면에서 생산 대응 가능성을 판단하는 보조 지표로 활용할 수 있습니다. [제조 인력 수요 변화](https://news.google.com/search?q=%EC%A0%9C%EC%A1%B0%EC%97%85%20%EC%9D%B8%EB%A0%A5%20%EC%88%98%EC%9A%94)\n\n본 내용은 산업 동향과 과거 지원 이력을 종합한 참고자료이며, 지원 여부를 판단하거나 평가 결과를 제시하지 않습니다.",
     briefingLines: [
-      "전기장비 제조업은 생산 자동화와 에너지 전환 수요를 함께 받는 산업으로 검토할 필요가 있습니다. [스마트 제조 투자 확대](https://news.google.com/)",
+      "전기장비 제조업은 생산 자동화와 에너지 전환 수요를 함께 받는 산업으로 검토할 필요가 있습니다. [스마트 제조 투자 확대](https://news.google.com/search?q=%EC%8A%A4%EB%A7%88%ED%8A%B8%20%EC%A0%9C%EC%A1%B0%20%ED%88%AC%EC%9E%90)",
       "현재 산업 현황에서는 종사자 증가 흐름과 디지털 전환 키워드가 함께 확인되므로, 단순 성장률보다 실행 역량을 같이 봐야 합니다.",
       "과거 유사 시기에는 스마트공장 구축과 제조 데이터 활용 지원이 중심이었습니다.",
       "현재 지원사업은 AI·AX 기술 도입, ESG·탄소중립, 디지털 전환 컨설팅처럼 기술 전환 관점이 강화되었습니다.",
       "기업 검토 시에는 매출 증가 여부와 산업 전체 회복 흐름을 비교해 기업 고유 변화인지 확인할 수 있습니다.",
-      "고용 변화는 수요 확대 국면에서 생산 대응 가능성을 판단하는 보조 지표로 활용할 수 있습니다. [제조 인력 수요 변화](https://news.google.com/)",
+      "고용 변화는 수요 확대 국면에서 생산 대응 가능성을 판단하는 보조 지표로 활용할 수 있습니다. [제조 인력 수요 변화](https://news.google.com/search?q=%EC%A0%9C%EC%A1%B0%EC%97%85%20%EC%9D%B8%EB%A0%A5%20%EC%88%98%EC%9A%94)",
       "과거 지원 방향과 현재 지원 목적의 차이를 같이 보면 현재 사업의 추진 배경을 이해하는 데 도움이 됩니다.",
       "본 내용은 산업 동향과 과거 지원 이력을 종합한 참고자료이며, 지원 여부를 판단하거나 평가 결과를 제시하지 않습니다.",
     ],
     evidenceNews: [
       {
         industryChange: "디지털 전환 확대",
-        link: "https://news.google.com/",
+        link: "https://news.google.com/search?q=%EC%8A%A4%EB%A7%88%ED%8A%B8%20%EC%A0%9C%EC%A1%B0%20%ED%88%AC%EC%9E%90",
         publishedAt: "2026.07.18",
         source: "Google News RSS",
         title: "AI 기반 스마트공장 구축 투자 확대",
       },
       {
         industryChange: "인력·고용 여건 변화",
-        link: "https://news.google.com/",
+        link: "https://news.google.com/search?q=%EC%A0%9C%EC%A1%B0%EC%97%85%20%EC%9D%B8%EB%A0%A5%20%EC%88%98%EC%9A%94",
         publishedAt: "2026.07.10",
         source: "Google News RSS",
         title: "제조업 인력 수요 증가와 생산 대응 과제",
