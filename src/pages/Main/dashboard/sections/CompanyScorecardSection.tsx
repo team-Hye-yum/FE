@@ -180,16 +180,16 @@ const trendPrefix = (value: number | null | undefined) => {
   return value > 0 ? "▲ +" : "▼ ";
 };
 
-const formatEmployeeChange = (value: number | null | undefined) => {
+const formatEmployeeChangeValue = (value: number | null | undefined) => {
   if (value === null || value === undefined) {
-    return "전년 대비 데이터 없음";
+    return "데이터 없음";
   }
 
   if (value === 0) {
-    return "전년 대비 변동 없음";
+    return "변동 없음";
   }
 
-  return `전년 대비 ${trendPrefix(value)}${Math.abs(value)}명`;
+  return `${trendPrefix(value)}${Math.abs(value)}명`;
 };
 
 const formatSalesAmount = (value: number) => {
@@ -552,7 +552,7 @@ const CompanyScorecardSection = ({ companyId, isSample = false }: DashboardCompa
 
   if (summaryState.isLoading && !summary) {
     return (
-      <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))" }}>
+      <div className="grid gap-5 sm:grid-cols-2">
         {[0, 1, 2, 3].map((item) => (
           <div className="h-[142px] animate-pulse rounded-[10px] border border-[#d7ebff] bg-white" key={item} />
         ))}
@@ -570,7 +570,7 @@ const CompanyScorecardSection = ({ companyId, isSample = false }: DashboardCompa
 
   return (
     <>
-      <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))" }}>
+      <div className="grid gap-5 sm:grid-cols-2">
         <ScorecardCard onClick={() => scrollToSection("income-statement")}>
           <CardTitle>재무</CardTitle>
           <CardValue>
@@ -613,8 +613,11 @@ const CompanyScorecardSection = ({ companyId, isSample = false }: DashboardCompa
           </p>
           <Divider />
           <div className="flex flex-wrap text-sm font-medium text-[#666]">
-            <span className={trendColorClass(employeeChange)} style={{ marginBottom: 6, marginRight: 24 }}>
-              {formatEmployeeChange(employeeChange)}
+            <span style={{ marginBottom: 6, marginRight: 24 }}>
+              전년 대비{" "}
+              <span className={trendColorClass(employeeChange)}>
+                {formatEmployeeChangeValue(employeeChange)}
+              </span>
             </span>
           </div>
         </ScorecardCard>

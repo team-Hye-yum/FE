@@ -79,6 +79,8 @@ type ChartRow = {
   supportMarkers?: SupportMarker[];
 };
 
+const CHART_BASE_YEAR = 2020;
+
 const sampleGrowthScenario: GrowthScenarioResponse = {
   companyId: 0,
   chartLines: [
@@ -257,8 +259,13 @@ const getLineValue = (data: GrowthScenarioResponse, code: GrowthLineCode) =>
 
 const buildChartRows = (data: GrowthScenarioResponse): ChartRow[] => {
   const rows = new Map<number, ChartRow>();
+  const actualYears: number[] = [];
 
   data.chartLines.forEach((line) => {
+    if (line.code === "COMPANY_REFERENCE" || line.code === "INDUSTRY_REFERENCE") {
+      return;
+    }
+
     const key = lineKeyByCode[line.code];
 
     if (!key) {
@@ -271,10 +278,19 @@ const buildChartRows = (data: GrowthScenarioResponse): ChartRow[] => {
       }
 
       rows.get(point.year)![key] = point.index;
+      actualYears.push(point.year);
     });
   });
 
-  const companyPoints = [...getLineValue(data, "COMPANY_ACTUAL"), ...getLineValue(data, "COMPANY_REFERENCE")];
+  const maxActualYear = Math.max(CHART_BASE_YEAR, ...actualYears);
+
+  for (let year = CHART_BASE_YEAR; year <= maxActualYear; year += 1) {
+    if (!rows.has(year)) {
+      rows.set(year, { year });
+    }
+  }
+
+  const companyPoints = getLineValue(data, "COMPANY_ACTUAL");
   const companyIndexByYear = new Map(companyPoints.map((point) => [point.year, point.index]));
   const markersByYear = data.supportMarkers.reduce((map, marker) => {
     if (marker.markerYear === null) {
@@ -293,11 +309,7 @@ const buildChartRows = (data: GrowthScenarioResponse): ChartRow[] => {
     const row = rows.get(year)!;
     row.supportMarkers = markers;
     row.supportCount = markers.length;
-    row.supportIndex =
-      row.companyActual ??
-      row.companyReference ??
-      companyIndexByYear.get(year) ??
-      null;
+    row.supportIndex = row.companyActual ?? companyIndexByYear.get(year) ?? null;
   });
 
   return [...rows.values()].sort((left, right) => left.year - right.year);
@@ -335,8 +347,8 @@ const GrowthTooltip = ({ active, label, payload }: GrowthTooltipProps) => {
     <div className="min-w-[276px] rounded-[10px] border border-[#e7e7e7] bg-white px-[20px] py-[18px] text-sm shadow-[0_8px_24px_rgba(15,23,42,0.11)]">
       <p className="mb-[17px] text-[16px] font-medium leading-[20px] text-[#555]">{label}</p>
       <div className="space-y-[10px] border-b border-[#eceff3] pb-[17px]">
-        <TooltipMetric color="#2563ff" label="해당 기업" value={row?.companyActual ?? row?.companyReference} />
-        <TooltipMetric color="#88beff" label="업종 평균" value={row?.industryActual ?? row?.industryReference} />
+        <TooltipMetric color="#2563ff" label="해당 기업" value={row?.companyActual} />
+        <TooltipMetric color="#88beff" label="업종 평균" value={row?.industryActual} />
       </div>
 
       {markers.length > 0 && (
@@ -468,6 +480,8 @@ const GrowthScenarioSection = ({ companyId, isSample = false }: DashboardCompany
   );
   const scenario = isSample ? sampleGrowthScenario : data;
   const chartRows = scenario ? buildChartRows(scenario) : [];
+  const chartYears = chartRows.map((row) => row.year);
+  const chartMaxYear = chartYears.at(-1) ?? CHART_BASE_YEAR;
 
   useEffect(() => {
     const container = chartContainerRef.current;
@@ -517,14 +531,12 @@ const GrowthScenarioSection = ({ companyId, isSample = false }: DashboardCompany
         <div className="min-w-0">
           <div className="mb-[18px] pl-0 sm:pl-[38px]">
             <div className="flex min-w-0 flex-wrap items-center gap-x-[8px] gap-y-2 text-[10px] font-medium leading-[14px] text-[#666] 2xl:flex-nowrap 2xl:whitespace-nowrap">
-            <LegendLine color="#2563ff" label="기업 실측 성장지수" />
-            <LegendLine color="#2563ff" dashed label="기업 참고 성장지수" />
-            <LegendLine color="#88beff" label="업종 평균 성장지수" />
-            <LegendLine color="#88beff" dashed label="업종 참고 성장지수" />
-            <div className="flex items-center gap-2">
-              <span className="h-[10px] w-[10px] rounded-full bg-[#ffb000]" />
-              <span>BTP 지원</span>
-            </div>
+              <LegendLine color="#2563ff" label="기업 실측 성장지수" />
+              <LegendLine color="#88beff" label="업종 평균 성장지수" />
+              <div className="flex items-center gap-2">
+                <span className="h-[10px] w-[10px] rounded-full bg-[#ffb000]" />
+                <span>BTP 지원</span>
+              </div>
             </div>
           </div>
 
@@ -542,10 +554,16 @@ const GrowthScenarioSection = ({ companyId, isSample = false }: DashboardCompany
               >
                   <CartesianGrid stroke="#eeeeee" strokeOpacity={0.82} vertical={false} />
                   <XAxis
+                    allowDecimals={false}
+                    allowDataOverflow
                     axisLine={{ stroke: "#e5e7eb" }}
                     dataKey="year"
+                    domain={[CHART_BASE_YEAR, chartMaxYear]}
+                    padding={{ left: 0, right: 0 }}
                     tick={{ fill: "#888", fontSize: 13, fontWeight: 400 }}
                     tickLine={false}
+                    ticks={chartYears}
+                    type="number"
                   />
                   <YAxis
                     axisLine={false}
@@ -568,30 +586,10 @@ const GrowthScenarioSection = ({ companyId, isSample = false }: DashboardCompany
                   />
                   <Line
                     connectNulls
-                    dataKey="companyReference"
-                    dot={false}
-                    isAnimationActive={false}
-                    stroke="#2563ff"
-                    strokeDasharray="3 5"
-                    strokeWidth={2}
-                    type="linear"
-                  />
-                  <Line
-                    connectNulls
                     dataKey="industryActual"
                     dot={false}
                     isAnimationActive={false}
                     stroke="#88beff"
-                    strokeWidth={2}
-                    type="linear"
-                  />
-                  <Line
-                    connectNulls
-                    dataKey="industryReference"
-                    dot={false}
-                    isAnimationActive={false}
-                    stroke="#88beff"
-                    strokeDasharray="3 5"
                     strokeWidth={2}
                     type="linear"
                   />
@@ -605,8 +603,8 @@ const GrowthScenarioSection = ({ companyId, isSample = false }: DashboardCompany
               i
             </span>
             <p>
-              기업 참고 경로는 한국은행 업종 성장률을 기준으로 기업의 최근 성장 패턴을 반영하여
-              산출한 참고 시나리오입니다. 실제 경영성과를 의미하거나 보장하지 않습니다.
+              업종 성장지수·매출율 지수는 한국은행 업종 통계를 기준연도(2021년=100)로 환산한
+              비교용 참고 지표이며, 실제 경영성과를 보장하지 않습니다.
             </p>
           </div>
         </div>

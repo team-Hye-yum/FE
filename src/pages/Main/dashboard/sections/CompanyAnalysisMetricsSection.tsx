@@ -116,7 +116,7 @@ const sortMetrics = (metrics: ComputedMetricItem[]) =>
     );
 
 const MetricCard = ({ metric }: { metric: ComputedMetricItem }) => (
-  <article className="h-[124px] rounded-[10px] border border-transparent bg-[#f8f9fb] px-[30px] pt-[30px] transition duration-200 hover:-translate-y-0.5 hover:border-[#cfe5ff] hover:bg-[#f8fbff] hover:shadow-[0_8px_22px_rgba(15,23,42,0.08)]">
+  <article className="h-[124px] rounded-[10px] border border-transparent bg-[#f8f9fb] px-[30px] pt-[30px]">
     <h3 className="truncate whitespace-nowrap text-[17px] font-medium leading-[22px] text-[#555]">
       {metric.label}
     </h3>

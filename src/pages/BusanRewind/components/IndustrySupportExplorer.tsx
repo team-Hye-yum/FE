@@ -55,7 +55,10 @@ const IndustrySupportExplorer = ({ data }: IndustrySupportExplorerProps) => (
           <article className="rounded-md border border-[#cfe0f7] p-4" key={program.programId ?? `${program.year}-${program.title}-${index}`}>
             <h3 className="text-base font-extrabold text-[#123b7a]">[{program.year}] {program.title}</h3>
             <dl className="mt-3 grid gap-1.5 text-sm font-semibold leading-6 text-[#44566e]">
-              <div><dt className="inline font-extrabold text-[#263b59]">목적</dt> <dd className="inline">{program.purpose}</dd></div>
+              <div>
+                <dt className="font-extrabold text-[#263b59]">목적</dt>
+                <dd className="line-clamp-2">{program.purpose}</dd>
+              </div>
               <div><dt className="inline font-extrabold text-[#263b59]">분야</dt> <dd className="inline">{program.supportField}</dd></div>
               <div><dt className="inline font-extrabold text-[#263b59]">대상</dt> <dd className="inline">{program.target}</dd></div>
               <div><dt className="inline font-extrabold text-[#263b59]">규모</dt> <dd className="inline">{formatThousandKrw(program.supportAmountThousandKrw)}</dd></div>

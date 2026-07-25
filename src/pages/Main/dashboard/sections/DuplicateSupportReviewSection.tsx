@@ -38,6 +38,14 @@ type SupportHistoryPostSupportChangeResponse = {
   observations: ChangeObservationItem[];
 };
 
+type SupportHistoryCurrentYearStatusResponse = {
+  emptyMessage: string | null;
+  items: CurrentYearSupportItem[];
+  selectedCount: number;
+  totalCount: number;
+  year: number | null;
+};
+
 type CompanyActivitySupportTimelineResponse = {
   btpSupportEvents: PointEventItem[];
   emptyMessages: Array<{
@@ -65,6 +73,14 @@ type BtpSupportTimelineItem = {
   supportDetail?: string | null;
   supportItem?: string | null;
   supportYear: number | null;
+  supportType: string | null;
+};
+
+type CurrentYearSupportItem = {
+  applicationDate: string | null;
+  budgetProgramName: string | null;
+  selectionResult: string | null;
+  supportHistoryId: number;
   supportType: string | null;
 };
 
@@ -302,6 +318,36 @@ const sampleComparisons: ComparisonItem[] = [
 const sampleLatestSupportTargets = sampleComparisons
   .map((comparison) => comparison.latestSupport)
   .filter((item): item is SupportHistoryCompareItem => item !== null);
+
+const sampleCurrentYearStatus: SupportHistoryCurrentYearStatusResponse = {
+  emptyMessage: null,
+  items: [
+    {
+      applicationDate: "20260701",
+      budgetProgramName: "부산글로벌스타기업육성사업",
+      selectionResult: "지원대상",
+      supportHistoryId: 202601,
+      supportType: "사업화지원",
+    },
+    {
+      applicationDate: "20260701",
+      budgetProgramName: "친환경미래에너지마케팅사업",
+      selectionResult: "신청",
+      supportHistoryId: 202602,
+      supportType: "패키지지원",
+    },
+    {
+      applicationDate: "20260701",
+      budgetProgramName: "지역기업성장사다리지원사업",
+      selectionResult: "지원대상",
+      supportHistoryId: 202603,
+      supportType: "기술지원",
+    },
+  ],
+  selectedCount: 2,
+  totalCount: 3,
+  year: 2026,
+};
 
 const samplePostSupportObservations: ChangeObservationItem[] = [
   {
@@ -904,22 +950,76 @@ const SummaryCards = ({
   selectedCount: number | null;
 }) => (
   <div className="mb-8 grid grid-cols-2 gap-5">
-    <article className="h-[124px] rounded-[10px] bg-[#f8f9fb] px-[30px] pt-[30px]">
-      <h3 className="text-lg font-medium leading-[22px] text-[#555]">부산TP 선정 지원</h3>
-      <p className="mt-[9px] text-[28px] font-medium leading-[34px] text-[#333]">
+    <article className="h-[124px] rounded-[10px] border border-[#cfe5ff] bg-[#f8fbff] px-[30px] pt-[30px]">
+      <h3 className="text-lg font-medium leading-[22px] text-[#4f6f9f]">부산TP 선정 지원</h3>
+      <p className="mt-[9px] text-[28px] font-medium leading-[34px] text-[#2b7fff]">
         {formatCount(selectedCount)}
       </p>
     </article>
-    <article className="h-[124px] rounded-[10px] bg-[#f8f9fb] px-[30px] pt-[30px]">
-      <h3 className="text-lg font-medium leading-[22px] text-[#555]">
+    <article className="h-[124px] rounded-[10px] border border-[#cfe5ff] bg-[#f8fbff] px-[30px] pt-[30px]">
+      <h3 className="text-lg font-medium leading-[22px] text-[#4f6f9f]">
         {latestYear ? `${latestYear}년 신청 현황` : "최신 신청 현황"}
       </h3>
-      <p className="mt-[9px] text-[28px] font-medium leading-[34px] text-[#333]">
+      <p className="mt-[9px] text-[28px] font-medium leading-[34px] text-[#2b7fff]">
         {formatCount(latestCount)}
       </p>
     </article>
   </div>
 );
+
+const CurrentYearSupportStatusTable = ({
+  data,
+}: {
+  data: SupportHistoryCurrentYearStatusResponse | null;
+}) => {
+  const items = data?.items ?? [];
+
+  return (
+    <div className="mb-8">
+      <h3 className="mb-5 text-xl font-medium text-[#333]">금년도 지원 현황</h3>
+      <div
+        className="max-h-[338px] overflow-y-auto overflow-x-auto rounded-[10px] border border-[#eee] bg-white"
+        data-dashboard-print-expand
+      >
+        <table className="min-w-[680px] border-collapse text-left text-[15px] text-[#333] md:w-full md:table-fixed">
+          <colgroup>
+            <col className="w-[52%]" />
+            <col className="w-[24%]" />
+            <col className="w-[24%]" />
+          </colgroup>
+          <thead>
+            <tr className="sticky top-0 z-10 h-10 bg-[#f3f7ff]">
+              <th className="whitespace-nowrap px-5 font-normal">사업명</th>
+              <th className="whitespace-nowrap px-5 font-normal">지원분야</th>
+              <th className="whitespace-nowrap px-5 font-normal">신청일자</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.length > 0 ? (
+              items.map((item) => (
+                <tr className="h-10 border-t border-[#f0f2f5]" key={item.supportHistoryId}>
+                  <td className="truncate px-5" title={item.budgetProgramName || "-"}>
+                    {item.budgetProgramName || "-"}
+                  </td>
+                  <td className="truncate px-5" title={item.supportType || "-"}>
+                    {item.supportType || "-"}
+                  </td>
+                  <td className="whitespace-nowrap px-5">{formatDate(item.applicationDate)}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td className="h-24 px-5 text-center text-[#777]" colSpan={3}>
+                  {data?.emptyMessage ?? "금년도 지원 현황이 없습니다."}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
 
 const SupportTimelineTable = ({ items }: { items: BtpSupportTimelineItem[] }) => (
   <div className="mt-10">
@@ -1531,6 +1631,11 @@ const DuplicateSupportReviewSection = ({
       isSample ? "" : companyId,
       "/companies/{companyId}/support-history/review/post-support-changes",
     );
+  const { data: currentYearStatusData } =
+    useDashboardGetData<SupportHistoryCurrentYearStatusResponse>(
+      isSample ? "" : companyId,
+      "/companies/{companyId}/support-history/current-year-status",
+    );
   const { data: activityTimelineData } =
     useDashboardGetData<CompanyActivitySupportTimelineResponse>(
       isSample ? "" : companyId,
@@ -1557,6 +1662,7 @@ const DuplicateSupportReviewSection = ({
   const selectedCount = isSample
     ? 12
     : data?.summary?.btpSelectedSupportCount ?? timelineItems.length;
+  const currentYearStatus = isSample ? sampleCurrentYearStatus : currentYearStatusData;
   const chartData = buildChartData(items);
   const activityTimeline = isSample ? sampleActivityTimeline : activityTimelineData;
   const activityYears = chartData.map((item) => item.year);
@@ -1585,6 +1691,7 @@ const DuplicateSupportReviewSection = ({
         latestYear={latestYear}
         selectedCount={selectedCount}
       />
+      <CurrentYearSupportStatusTable data={currentYearStatus} />
       <div>
         <h3 className="mb-5 text-xl font-medium text-[#333]">부산TP 지원 현황 - 연도별 건수</h3>
         <div
