@@ -7,7 +7,7 @@ import DashboardHeader from "./components/DashboardHeader";
 import DashboardSection from "./components/DashboardSection";
 import DashboardShell from "./components/DashboardShell";
 import { dashboardSections } from "./constants/dashboardSections";
-import { useDashboardChainPostData } from "./hooks/useDashboardApi";
+import { useDashboardChainPostData, useDashboardGetData } from "./hooks/useDashboardApi";
 import { useDashboardPanelConfig } from "./hooks/useDashboardPanelConfig";
 import { useSectionScrollSpy } from "./hooks/useSectionScrollSpy";
 import { useScrollToSection } from "./hooks/useScrollToSection";
@@ -32,6 +32,11 @@ const apiUrl = (path: string) => {
 
 const invalidUrlParamError = "invalid-url-param";
 
+type CompanyProfileForIndustry = {
+  industryName11th: string | null;
+  ksicCode11th: string | null;
+};
+
 const sectionComponents = {
   scorecard: CompanyScorecardSection,
   employment: EmploymentInfoSection,
@@ -44,6 +49,53 @@ const sectionComponents = {
   "duplicate-support": DuplicateSupportReviewSection,
   "ai-report": AiAnalysisReportSection,
 } as const;
+
+const divisionCodeFromKsic = (ksicCode: string | null | undefined) => {
+  const match = ksicCode?.match(/\d{2}/);
+  return match?.[0] ?? "";
+};
+
+const ScorecardHeaderAction = ({
+  companyId,
+  isSample,
+}: {
+  companyId: string;
+  isSample: boolean;
+}) => {
+  const navigate = useNavigate();
+  const { data, isLoading } = useDashboardGetData<CompanyProfileForIndustry>(
+    isSample ? "" : companyId,
+    "/companies/{companyId}/profile",
+  );
+  const divisionCode = divisionCodeFromKsic(data?.ksicCode11th);
+  const isDisabled = isSample || isLoading || !divisionCode;
+
+  const handleClick = () => {
+    if (isDisabled) {
+      return;
+    }
+
+    const nextSearchParams = new URLSearchParams({ industryCode: divisionCode });
+    if (data?.industryName11th) {
+      nextSearchParams.set("industryKeyword", data.industryName11th);
+    }
+    navigate({ pathname: "/busan-rewind", search: nextSearchParams.toString() });
+  };
+
+  return (
+    <button
+      className="business-action-button -mt-1 inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-[6px] border border-[#8cc8ff] bg-white px-3 text-sm font-semibold text-[#2b7fff] disabled:cursor-not-allowed disabled:opacity-45"
+      disabled={isDisabled}
+      onClick={handleClick}
+      type="button"
+    >
+      산업 함께 보기
+      <span aria-hidden="true" className="text-base leading-none">
+        ↗
+      </span>
+    </button>
+  );
+};
 
 const CompanyDashboardPage = () => {
   const [searchParams] = useSearchParams();
@@ -167,7 +219,16 @@ const CompanyDashboardPage = () => {
           const SectionContent = sectionComponents[section.id];
 
           return (
-            <DashboardSection id={section.id} key={section.id} title={section.label}>
+            <DashboardSection
+              headerAction={
+                section.id === "scorecard" ? (
+                  <ScorecardHeaderAction companyId={requestCompanyId} isSample={isSample} />
+                ) : undefined
+              }
+              id={section.id}
+              key={section.id}
+              title={section.label}
+            >
               <SectionContent companyId={requestCompanyId} isSample={isSample} />
             </DashboardSection>
           );

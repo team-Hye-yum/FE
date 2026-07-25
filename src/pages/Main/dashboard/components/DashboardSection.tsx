@@ -4,11 +4,12 @@ import type { DashboardSectionId } from "../types";
 
 type DashboardSectionProps = {
   children: ReactNode;
+  headerAction?: ReactNode;
   id: DashboardSectionId;
   title: string;
 };
 
-const DashboardSection = ({ children, id, title }: DashboardSectionProps) => {
+const DashboardSection = ({ children, headerAction, id, title }: DashboardSectionProps) => {
   if (!children) {
     return null;
   }
@@ -22,7 +23,10 @@ const DashboardSection = ({ children, id, title }: DashboardSectionProps) => {
       viewport={{ margin: "-80px", once: true }}
       whileInView={{ opacity: 1, y: 0 }}
     >
-      <h2 className="mb-5 text-2xl font-medium text-[#333]">{title}</h2>
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <h2 className="text-2xl font-medium text-[#333]">{title}</h2>
+        {headerAction}
+      </div>
       {children}
     </motion.section>
   );

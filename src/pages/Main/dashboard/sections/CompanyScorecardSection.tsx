@@ -412,7 +412,7 @@ const EvidenceArea = ({
       role={isClickable ? "button" : undefined}
       tabIndex={isClickable ? 0 : undefined}
     >
-      <p className="text-sm font-medium text-[#666]">확인된 디지털 전환 관련 근거</p>
+      <p className="leading-5 text-sm font-medium text-[#2b7fff]">확인된 디지털 전환 관련 근거</p>
       <EvidenceStatus count={count} />
     </div>
   );
@@ -571,6 +571,22 @@ const CompanyScorecardSection = ({ companyId, isSample = false }: DashboardCompa
   return (
     <>
       <div className="grid gap-5 sm:grid-cols-2">
+        <ScorecardCard onClick={() => scrollToSection("rnd")}>
+          <CardTitle>연구·활동</CardTitle>
+          <CardValue>
+            <AnimatedNumber
+              fallback={formatCount(researchActivity?.ntisLeadProjectCount)}
+              formatter={(value) => formatCount(Math.round(value))}
+              value={researchActivity?.ntisLeadProjectCount}
+            />
+          </CardValue>
+          <p className="mt-1.5 text-sm font-medium text-[#666]">
+            NTIS(주관) 과제 수와 NTIS(위탁) 과제 수 합계
+          </p>
+          <Divider />
+          <EvidenceArea count={evidenceCount} onOpen={() => setIsEvidenceModalOpen(true)} />
+        </ScorecardCard>
+
         <ScorecardCard onClick={() => scrollToSection("income-statement")}>
           <CardTitle>재무</CardTitle>
           <CardValue>
@@ -644,21 +660,6 @@ const CompanyScorecardSection = ({ companyId, isSample = false }: DashboardCompa
           </div>
         </ScorecardCard>
 
-        <ScorecardCard onClick={() => scrollToSection("rnd")}>
-          <CardTitle>연구·활동</CardTitle>
-          <CardValue>
-            <AnimatedNumber
-              fallback={formatCount(researchActivity?.ntisLeadProjectCount)}
-              formatter={(value) => formatCount(Math.round(value))}
-              value={researchActivity?.ntisLeadProjectCount}
-            />
-          </CardValue>
-          <p className="mt-1.5 text-sm font-medium text-[#666]">
-            NTIS(주관) 과제 수와 NTIS(위탁) 과제 수 합계
-          </p>
-          <Divider />
-          <EvidenceArea count={evidenceCount} onOpen={() => setIsEvidenceModalOpen(true)} />
-        </ScorecardCard>
       </div>
 
       {isEvidenceModalOpen && evidenceCount > 0 && (
