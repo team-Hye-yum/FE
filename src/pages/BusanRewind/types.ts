@@ -19,16 +19,16 @@ export type DistrictEmployeeGrowth = {
 };
 
 export type CurrentStatusData = {
-  baseYear: number;
+  baseYear: number | null;
   corporation: CountRatio;
   districtEmployeeGrowths: DistrictEmployeeGrowth[];
-  employeeCount: number;
+  employeeCount: number | null;
   employeeGrowthRate: number | null;
   employeeSizeRatios: EmployeeSizeRatio[];
   individual: CountRatio;
   industryCode: string;
   industryName: string;
-  previousYear: number;
+  previousYear: number | null;
 };
 
 export type CurrentSupportProgram = {
@@ -87,7 +87,7 @@ export type SimilarFlowPoint = {
 };
 
 export type PeriodHighlight = {
-  changeRate: number;
+  changeRate: number | null;
   endYear: number;
   label: string;
   startYear: number;
@@ -103,14 +103,14 @@ export type SimilarFlowData = {
 };
 
 export type IndustryChange = {
-  changeRate: number;
+  changeRate: number | null;
   label: string;
 };
 
 export type PastSupportProgram = {
-  programId: number;
+  programId: number | null;
   purpose: string;
-  supportAmountThousandKrw: number;
+  supportAmountThousandKrw: number | null;
   supportContent: string;
   supportField: string;
   target: string;
@@ -127,7 +127,7 @@ export type SupportedCompanyChange = {
   rndChange: string | null;
   salesAfterAmount: number | null;
   salesBeforeAmount: number | null;
-  supportYear: number;
+  supportYear: number | null;
 };
 
 export type PastSupportReviewData = {

@@ -15,7 +15,7 @@ type SimilarIndustryExplorerProps = {
   data: SimilarFlowData;
 };
 
-const formatChange = (value: number) => `${value > 0 ? "+" : ""}${value}%`;
+const formatChange = (value: number | null) => (value === null ? "-" : `${value > 0 ? "+" : ""}${value}%`);
 
 const SimilarIndustryExplorer = ({ data }: SimilarIndustryExplorerProps) => (
   <SectionShell dataSampleTour="busan-rewind-similar-flow" title="과거 유사 산업 흐름 탐색">
@@ -30,7 +30,7 @@ const SimilarIndustryExplorer = ({ data }: SimilarIndustryExplorerProps) => (
                   <ReferenceArea
                     fill={["#fff1f2", "#f0fdf4", "#eff6ff"][index % 3]}
                     ifOverflow="extendDomain"
-                    key={item.label}
+                    key={`${item.label}-${item.startYear}-${item.endYear}`}
                     strokeOpacity={0}
                     x1={item.startYear}
                     x2={item.endYear}
@@ -54,17 +54,20 @@ const SimilarIndustryExplorer = ({ data }: SimilarIndustryExplorerProps) => (
           </div>
           <div className="mt-3 grid grid-cols-3 gap-3">
             {data.periodHighlights.map((item) => (
-              <div className="rounded bg-white/80 px-3 py-2 text-center" key={item.label}>
+              <div className="rounded bg-white/80 px-3 py-2 text-center" key={`${item.label}-${item.startYear}-${item.endYear}`}>
                 <p className="text-sm font-extrabold text-[#123b7a]">{item.label}</p>
                 <p className="mt-1 text-xs font-bold text-[#6b7c95]">
                   {item.startYear}~{item.endYear}
                 </p>
-                <p className={item.changeRate < 0 ? "mt-2 text-lg font-black text-[#2864c9]" : "mt-2 text-lg font-black text-[#ef3748]"}>
+                <p className={(item.changeRate ?? 0) < 0 ? "mt-2 text-lg font-black text-[#2864c9]" : "mt-2 text-lg font-black text-[#ef3748]"}>
                   {formatChange(item.changeRate)}
                 </p>
               </div>
             ))}
           </div>
+          {data.series.length === 0 && (
+            <p className="mt-3 text-center text-sm font-bold text-[#7b8798]">표시할 과거 유사 흐름 데이터가 없습니다.</p>
+          )}
         </div>
       </div>
       <div className="rounded-md border border-[#dfe8f5] p-4">

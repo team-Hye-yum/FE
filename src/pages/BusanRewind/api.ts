@@ -12,7 +12,12 @@ import type {
 
 const apiUrl = (path: string) => {
   const baseUrl = import.meta.env.API_URL || import.meta.env.VITE_API_URL || "/api";
-  return `${baseUrl.replace(/\/$/, "")}${path}`;
+  const normalizedBaseUrl = baseUrl.replace(/\/$/, "");
+  const normalizedPath =
+    normalizedBaseUrl.endsWith("/api") && path.startsWith("/api/")
+      ? path.replace(/^\/api/, "")
+      : path;
+  return `${normalizedBaseUrl}${normalizedPath}`;
 };
 
 const withIndustryCode = (path: string, industryCode: string) =>

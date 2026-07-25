@@ -6,7 +6,7 @@ type IndustrySupportExplorerProps = {
   data: PastSupportReviewData;
 };
 
-const formatChange = (value: number) => `${value > 0 ? "+" : ""}${value}%`;
+const formatChange = (value: number | null) => (value === null ? "-" : `${value > 0 ? "+" : ""}${value}%`);
 const formatThousandKrw = (value: number | null) =>
   value === null ? "-" : `${Math.round(value / 100000).toLocaleString()}억원`;
 const formatKrw = (value: number | null) =>
@@ -33,7 +33,7 @@ const IndustrySupportExplorer = ({ data }: IndustrySupportExplorerProps) => (
                 type="category"
                 width={116}
               />
-              <Tooltip formatter={(value) => formatChange(Number(value))} />
+              <Tooltip formatter={(value) => formatChange(value === null ? null : Number(value))} />
               <Bar dataKey="changeRate" fill="#2b7fff" radius={[0, 8, 8, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -43,8 +43,13 @@ const IndustrySupportExplorer = ({ data }: IndustrySupportExplorerProps) => (
         </p>
       </div>
       <div className="grid gap-3">
-        {data.pastSupportPrograms.map((program) => (
-          <article className="rounded-md border border-[#cfe0f7] p-4" key={program.programId}>
+        {data.pastSupportPrograms.length === 0 && (
+          <div className="rounded-md border border-[#dfe8f5] bg-[#f7faff] p-4 text-sm font-bold text-[#6b7c95]">
+            해당 기간에 표시할 지원사업 데이터가 없습니다.
+          </div>
+        )}
+        {data.pastSupportPrograms.map((program, index) => (
+          <article className="rounded-md border border-[#cfe0f7] p-4" key={program.programId ?? `${program.year}-${program.title}-${index}`}>
             <h3 className="text-base font-extrabold text-[#123b7a]">[{program.year}] {program.title}</h3>
             <dl className="mt-3 grid gap-1.5 text-sm font-semibold leading-6 text-[#44566e]">
               <div><dt className="inline font-extrabold text-[#263b59]">목적</dt> <dd className="inline">{program.purpose}</dd></div>
@@ -56,6 +61,11 @@ const IndustrySupportExplorer = ({ data }: IndustrySupportExplorerProps) => (
         ))}
       </div>
       <div className="grid gap-3">
+        {data.supportedCompanyChanges.length === 0 && (
+          <div className="rounded-md border border-[#dfe8f5] bg-[#f7faff] p-4 text-sm font-bold text-[#6b7c95]">
+            표시할 지원기업 변화 데이터가 없습니다.
+          </div>
+        )}
         {data.supportedCompanyChanges.map((company) => (
           <article className="rounded-md border border-[#dfe8f5] p-4" key={company.companyId}>
             <h3 className="text-base font-extrabold text-[#123b7a]">
