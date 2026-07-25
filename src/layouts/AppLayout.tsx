@@ -454,6 +454,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
             </label>
             {(searchStatus.type === "error" || searchStatus.type === "loading") &&
               searchStatus.message &&
+              !isCompanyDashboard &&
               !shouldShowSearchResults && (
                 <p
                   className={`absolute left-5 top-[52px] text-xs font-medium ${searchStatusClassName}`}

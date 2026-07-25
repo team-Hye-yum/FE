@@ -470,7 +470,7 @@ const CompanyTable = ({
       </div>
 
       <div className="mt-8 flex flex-col items-stretch gap-4 sm:mt-[48px] sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-        <h2 className="text-lg font-medium">기업 목록</h2>
+        <h2 className="text-lg font-medium sm:mr-auto">기업 목록</h2>
         <div className="flex h-10 w-full max-w-[280px] items-center gap-2 rounded-[10px] border border-[#e5e5e5] px-3">
           <button
             aria-label="기업일련번호 검색"
