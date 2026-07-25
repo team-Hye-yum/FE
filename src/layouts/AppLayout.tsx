@@ -57,7 +57,7 @@ type CompanyExistenceResponse = {
 const navItems = [
   { label: "기업 조회", to: "/" },
   { label: "사업별 목록화", to: "/business-list" },
-  { label: "BTP 솔루션", to: "/btp-solution" },
+  { label: "부산 리와인드", to: "/busan-rewind" },
 ];
 
 const apiUrl = (path: string) => {
@@ -79,10 +79,12 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   const searchAbortControllerRef = useRef<AbortController | null>(null);
   const selectedSupportProgramLabelRef = useRef("");
   const selectedIndustryLabelRef = useRef("");
+  const isBusanRewind = pathname === "/busan-rewind";
+  const isCompanyDashboard = pathname === "/";
   const canSearchSupportPrograms = pathname === "/business-list";
-  const canSearchIndustries = pathname === "/btp-solution";
+  const canSearchIndustries = pathname === "/btp-solution" || isBusanRewind;
   const searchPlaceholder =
-    pathname === "/" ? "기업 일련번호" : canSearchIndustries ? "산업명" : "사업명";
+    isCompanyDashboard ? "기업 일련번호" : canSearchIndustries ? "산업명" : "사업명";
   const shouldShowSupportProgramResults =
     canSearchSupportPrograms &&
     searchKeyword.trim().length > 0 &&
@@ -103,24 +105,24 @@ const AppLayout = ({ children }: AppLayoutProps) => {
     const industryKeyword = searchParams.get("industryKeyword");
 
     const nextSearchKeyword =
-      pathname === "/" && companyId
+      isCompanyDashboard && companyId
         ? companyId
         : pathname === "/business-list" && programKeyword
           ? programKeyword
-          : pathname === "/btp-solution" && industryKeyword
+          : canSearchIndustries && industryKeyword
             ? industryKeyword
             : "";
 
     selectedSupportProgramLabelRef.current =
       pathname === "/business-list" ? nextSearchKeyword : "";
-    selectedIndustryLabelRef.current = pathname === "/btp-solution" ? nextSearchKeyword : "";
+    selectedIndustryLabelRef.current = canSearchIndustries ? nextSearchKeyword : "";
     setSearchKeyword(nextSearchKeyword);
     setSupportProgramResults([]);
     setIndustryResults([]);
     setActiveResultIndex(-1);
     setSearchStatus({ type: "idle", message: "" });
     searchAbortControllerRef.current?.abort();
-  }, [pathname, search]);
+  }, [canSearchIndustries, isCompanyDashboard, pathname, search]);
 
   useEffect(() => {
     const trimmedKeyword = searchKeyword.trim();
@@ -266,7 +268,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
     if (!trimmedKeyword) {
       setSearchStatus({ type: "idle", message: "" });
       nextSearchParams.delete("companyId");
-      navigate({ pathname: "/", search: nextSearchParams.toString() }, { replace: true });
+      navigate({ pathname, search: nextSearchParams.toString() }, { replace: true });
       return;
     }
 
@@ -309,7 +311,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
 
     setSearchStatus({ type: "idle", message: "" });
     nextSearchParams.set("companyId", trimmedKeyword);
-    navigate({ pathname: "/", search: nextSearchParams.toString() }, { replace: true });
+    navigate({ pathname, search: nextSearchParams.toString() }, { replace: true });
   };
 
   const handleSupportProgramSelect = async (item: SupportProgramSearchItem) => {
@@ -363,19 +365,24 @@ const AppLayout = ({ children }: AppLayoutProps) => {
     setActiveResultIndex(-1);
     setSearchStatus({ type: "idle", message: "" });
     searchAbortControllerRef.current?.abort();
-    nextSearchParams.set("divisionCode", item.divisionCode);
+    if (isBusanRewind) {
+      nextSearchParams.set("industryCode", item.divisionCode);
+      nextSearchParams.delete("divisionCode");
+    } else {
+      nextSearchParams.set("divisionCode", item.divisionCode);
+      nextSearchParams.delete("industryCode");
+    }
     nextSearchParams.set("industryKeyword", label);
     nextSearchParams.delete("sectionCode");
-    nextSearchParams.delete("industryCode");
     nextSearchParams.delete("code");
     nextSearchParams.delete("companyKeyword");
     nextSearchParams.delete("page");
     nextSearchParams.delete("size");
-    navigate({ pathname: "/btp-solution", search: nextSearchParams.toString() });
+    navigate({ pathname: isBusanRewind ? "/busan-rewind" : "/btp-solution", search: nextSearchParams.toString() });
   };
 
   const handleSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (pathname === "/" && event.key === "Enter") {
+    if (isCompanyDashboard && event.key === "Enter") {
       event.preventDefault();
       void submitCompanySearch();
       return;
@@ -437,7 +444,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
               </svg>
               <input
                 className="h-full min-w-0 flex-1 bg-transparent text-base font-medium text-[#333] outline-none placeholder:text-[#999] sm:text-lg"
-                disabled={pathname === "/" && isCompanySearchChecking}
+                disabled={isCompanyDashboard && isCompanySearchChecking}
                 onChange={handleSearchChange}
                 onKeyDown={handleSearchKeyDown}
                 placeholder={searchPlaceholder}

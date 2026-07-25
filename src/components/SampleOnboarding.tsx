@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-type SampleOnboardingVariant = "company-dashboard" | "business-list" | "btp-solution";
+type SampleOnboardingVariant = "company-dashboard" | "business-list" | "btp-solution" | "busan-rewind";
 
 type OnboardingStep = {
   body: string;
@@ -102,6 +102,41 @@ const tourContent: Record<SampleOnboardingVariant, { label: string; steps: Onboa
         selector: '[data-sample-tour="btp-solution-related-notices"]',
         title: "관련 지원공고",
         body: "선택 산업과 연결된 지원사업 공고를 묶어 보여줍니다. 공고를 펼치면 연관 장비까지 이어서 검토할 수 있습니다.",
+      },
+    ],
+  },
+  "busan-rewind": {
+    label: "부산 리와인드",
+    steps: [
+      {
+        selector: '[data-sample-tour="busan-rewind-sample-badge"]',
+        title: "샘플 산업 분석",
+        body: "현재 화면은 API 연결 구조를 확인하기 위한 예시 데이터입니다. 산업 검색을 통해 선택한 코드는 나중에 각 부산 리와인드 API의 industryCode로 전달됩니다.",
+      },
+      {
+        selector: '[data-sample-tour="busan-rewind-current-status"]',
+        title: "현재 산업 현황",
+        body: "current-status API가 연결될 영역입니다. 개인·법인 비중, 종사자 수, 규모별 비중, 구·군별 증감률을 함께 보여줍니다.",
+      },
+      {
+        selector: '[data-sample-tour="busan-rewind-trend-briefing"]',
+        title: "산업 트렌드 브리핑",
+        body: "trend-briefing API가 연결될 영역입니다. 국내외 이슈, 성장률 추이, 부산 연관성, 요약 문구를 표시합니다.",
+      },
+      {
+        selector: '[data-sample-tour="busan-rewind-similar-flow"]',
+        title: "과거 유사 산업 흐름",
+        body: "similar-flow API가 연결될 영역입니다. 유사 기간, 흐름 유형, 지수 시계열과 구간별 변화율을 보여줍니다.",
+      },
+      {
+        selector: '[data-sample-tour="busan-rewind-past-support-review"]',
+        title: "당시 지원사업 검토",
+        body: "past-support-review API가 연결될 영역입니다. 과거 산업 변화, 당시 지원사업, 지원기업 변화를 같은 시기 관찰값으로 살펴봅니다.",
+      },
+      {
+        selector: '[data-sample-tour="busan-rewind-support-comparison"]',
+        title: "현재 지원사업 비교",
+        body: "support-comparison API가 연결될 영역입니다. 과거와 현재의 공통·변경·신규 지원 분야와 트렌드 키워드를 비교합니다.",
       },
     ],
   },
