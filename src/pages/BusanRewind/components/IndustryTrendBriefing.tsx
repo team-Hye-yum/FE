@@ -1,14 +1,5 @@
 import SectionShell from "./SectionShell";
 import type { TrendBriefingData } from "../types";
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 
 type IndustryTrendBriefingProps = {
   data: TrendBriefingData;
@@ -18,9 +9,8 @@ const formatGrowth = (value: number | null) => (value === null ? "-" : `${value 
 
 const IndustryTrendBriefing = ({ data }: IndustryTrendBriefingProps) => (
   <SectionShell dataSampleTour="busan-rewind-trend-briefing" title="산업 트렌드 브리핑">
-    <div className="grid gap-4 lg:grid-cols-3">
+    <div className="grid gap-4 lg:grid-cols-2">
       <TrendPanel data={data} />
-      <GrowthPanel data={data} />
       <div className="rounded-md border border-[#dfe8f5] p-4">
         <h3 className="text-base font-extrabold text-[#123b7a]">과거 대비 변화 & 부산 연관성</h3>
         <ul className="mt-4 space-y-2 text-sm font-semibold leading-6 text-[#394b63]">
@@ -62,31 +52,6 @@ const TrendPanel = ({ data }: { data: TrendBriefingData }) => (
         <li key={issue}>{issue}</li>
       ))}
     </ul>
-  </div>
-);
-
-const GrowthPanel = ({ data }: { data: TrendBriefingData }) => (
-  <div className="rounded-md border border-[#dfe8f5] p-4">
-    <h3 className="text-base font-extrabold text-[#123b7a]">한국은행 업종 성장률</h3>
-    <div className="mt-5 h-44">
-      <ResponsiveContainer height="100%" width="100%">
-        <LineChart data={data.growthSeries} margin={{ bottom: 6, left: -18, right: 10, top: 10 }}>
-          <CartesianGrid stroke="#edf2f8" vertical={false} />
-          <XAxis dataKey="year" tick={{ fill: "#66758c", fontSize: 12, fontWeight: 700 }} tickLine={false} />
-          <YAxis tick={{ fill: "#66758c", fontSize: 12, fontWeight: 700 }} tickLine={false} />
-          <Tooltip formatter={(value) => formatGrowth(Number(value))} />
-          <Line
-            activeDot={{ fill: "#1f67d2", r: 5 }}
-            dataKey="growthRate"
-            dot={{ fill: "#1f67d2", r: 4 }}
-            isAnimationActive={false}
-            stroke="#1f67d2"
-            strokeWidth={3}
-            type="monotone"
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
   </div>
 );
 
