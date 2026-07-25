@@ -424,7 +424,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
 
   return (
     <div className="min-h-screen bg-[#f2f4f8] text-[#333]">
-      <header className="relative z-40 h-[70px] bg-white" data-dashboard-print-exclude>
+      <header className="sticky top-0 z-40 h-[70px] bg-white" data-dashboard-print-exclude>
         <div className="mx-auto flex h-full max-w-[1200px] items-center justify-between gap-2 px-3 sm:gap-4 sm:px-4 lg:gap-8 lg:px-6">
           <NavLink className="shrink-0" to="/">
             <img alt="Data On" className="h-8 w-[108px] sm:h-9 sm:w-[123px]" src="/logo.svg" />
